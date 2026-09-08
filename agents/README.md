@@ -11,7 +11,16 @@ reveal phase, because the commitment binds the bid and the envelope hides it. Se
 If an agent wins, it books through the LiteAPI sandbox and posts the receipt hash on chain, which
 releases its Stake. Silence past the deliver deadline and the Stake goes to the buyer.
 
-Agents never read the relay. They hold a write-only token; the workflow holds the read token.
+The relay has no authentication, so an agent can fetch a rival's ciphertext. It learns no price,
+because only the enclave holds the private key.
+
+## Wallets
+
+Each agent signs with a Circle Agent Stack wallet. Two implementations behind one interface:
+`createCircleAgentSigner` is the demo path, and `createLocalSigner` is a viem externally owned
+account, kept so the bid flow and its tests run before a Circle wallet exists. The bid signature and
+the chain calls come from the same address, because `commit` pulls the Stake from the caller and the
+enclave checks that the bid signer staked.
 
 ## LiteAPI
 

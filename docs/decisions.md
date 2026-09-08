@@ -28,7 +28,7 @@ written until the row is closed.
 | V4 | How are workflow secrets supplied in simulation, and what is the size limit? | open | `docs/scratch/verification/04` |
 | V5 | What is the USDC address on Arc testnet, and how many decimals? What are the faucet limits? | open | `docs/scratch/verification/05` |
 | V6 | Do Privy server wallets sign on chain id 5042002? Do policies accept a custom chain id? Are key quorums on the free tier? | open | `docs/scratch/verification/06` |
-| V7 | Can the Circle Agent Stack create a wallet on Arc testnet in under half a day? | open | `docs/scratch/verification/07` |
+| V7 | Can a Circle Agent Stack wallet be created on Arc testnet, and can it sign a contract call and an EIP-712 bid? | open, priority | `docs/scratch/verification/07` |
 | V8 | Can one workflow run issue two writes to the same contract? | open | `docs/scratch/verification/08` |
 | V9 | Do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment method called? | open | `docs/scratch/verification/09` |
 | V10 | Chainlink Confidential Workflows beta: request sent, response received? | open | `docs/scratch/verification/10` |

@@ -6,7 +6,7 @@ claims it with `startSettling`, and the confidential handler does the rest.
 What happens inside `handlerInTee`, and nowhere else:
 
 - The Policy and the enclave private key are loaded from workflow secrets.
-- The sealed bids are fetched from the relay with the read token and decrypted.
+- The sealed bids are fetched from the relay and decrypted.
 - Every bid's EIP-712 signature is checked, then its commitment is checked against the chain.
 - The bids root is built over **all** on-chain commitments, including any committer whose sealed bid
   never arrived. Building it over only the scored bids would turn one missing blob into a dead
