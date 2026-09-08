@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { policyHash } from "@perdiem/core";
+import { policyHash, type Policy } from "@perdiem/core";
 
 import { createRequisitionApp } from "../src/app.ts";
 
@@ -36,7 +36,26 @@ test("rejects an intent the model could not turn into a valid policy", async () 
 });
 
 test("hashes the confirmed policy the same way every other package does", async () => {
-  const policy = { maxPrice: 520, nights: 2 };
+  // The Policy from docs/spec.md. The placeholder that stood here no longer satisfies the schema
+  // that packages/core now enforces, and an invalid Policy would fail before it was ever hashed.
+  const policy: Policy = {
+    version: 1,
+    currency: "USDC",
+    maxPrice: 520_000_000,
+    nights: 2,
+    hardRequirements: {
+      city: "Paris",
+      checkin: "2026-10-12",
+      checkout: "2026-10-14",
+      minStars: 4,
+      roomType: "double",
+      numberOfRooms: 1,
+      location: { name: "Gare du Nord", latitudeMicro: 48_880_900, longitudeMicro: 2_355_300 },
+      radiusMeters: 2000,
+    },
+    tradeDown: { stars: 3, requiredDiscountPercentage: 30 },
+    preferences: { refundable: 50_000_000, breakfastIncluded: 40_000_000 },
+  };
 
   const response = await createRequisitionApp().request("/confirm", {
     method: "POST",
