@@ -31,7 +31,10 @@ export default function App() {
   return (
     <main>
       <h1>Perdiem</h1>
-      <p className="lede">Corporate hotel booking where the buyer&rsquo;s selection rules stay private.</p>
+      <p className="lede">
+        Corporate hotel booking where the buyer&rsquo;s selection rules stay private and sealed bids
+        guarantee the best deal.
+      </p>
 
       {panels.map((panel) => (
         <section key={panel.title}>

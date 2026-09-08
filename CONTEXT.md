@@ -1,8 +1,8 @@
 # Perdiem
 
-Corporate hotel procurement where the buyer's selection rules stay private. A buyer states a need in
-one sentence, suppliers bid blind, and an enclave picks the winner against a policy nobody else can
-read. The chain pays.
+Corporate hotel booking where the buyer's selection rules stay private and sealed bids guarantee the
+best deal. A buyer states a need in one sentence, suppliers bid blind, and an enclave picks the
+winner against a policy nobody else can read. The chain pays.
 
 ## Language
 
