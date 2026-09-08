@@ -1,14 +1,21 @@
+import { hashTypedData } from "viem";
 import type { Address, Hex, TypedDataDomain } from "viem";
+
+import { bidTypes } from "./bid-hash.ts";
+import { ARC_TESTNET_CHAIN_ID } from "./chain.ts";
 import type { Bid } from "./bid.ts";
 
 /**
  * The EIP-712 domain, fixed per deployment, so a signature for auction 1 on one deployment cannot
  * be replayed against auction 1 on another.
  */
-export function bidDomain(_verifyingContract: Address): TypedDataDomain {
-  throw new Error(
-    "bidDomain is not implemented yet. See docs/scratch/build/issues/03-eip712-bid-hashing-and-commitments.md",
-  );
+export function bidDomain(verifyingContract: Address): TypedDataDomain {
+  return {
+    name: "Perdiem",
+    version: "1",
+    chainId: ARC_TESTNET_CHAIN_ID,
+    verifyingContract,
+  };
 }
 
 /**
@@ -16,8 +23,11 @@ export function bidDomain(_verifyingContract: Address): TypedDataDomain {
  *
  * @param verifyingContract The `SealedAuction` address this bid is for.
  */
-export function bidSigningHash(_bid: Bid, _verifyingContract: Address): Hex {
-  throw new Error(
-    "bidSigningHash is not implemented yet. See docs/scratch/build/issues/03-eip712-bid-hashing-and-commitments.md",
-  );
+export function bidSigningHash(bid: Bid, verifyingContract: Address): Hex {
+  return hashTypedData({
+    domain: bidDomain(verifyingContract),
+    types: bidTypes,
+    primaryType: "Bid",
+    message: bid,
+  });
 }

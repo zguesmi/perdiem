@@ -1,3 +1,4 @@
+import { encodeAbiParameters, keccak256 } from "viem";
 import type { Hex } from "viem";
 
 /**
@@ -6,8 +7,8 @@ import type { Hex } from "viem";
  * The salt lives only here and inside the Sealed Bid. Without it the bid space is small enough that
  * keccak256 brute-forces the commitment in seconds.
  */
-export function bidCommitment(_bidHash: Hex, _salt: Hex): Hex {
-  throw new Error(
-    "bidCommitment is not implemented yet. See docs/scratch/build/issues/03-eip712-bid-hashing-and-commitments.md",
+export function bidCommitment(bidHash: Hex, salt: Hex): Hex {
+  return keccak256(
+    encodeAbiParameters([{ type: "bytes32" }, { type: "bytes32" }], [bidHash, salt]),
   );
 }

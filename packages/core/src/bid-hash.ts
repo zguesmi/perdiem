@@ -1,3 +1,4 @@
+import { hashStruct } from "viem";
 import type { Hex } from "viem";
 import type { Bid } from "./bid.ts";
 
@@ -29,8 +30,6 @@ export const bidTypes = {
  * This is the first of the three hashes `docs/spec.md` keeps apart. It is not what is signed, and
  * it is not the Bid Commitment.
  */
-export function bidHash(_bid: Bid): Hex {
-  throw new Error(
-    "bidHash is not implemented yet. See docs/scratch/build/issues/03-eip712-bid-hashing-and-commitments.md",
-  );
+export function bidHash(bid: Bid): Hex {
+  return hashStruct({ data: bid, primaryType: "Bid", types: bidTypes });
 }
