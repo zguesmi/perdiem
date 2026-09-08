@@ -1,0 +1,27 @@
+{
+  "name": "@perdiem/core",
+  "version": "0.0.0",
+  "description": "Types, schemas, canonical JSON and hashing shared by every Perdiem package.",
+  "main": "./dist/index.js",
+  "scripts": {
+    "test": "tsx --test 'test/**/*.test.ts'",
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": [
+    "dist"
+  ],
+  "private": true,
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "dependencies": {
+    "viem": "^2.56.3",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@perdiem/tsconfig": "workspace:*",
+    "@types/node": "^22.20.1",
+    "tsx": "^4.23.13",
+    "typescript": "~6.0.3"
+  }
+}
