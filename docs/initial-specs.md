@@ -51,12 +51,12 @@ Components:
 Data flow (the bond part will be the last thing to implement):
 1. Buyer types one sentence in `web/`. `desk/` calls the LLM once. Output: Policy JSON (section "Policy JSON"). Zod-validate. Reject on schema failure.
 2. Buyer confirms the JSON in the UI. `desk/` computes `policyHash = keccak256(canonicalJSON(policy))`.
-3. `desk/` stores the policy and the enclave X25519 private key as workflow secrets (CRE secrets, simulation mode) and calls `createAuction(policyHash, publicRequirements, enclavePublicKey, bidDeadline, revealDeadline, deliverDeadline, escrowAmount)`. USDC is pulled in the same call, so the auction is funded the moment it exists.
+3. `desk/` stores the policy and the enclave X25519 private key as workflow secrets (CRE secrets, simulation mode) and calls `createAuction(policyHash, publicRequirements, enclavePublicKey, bidDeadline, settleDeadline, deliverDeadline, escrowAmount)`. USDC is pulled in the same call, so the auction is funded the moment it exists.
 4. Privy: the desk's org wallet signs that `createAuction` call. If `escrowAmount > ceiling`, the Privy key quorum must approve.
 5. Auction state is `Created`. The first `commit` moves it to `Bidding`. Public: `publicRequirements` (city, dates, minimum stars, location, radius, room type, number of rooms, fallback stars) and `enclavePublicKey`. Private: soft requirements, required discount percentage, maximum price.
-6. Each supplier agent builds one Offer (section "Offer"), signs it (EIP-712), and calls `commit(auctionId, keccak256(offer, salt))` with the bond.
-7. Still in `Bidding`: after `bidDeadline`, each agent reveals by encrypting `{offer, salt, signature}` to `enclavePublicKey` and POSTing the ciphertext to `relay/`, before `revealDeadline`. Relay stores the blob, serves only to the workflow, and cannot decrypt it.
-8. After `revealDeadline`: the CRE workflow runs (cron trigger, polls `auctionReadyForScoring`) and calls `startSettling(auctionId)`, moving the auction to `Settling`. DON part reads public commitments from chain. TEE part fetches the sealed offers from relay, fetches the policy secret and the enclave private key, decrypts each blob, verifies the EIP-712 signature, verifies each offer against its commitment, filters feasibility, scores, picks winner, rebuilds `bidsRoot`.
+6. Each supplier agent builds one Offer (section "Offer") and signs it (EIP-712). In one beat, before `bidDeadline`, it calls `commit(auctionId, keccak256(offer, salt))` with the bond **and** POSTs `{offer, salt, signature}` sealed to `enclavePublicKey` to `relay/`. Relay stores the blob, serves only to the workflow, and cannot decrypt it.
+7. There is no separate reveal phase. The commitment binds the offer and the envelope hides it, so nothing is gained by making agents wait. See "Why there is no reveal phase" below.
+8. After `bidDeadline`: the CRE workflow runs (cron trigger, polls `auctionReadyForScoring`) and calls `startSettling(auctionId)`, moving the auction to `Settling`. DON part reads public commitments from chain. TEE part fetches the sealed offers from relay, fetches the policy secret and the enclave private key, decrypts each blob, verifies the EIP-712 signature, verifies each offer against its commitment, filters feasibility, scores, picks winner, rebuilds `bidsRoot`.
 9. TEE part returns only `{auctionId, winner, amount, policyHash, bidsRoot}` to the DON. DON writes the report to `SealedAuction` on Arc testnet.
 10. Contract checks: `policyHash == stored`, `bidsRoot == keccak256(sorted commitments)`, `amount <= escrow`. Pays winner. Refunds buyer. Refunds losers' bonds. State → `Finalized`. Starts the delivery window.
 11. Winner agent books via LiteAPI sandbox (search → prebook → book). Calls `submitReceipt(auctionId, keccak256(bookingId))`. Contract releases the winner's bond.
@@ -139,6 +139,20 @@ This needs no enclave attestation. It reuses the secret-loading path the policy 
 
 What a relay leak now costs an attacker: nothing readable. What it still allows: dropping a blob. That is what `bidsRoot` catches.
 
+#### Why there is no reveal phase
+
+A classic sealed-bid auction splits commit from reveal because reveals are public: reveal early and later bidders read your price and undercut it. Neither half of that applies here.
+
+- The commitment binds the offer. An agent cannot change its price after committing, whenever the blob arrives.
+- The envelope hides the offer. The relay holds ciphertext, so a leak during the bidding window reveals nothing to anyone.
+- Nothing is published between `bidDeadline` and scoring, so a waiting agent learns nothing by waiting.
+
+So the commit and the sealed POST happen in the same beat, both before `bidDeadline`. One deadline, no agent-side timer, and no dead minute in the demo video.
+
+`commit()` still earns its place, for three reasons that have nothing to do with phasing: it pulls the bond, it makes relay tampering detectable, and it is the on-chain set that `bidsRoot` binds the report to. A relay-only design has none of those.
+
+**This depends on "VERIFY before building" item 3.** If the TEE cannot decrypt in-enclave and you fall back to plaintext at the relay, the envelope stops hiding anything and a relay leak during bidding becomes exploitable — a late agent could read a rival's price and undercut it before `bidDeadline`. In that case, and only in that case, reintroduce a `revealDeadline` after `bidDeadline` and hold the POSTs until commits are closed.
+
 ### Settlement report (enclave → DON → chain)
 
 ```solidity
@@ -156,6 +170,8 @@ If no offer is feasible: `winner = address(0), amount = 0`. Contract refunds esc
 `bidsRoot` is what binds the report to the exact set of on-chain commitments, so no offer can be dropped or swapped between the chain and the enclave. It is only meaningful if the **TEE** builds it, not the DON:
 - Preferred: the TEE reads the commitments from chain itself (EVM read inside `handlerInTee`) and hashes the sorted set. See "VERIFY before building" item 2.
 - Fallback if EVM read is not available inside the TEE: the DON passes the commitments in, the TEE recomputes `keccak256(abi.encode(structHash(offer), salt))` for every sealed offer and asserts each one is present in that set, then hashes the sorted set. The guarantee degrades to "the DON did not feed the same lie to both the TEE and the contract". Record which path you took in `docs/decisions.md`.
+
+Either way, build the root over **all** on-chain commitments, including any committer whose sealed offer never arrived or failed to decrypt. Build it over the offers you successfully scored and one missing blob makes the root mismatch, which drops a perfectly good auction into `timeoutRefund`.
 
 ### Receipt
 
@@ -194,31 +210,31 @@ State machine per auction:
 
 ```
 Created   → funds escrowed at creation, no commit yet
-Bidding   → commits until bidDeadline, then sealed offers revealed to
-             relay until revealDeadline
+Bidding   → commit on chain + sealed offer to relay, both until bidDeadline
 Settling  → CRE workflow has claimed the auction and is scoring it
 Finalized → terminal; winner or no winner
-Timeout   → terminal; no report by revealDeadline + 24h, everything refunded
+Timeout   → terminal; no report by settleDeadline, everything refunded
 ```
 
 - `Created → Bidding` on the first `commit`. No extra transaction.
-- `Bidding` spans both windows. Commits are accepted before `bidDeadline`. Reveals go to `relay/`, off chain, between `bidDeadline` and `revealDeadline`. The contract sees nothing during the reveal window, so no state change is needed for it.
-- `Bidding → Settling` is driven by the **CRE workflow**, not by the clock: the workflow calls `startSettling(auctionId)`. `auctionReadyForScoring()` returns true once `block.timestamp >= revealDeadline` and the state is still `Bidding`.
-  - Why not time-based: a time-based flip means the contract cannot tell "the workflow never ran" from "the workflow ran and its report was rejected". With an explicit claim, `Bidding` past `revealDeadline` means the workflow never picked the auction up, and `Settling` means it did. That is the difference between debugging the relay and debugging the report during the demo.
+- `Bidding` has one deadline. The on-chain `commit` and the sealed POST to `relay/` both happen before `bidDeadline`, in either order, normally back to back. The contract never sees the POST.
+- `Bidding → Settling` is driven by the **CRE workflow**, not by the clock: the workflow calls `startSettling(auctionId)`. `auctionReadyForScoring()` returns true once `block.timestamp >= bidDeadline` and the state is still `Bidding`.
+  - Why not time-based: a time-based flip means the contract cannot tell "the workflow never ran" from "the workflow ran and its report was rejected". With an explicit claim, `Bidding` past `bidDeadline` means the workflow never picked the auction up, and `Settling` means it did. That is the difference between debugging the relay and debugging the report during the demo.
   - Cost: one extra on-chain write per auction, from the CRE forwarder.
   - `[VERIFY]` whether one workflow run can issue two `writeReport` calls (claim, then settle). If not, split them across two cron ticks and drop the simulation cron to 20 s so the demo does not stall.
 - `Settling → Finalized` on a valid `onReport`, with or without a winner.
-- `Bidding → Timeout` or `Settling → Timeout` on `timeoutRefund`.
+- `Bidding → Timeout` or `Settling → Timeout` on `timeoutRefund`, once past `settleDeadline`.
+  - `settleDeadline` exists to stop a race. If the refund path opened at `bidDeadline`, any losing bidder could call `timeoutRefund` a second later and kill the auction before the enclave ever ran. The gap has to cover the cron interval plus `startSettling` plus scoring plus `onReport` — a few minutes, not a day. Set it to `bidDeadline + 3 min` for the demo.
 - Delivery is **not** a state. After `Finalized`, the receipt and the winner's bond are fields on the auction: `receiptHash`, `bondReleased`, `bondSlashed`.
 
 Functions:
-- `createAuction(bytes32 policyHash, PublicRequirements publicRequirements, bytes32 enclavePublicKey, uint64 bidDeadline, uint64 revealDeadline, uint64 deliverDeadline, uint256 escrowAmount) returns (bytes32 auctionId)` — buyer only. `enclavePublicKey` is the X25519 public half agents seal their offers to. USDC `transferFrom` buyer for `escrowAmount` in the same call. Emits `AuctionCreated` with the public requirements and `enclavePublicKey`. Records `block.number` as `policyCommittedAt`. State → `Created`. The buyer cannot withdraw after this call except via `timeoutRefund`.
+- `createAuction(bytes32 policyHash, PublicRequirements publicRequirements, bytes32 enclavePublicKey, uint64 bidDeadline, uint64 settleDeadline, uint64 deliverDeadline, uint256 escrowAmount) returns (bytes32 auctionId)` — buyer only. `enclavePublicKey` is the X25519 public half agents seal their offers to. Requires `block.timestamp < bidDeadline < settleDeadline < deliverDeadline`; revert otherwise, so no auction can exist that is undeliverable or unslashable. USDC `transferFrom` buyer for `escrowAmount` in the same call. Emits `AuctionCreated` with the public requirements and `enclavePublicKey`. Records `block.number` as `policyCommittedAt`. State → `Created`. The buyer cannot withdraw after this call except via `timeoutRefund`.
 - `commit(bytes32 auctionId, bytes32 commitment)` — any address, once, before `bidDeadline`. Pulls `BOND` USDC (constant, 50 USDC). Emits `Committed`. State → `Bidding`.
-- `startSettling(bytes32 auctionId)` — CRE forwarder only. Requires state `Bidding` and `block.timestamp >= revealDeadline`. State → `Settling`. Emits `SettlingStarted`.
+- `startSettling(bytes32 auctionId)` — CRE forwarder only. Requires state `Bidding` and `block.timestamp >= bidDeadline`. State → `Settling`. Emits `SettlingStarted`.
 - `onReport(bytes metadata, bytes report)` — called only by the CRE forwarder (use Chainlink `ReceiverTemplate`, forwarder address from the Arc testnet forwarder directory). Decodes `Settlement`. Requires: state `Settling`; `policyHash` match; `bidsRoot` match; `amount <= escrow`; `winner` has a commitment or is `address(0)`. Pays winner, refunds buyer remainder, refunds losers' bonds. State → `Finalized`.
 - `submitReceipt(bytes32 auctionId, bytes32 receiptHash)` — winner only, state `Finalized`, before `deliverDeadline`. Releases the winner's bond. Sets `receiptHash` and `bondReleased`.
 - `slash(bytes32 auctionId)` — anyone, state `Finalized`, after `deliverDeadline` with no receipt. Bond → buyer. Sets `bondSlashed`.
-- `timeoutRefund(bytes32 auctionId)` — anyone, state `Bidding` or `Settling`, after `revealDeadline + 24h` with no report. Refunds escrow and all bonds. State → `Timeout`. Liveness escape hatch. Document it as such.
+- `timeoutRefund(bytes32 auctionId)` — anyone, state `Bidding` or `Settling`, after `settleDeadline` with no report. Refunds escrow and all bonds. State → `Timeout`. Liveness escape hatch. Document it as such.
 
 Invariants:
 - Sum of USDC out ≤ sum of USDC in, per auction.
@@ -226,7 +242,7 @@ Invariants:
 - Buyer cannot withdraw between `createAuction` and `Finalized` except via `timeoutRefund`.
 - `Finalized` and `Timeout` are terminal. No transition out of either.
 
-Tests: happy path with the demo table above; wrong `policyHash` rejected; wrong `bidsRoot` rejected; `startSettling` from a non-forwarder address rejected; `onReport` before `startSettling` rejected; no-winner path; slash path; timeout path.
+Tests: happy path with the demo table above; wrong `policyHash` rejected; wrong `bidsRoot` rejected; `startSettling` from a non-forwarder address rejected; `onReport` before `startSettling` rejected; `timeoutRefund` before `settleDeadline` rejected; out-of-order deadlines rejected at `createAuction`; no-winner path; slash path; timeout path.
 
 USDC on Arc testnet: address `[VERIFY]`. Decimals `[VERIFY]` — Arc native gas is USDC with 18 decimals; the ERC-20 used for escrow may differ. Do not hardcode 6 before checking.
 
@@ -250,7 +266,7 @@ Must not: log the policy, the maximum price, the soft requirements, the enclave 
 Three processes, same code, different config:
 - `rate plan`: hotelId, stars, distance in km, base price, refundable, breakfast, margin.
 - Signal: on start, call LiteAPI sandbox `hotels` + `rates` for the public requirements and pick a real hotelId and a real rate as the base price. Then apply the rate plan. This is the "decision logic tied to real signals" for the Arc track.
-- Behavior: read `AuctionCreated`, build one Offer, sign, `commit` with bond, wait for `bidDeadline`, then reveal by sealing `{offer, salt, signature}` to `enclavePublicKey` and POSTing the ciphertext to `relay/` before `revealDeadline`.
+- Behavior: read `AuctionCreated`, build one Offer, sign, then in one beat `commit` with the bond and POST `{offer, salt, signature}` sealed to `enclavePublicKey` to `relay/`. Both before `bidDeadline`. No timer, no second phase.
 - Winner behavior: on `Finalized` with `winner == self`: LiteAPI `prebook` then `book` with sandbox payment method. Then `submitReceipt(keccak256(bookingId))`. Print the booking response.
 - Agents must not read the relay. Enforce with the bearer token: agents have write-only tokens; the workflow has the read token.
 
@@ -278,7 +294,7 @@ No design work beyond a clean default theme. No mobile layout.
 - 0:00 The sentence on screen. "Paris, 12–14 Oct, one double room, 4★ minimum, within 2 km of Gare du Nord. Free cancellation is worth up to 12% more. Breakfast worth up to €20 a night. I would accept 3★ if at least 30% cheaper."
 - 0:15 Policy JSON, confirm, commit tx, block number. "Committed before any offer exists."
 - 0:30 Privy funding with quorum approval. "Human before irreversible."
-- 0:45 Three commitments arrive. Hashes only.
+- 0:45 Three commitments arrive on chain, three sealed blobs arrive at the relay. Hashes and ciphertext only.
 - 0:55 Simulation log: policy loaded in the TEE, three sealed offers decrypted and verified, scoring done. "The relay never saw a price." "This is a CRE simulation. Confidential Workflows is in private beta."
 - 1:10 Settlement tx. Winner C at 440. Refund 80. "The cheapest lost. The second cheapest won."
 - 1:25 Show the three offers. Show why: A failed the 30% rule, B lost on cancellation and breakfast.
@@ -291,7 +307,7 @@ No design work beyond a clean default theme. No mobile layout.
 Day 0 (today): section "VERIFY before building". Sign up: CRE, Privy, LiteAPI, Arc faucet. Request CRE confidential beta. Repo skeleton, CI for Foundry tests.
 Day 1–2: `contracts/` complete with the tests listed above. Deployed on Arc testnet. Done: all tests green, addresses in `docs/decisions.md`.
 Day 3: `workflow/` scoring unit tests green (demo table). CRE simulation runs end to end and writes a report to Arc testnet. Done: `docs/evidence/` has a log.
-Day 4: `agents/` and `relay/`. Three commits, three reveals to the relay, one LiteAPI sandbox booking, receipt on chain. Done: full flow runs from a single script `scripts/demo.sh`.
+Day 4: `agents/` and `relay/`. Three commits, three sealed blobs at the relay, one LiteAPI sandbox booking, receipt on chain. Done: full flow runs from a single script `scripts/demo.sh`.
 Day 5: `desk/` with Privy funding and quorum. Done: `createAuction` tx originates from the Privy org wallet.
 Day 6: `web/` five panels. Architecture diagram (`docs/architecture.md` with Mermaid, export PNG). README.
 Day 7: video, submission text for 3 partners, final `docs/evidence/`.
@@ -302,7 +318,7 @@ If behind by day 4: cut Privy quorum to policy-only. If behind by day 5: cut the
 
 1. CRE: does `cre workflow simulate` broadcast a real write to Arc testnet with the simulation forwarder? Which forwarder address?
 2. CRE: can confidential HTTP be called inside `handlerInTee` in simulation? Can EVM read? The EVM read answer decides which `bidsRoot` path you take.
-3. CRE: can `handlerInTee` load an X25519 private key from secrets and decrypt a sealed box in-enclave? Confirm the TEE runtime exposes crypto beyond hashing, and which library is available. If it does not, fall back to plaintext at the relay behind the bearer token and record the weaker guarantee in `docs/decisions.md`.
+3. CRE: can `handlerInTee` load an X25519 private key from secrets and decrypt a sealed box in-enclave? Confirm the TEE runtime exposes crypto beyond hashing, and which library is available. If it does not, fall back to plaintext at the relay behind the bearer token, reintroduce a `revealDeadline` (see "Why there is no reveal phase"), and record both in `docs/decisions.md`.
 4. CRE: how are secrets supplied in simulation, and what is the size limit? The policy JSON plus the enclave private key must fit.
 5. Arc testnet: USDC ERC-20 address and decimals. Faucet amounts and rate limit.
 6. Privy: do server wallets sign on chain id 5042002? Do policy rules accept a custom chain id? Are key quorums available on the free tier?
