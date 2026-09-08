@@ -22,7 +22,7 @@ out of it were made on that data. What the partner technologies actually do, wha
 does, and what the idea has to be worth to be worth building.
 
 **Output:** `docs/initial-spec.md`. That file is frozen. It is the record of what the idea looked
-like before anyone argued with it.
+like at the beginning.
 
 ### Phase 2 — Spec hardening
 
@@ -62,12 +62,4 @@ Pending. This file is updated as each phase completes.
 
 ## Where the prompts live
 
-Every prompt and spec file lives in this repository, as ETHGlobal requires:
-
-- `docs/initial-spec.md` — the frozen output of phase 1. It sits in `docs/`, not `docs/ai/`, because
-  it is the product specification rather than a prompt
-- `docs/grilling-session.md` — the phase 2 questions, requests and decisions
-- `CLAUDE.md` — the standing instructions Claude Code reads on every session
-- `docs/spec.md` — the live specification, and what everything is built against
-- `docs/agents/` — how the skills consume this repository
-- `docs/ai/intent-prompt.md` — the system prompt for the one LLM call the product itself makes. Pending.
+TODO
