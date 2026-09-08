@@ -1,5 +1,6 @@
 import { hashStruct } from "viem";
 import type { Hex } from "viem";
+import { assertBid } from "./bid.ts";
 import type { Bid } from "./bid.ts";
 
 /**
@@ -31,5 +32,7 @@ export const bidTypes = {
  * it is not the Bid Commitment.
  */
 export function bidHash(bid: Bid): Hex {
+  assertBid(bid);
+
   return hashStruct({ data: bid, primaryType: "Bid", types: bidTypes });
 }

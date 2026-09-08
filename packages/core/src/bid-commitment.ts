@@ -1,6 +1,8 @@
 import { encodeAbiParameters, keccak256 } from "viem";
 import type { Hex } from "viem";
 
+import { assertBytes32 } from "./bid.ts";
+
 /**
  * The Bid Commitment placed on chain with the Stake: `keccak256(abi.encode(bidHash, salt))`.
  *
@@ -8,6 +10,9 @@ import type { Hex } from "viem";
  * keccak256 brute-forces the commitment in seconds.
  */
 export function bidCommitment(bidHash: Hex, salt: Hex): Hex {
+  assertBytes32("bidHash", bidHash);
+  assertBytes32("salt", salt);
+
   return keccak256(
     encodeAbiParameters([{ type: "bytes32" }, { type: "bytes32" }], [bidHash, salt]),
   );

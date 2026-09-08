@@ -3,6 +3,7 @@ import type { Address, Hex, TypedDataDomain } from "viem";
 
 import { bidTypes } from "./bid-hash.ts";
 import { ARC_TESTNET_CHAIN_ID } from "./chain.ts";
+import { assertBid } from "./bid.ts";
 import type { Bid } from "./bid.ts";
 
 /**
@@ -24,6 +25,8 @@ export function bidDomain(verifyingContract: Address): TypedDataDomain {
  * @param verifyingContract The `SealedAuction` address this bid is for.
  */
 export function bidSigningHash(bid: Bid, verifyingContract: Address): Hex {
+  assertBid(bid);
+
   return hashTypedData({
     domain: bidDomain(verifyingContract),
     types: bidTypes,
