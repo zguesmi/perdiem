@@ -14,3 +14,8 @@ packages:
 # esbuild is pulled in by tsx, the loader that runs node:test over TypeScript.
 allowBuilds:
   esbuild: true
+
+# pnpm holds back packages published very recently. Hardhat 3.16.0 is newer than that threshold and
+# is the version the project is pinned to, so it is excluded from the hold.
+minimumReleaseAgeExclude:
+  - hardhat@3.16.0
