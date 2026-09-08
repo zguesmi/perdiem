@@ -8,3 +8,5 @@ node_modules/
 *.log
 .pnpm-store/
 .pnpm-cache/
+
+!docs/evidence/*.log
