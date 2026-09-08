@@ -1,0 +1,10 @@
+{
+  "name": "@perdiem/tsconfig",
+  "version": "0.0.0",
+  "description": "Shared TypeScript configuration for every Perdiem package.",
+  "private": true,
+  "type": "module",
+  "files": [
+    "base.json"
+  ]
+}
