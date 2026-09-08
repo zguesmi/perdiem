@@ -9,11 +9,11 @@ Two gaps, one ticket, because they are the same boundary.
 `## Prompts` section waiting for it. ETHGlobal requires every prompt to be in the repository, so
 this is a submission requirement and not a nicety.
 
-The prompt has to state: the exact Policy schema from `docs/spec.md`, integers only, USDC minor
-units, metres, microdegrees, and the conversion the service is responsible for — "12% more" and "20
-a night" become flat per-trip numbers before the buyer sees them. It also has to state what the
-model must not invent: no preference the sentence does not mention, and no maximum price the
-sentence does not imply.
+The prompt has to state the exact Policy schema from `docs/spec.md`, integers only, USDC minor
+units, metres, microdegrees, and the conversion the service is responsible for. "12% more" and "20 a
+night" become flat per-trip numbers before the buyer sees them. It also has to state what the model
+must not invent: no preference the sentence does not mention, and no maximum price the sentence does
+not imply.
 
 **The test seam.** `requisition/test/intent.test.ts` exists but a test that calls a real model is
 not a test: it is slow, it costs money, it needs a key in continuous integration, and it fails for
@@ -28,7 +28,7 @@ What the tests then state, at the HTTP level and with no network:
 - A second failure returns an error, and no Policy Hash is computed and nothing is written on chain.
 - A completion carrying a fractional price is rejected, not rounded. Rounding silently changes what
   the buyer confirmed.
-- One live test, skipped unless a key is present, so the real prompt is exercised by hand before the
+- One live test, skipped unless a key is present, so a human runs the real prompt by hand before the
   demo and never in continuous integration.
 
 Also record which model parses the intent, in `docs/ai/README.md` beside the prompt. The README's AI

@@ -1,7 +1,7 @@
 # Verified facts
 
 Things with a single right answer, checked rather than assumed. Trade-offs live in `docs/adr/`
-instead, and the reasoning behind the project's shape lives in `docs/grilling-session.md`.
+instead, and the reasoning behind the project's shape is in `docs/grilling-session.md`.
 
 Each open row has a ticket in `docs/scratch/verification/`. Nothing downstream of an open row gets
 written until the row is closed.

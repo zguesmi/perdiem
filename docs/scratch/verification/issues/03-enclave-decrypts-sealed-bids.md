@@ -13,6 +13,6 @@ Confirm which crypto library the enclave runtime exposes beyond hashing.
 
 - [ ] Row V3 is answered, naming the crypto the enclave runtime exposes beyond hashing.
 - [ ] A sealed box decrypted inside the handler is in `docs/evidence/`, or the failure is.
-- [ ] A no answer is followed by a written decision on the reveal deadline, not by silence.
+- [ ] A no answer produces a written decision on the reveal deadline, not silence.
 
 ## Comments

@@ -33,8 +33,8 @@ Four things this ticket had left implicit, now decided:
   in a hashed document is a hash divergence waiting to happen. The demo distances are 500, 700 and
   1000 metres.
 - **The decimal count is one constant.** It comes from
-  `../../verification/issues/05-arc-usdc-address-and-decimals.md` and lives in `packages/core`. If
-  it is 18 rather than 6, only the fixture regenerates; no rule changes, because every comparison in
+  `../../verification/issues/05-arc-usdc-address-and-decimals.md` and is in `packages/core`. If it
+  is 18 rather than 6, only the fixture regenerates; no rule changes, because every comparison in
   scoring is between two amounts in the same unit.
 - **Canonical encoding is RFC 8785 restricted to integers**, not the looser "sorted keys, no
   whitespace, UTF-8" prose, which two conformant implementations can satisfy while producing

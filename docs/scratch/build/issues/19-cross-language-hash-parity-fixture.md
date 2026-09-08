@@ -26,13 +26,13 @@ divergence names itself: the failing test says which hash and which side.
 
 What has to be true:
 
-- The fixture lives in `packages/core` and is exported, so `workflow/` and the supplier agents can
+- The fixture is in `packages/core` and is exported, so `workflow/` and the supplier agents can
   import it and the Solidity tests can read the same JSON from disk.
 - The TypeScript test asserts all four.
 - A Solidity test asserts the `bidHash`, the commitment and the Bids Root against the same strings.
   The Policy Hash has no Solidity side; the contract only compares what it was given.
 - The Bids Root case uses at least three commitments in a deliberately unsorted arrival order, so
-  that the ascending-byte sort is actually exercised, and one case with no commitments, which is
+  that the ascending-byte sort is exercised, and one case with no commitments, which is
   `bytes32(0)`.
 - Regenerating the fixture is a script, not a hand edit, and the script is what runs when `version`
   changes.
@@ -44,7 +44,7 @@ picking the wrong one passes every test written on one side alone.
 
 ## Acceptance criteria
 
-- [ ] The fixture lives in `packages/core`, is exported for TypeScript, and is readable as JSON from
+- [ ] The fixture is in `packages/core`, is exported for TypeScript, and is readable as JSON from
       disk by the Solidity tests.
 - [ ] It carries a Policy, a Bid, a salt, at least three commitments in a deliberately unsorted
       arrival order, one empty set, and the four expected hex strings.

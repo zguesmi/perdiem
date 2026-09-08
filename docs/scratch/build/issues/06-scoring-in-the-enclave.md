@@ -5,9 +5,9 @@ Status: ready-for-agent Type: task Blocked by: 01
 `workflow/src/scoring.ts` still declares `distanceKm` and plain `number` prices. Ticket 01 settled
 on `distanceMeters` and integer minor units, so correcting the stub's interface is part of the work.
 
-Scope boundary: this ticket is the pure scoring function. The rest of the Enclave pipeline —
-decrypt, check the signature, check the commitment, build the Bids Root — is `docs/spec.md` step 7
-and is owned by no ticket in this backlog. Flagged, not fixed here.
+Scope boundary: this ticket is the pure scoring function. The rest of the Enclave pipeline is
+`docs/spec.md` step 7 and no ticket in this backlog owns it. That pipeline decrypts, checks the
+signature, checks the commitment, and builds the Bids Root. Flagged, not fixed here.
 
 `workflow/` already carries the demo table as a red test: three bids arrive, the cheapest loses, the
 second cheapest wins at 440. Make it pass.

@@ -35,9 +35,8 @@ raised 10 challenges and instructions of their own. Both are recorded, separatel
 transcript.
 
 What it settled: the repository layout, the toolchain, the test strategy, the secrets layout, the
-issue tracker shape, and the domain vocabulary. It also found two defects in the initial spec — the
-budget leaking the maximum price on chain, and two words used for one concept across seven
-components.
+issue tracker shape, and the domain vocabulary. It also found two defects in the initial spec. The
+budget leaked the maximum price on chain, and seven components used two words for one concept.
 
 **Output:** `docs/grilling-session.md`.
 
@@ -50,10 +49,11 @@ The renames and corrections the grilling session settled, applied to a single li
 
 ### Phase 4 — Scaffolding
 
-Done in Claude Code. Every package was created with its own official init command where one exists —
-`hardhat --init`, `pnpm create vite`, `pnpm create hono` — and `pnpm init` where none does. Each
-package carries the first real test taken from the specification, and those tests are red on
-purpose: they state what has to be true, and the tickets in `docs/scratch/build/` make them pass.
+Done in Claude Code. Every package uses its own official init command where one exists:
+`hardhat --init`, `pnpm create vite`, `pnpm create hono`. A package with no official command uses
+`pnpm init`. Each package carries the first real test taken from the specification, and those tests
+are red on purpose: they state what has to be true, and the tickets in `docs/scratch/build/` make
+them pass.
 
 **Output:** the workspace, `CONTEXT.md`, `docs/adr/`, `docs/decisions.md`, and the two backlogs in
 `docs/scratch/`.

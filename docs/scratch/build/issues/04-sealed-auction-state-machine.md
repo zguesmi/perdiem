@@ -20,7 +20,7 @@ Bids Root both match; the buyer cannot withdraw between creation and settlement 
 `timeoutRefund`; Finalized and Timeout are terminal.
 
 One test per row of the "Every USDC in and out" table in `docs/spec.md`. Nine hundred USDC enters
-escrow in the demo — a 750 Budget and three 50 Stakes — and each of the five terminal paths returns
+escrow in the demo, a 750 Budget and three 50 Stakes. Each of the five terminal paths returns
 exactly that. Asserting the invariant as a sentence is not the same as asserting it as five numbers.
 
 `pendingSettlement`, `commitmentsOf` and `auctionOf` are ticket 20, not this one, but the storage
@@ -31,7 +31,7 @@ Blocked on the USDC decimals, because every figure in the tests depends on them.
 
 ## Acceptance criteria
 
-- [ ] Each of the five rows of “Every USDC in and out” is one test asserting exact balances for
+- [ ] Each of the five rows of "Every USDC in and out" is one test asserting exact balances for
       buyer, winner, losers and the contract, and the contract balance is zero at the end of each.
 - [ ] `commit` is once per address, before `bidDeadline`, and pulls `STAKE`.
 - [ ] The first commit moves `Created → Bidding` with no extra transaction.

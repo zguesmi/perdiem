@@ -3,7 +3,7 @@ paths:
   - "**/*.md"
 ---
 
-# Prose Rules
+# Prose rules
 
 Applies to every markdown file, plus issue text and commit bodies.
 

@@ -21,6 +21,6 @@ signs with Circle Agent Stack wallets, and an agent that reaches for a private k
       `bidDeadline`.
 - [ ] The bid signer address and the committing address are identical, and a test states it.
 - [ ] `auctionId` is read from `AuctionCreated` and never derived.
-- [ ] A LiteAPI failure falls back to the fake client, so the flow still runs on stage.
+- [ ] A LiteAPI failure falls back to the fake client, so the flow still runs during the demo.
 
 ## Comments

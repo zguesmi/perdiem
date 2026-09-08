@@ -20,7 +20,7 @@ for toolbox-specific guidance (clients, contract interaction, assertions).
 
 ## Working in this repository
 
-Domain vocabulary lives in the root `CONTEXT.md`. Contract naming follows it: Budget, Payout, Stake,
+Domain vocabulary is in the root `CONTEXT.md`. Contract naming follows it: Budget, Payout, Stake,
 Bid, Bid Commitment, Bids Root, Settlement. Escrow is the custody role this contract plays, not a
 separate contract.
 

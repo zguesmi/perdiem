@@ -7,7 +7,7 @@ true.
 
 Verifying them would mean the Enclave calling a hotel content API for every bid and treating that
 answer as authoritative. That is a second confidential HTTP dependency, a second failure mode in the
-demo path, and a new trust assumption — the content API becomes able to decide auctions. It also
+demo path, and a new trust assumption. The content API becomes able to decide auctions. It also
 would not close the hole: refundability and breakfast are properties of a rate, not of a hotel, and
 rate content is exactly what a supplier is in the best position to misreport.
 
@@ -25,6 +25,6 @@ The Stake is the only enforcement, so its size is a product decision rather than
 constant. At 50 USDC against a 440 payout it deters an idle lie and not a determined one, which is
 acceptable for a demo and would not be for a deployment.
 
-A later version could escrow against the Receipt's content rather than its existence — parse the
+A later version could escrow against the Receipt's content rather than its existence. Parse the
 LiteAPI booking response and slash on a mismatch between what was booked and what was bid. That is
 the natural next step and it is out of scope here.

@@ -6,7 +6,7 @@ paths:
   - "**/*.js"
 ---
 
-# Coding Rules
+# Coding rules
 
 ## Comments
 

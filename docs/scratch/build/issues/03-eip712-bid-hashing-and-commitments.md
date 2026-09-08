@@ -4,8 +4,8 @@ Status: ready-for-agent Type: task Blocked by: none (can start immediately)
 
 The chain id in the EIP-712 domain comes from
 `../verification/issues/12-arc-chain-id-and-rpc-endpoint.md`, which is open. A wrong chain id
-verifies locally and is rejected by the Enclave. Keep it in one constant, so a late answer costs one
-line and a regenerated fixture rather than a rewrite.
+verifies locally, and the Enclave rejects the bid. Keep it in one constant, so a late answer costs
+one line and a regenerated fixture rather than a rewrite.
 
 Three hashes, and `docs/spec.md` keeps them apart on purpose: `bidHash` is the EIP-712 `hashStruct`
 with no salt and no domain; the signature is over `keccak256(0x1901 ‖ domainSeparator ‖ bidHash)`;

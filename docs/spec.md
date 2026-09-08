@@ -17,8 +17,8 @@ submit one Sealed Bid. The Enclave scores them against the private Policy and re
 winner and the Payout. The contract pays the winner, refunds the rest, and holds the winner's Stake
 until a booking Receipt arrives.
 
-The money shot: three bids arrive, the cheapest loses, the second cheapest wins. The buyer pays more
-than the cheapest on purpose, for what the private Policy values.
+The result that matters: three bids arrive, the cheapest loses, the second cheapest wins. The buyer
+pays more than the cheapest on purpose, for what the private Policy values.
 
 Tagline: "Commit the policy. Score in the enclave. The chain pays."
 
@@ -100,7 +100,7 @@ regenerated fixture.
 - Every number is an integer: money in USDC minor units, distance in metres, coordinates in
   microdegrees. A fraction has more than one shortest decimal form, and one digit of disagreement
   between two encoders produces two Policy Hashes.
-- The decimal count lives in one constant in `packages/core`. Nothing hardcodes 6.
+- The decimal count is one constant in `packages/core`. Nothing hardcodes 6.
 - The requisition service converts what the buyer typed into these integers once, before the buyer
   confirms. Nothing downstream converts anything.
 - A Preference Bonus is a flat number, not a rate: "20 a night" becomes what it is worth on this
@@ -300,9 +300,9 @@ Timeout   → terminal, everything refunded
 
 - `Created → Bidding` on the first commit, with no extra transaction. The contract never sees the
   sealed post.
-- `Bidding → Settling` is driven by `startSettling`, not by the clock. A time-based flip cannot tell
-  "the workflow never ran" from "the workflow ran and its settlement was rejected". It costs one
-  extra write and it says which service to debug on stage.
+- `startSettling` drives `Bidding → Settling`, not the clock. A time-based flip cannot tell "the
+  workflow never ran" from "the workflow ran and its settlement was rejected". It costs one extra
+  write and it says which service to debug during the demo.
 - `Settling → Finalized` on a valid settlement, with or without a winner.
 - Either state `→ Timeout` through `timeoutRefund`, past `finalizeDeadline`.
 - Delivery is not a state. After `Finalized`, `receiptHash`, `stakeReleased` and `stakeSlashed` are
@@ -331,7 +331,7 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
   Stake.
 - `slash(auctionId)` — anyone, after `deliverDeadline` with no Receipt. The Stake goes to the buyer.
 - `timeoutRefund(auctionId)` — anyone, from `Bidding` or `Settling`, after `finalizeDeadline` with
-  no settlement. Refunds the Budget and every Stake. A liveness escape hatch, documented as one.
+  no settlement. Refunds the Budget and every Stake. A liveness fallback, documented as one.
 
 Three views, because the workflow holds no state of its own:
 
@@ -379,12 +379,12 @@ breakfast, margin.
 - On winning: prebook, book with the sandbox payment method, post the Receipt.
 
 Each agent holds a Circle Agent Stack wallet, and that wallet signs the `commit` and the
-`submitReceipt` calls. This is the Arc track's agentic-economy story, so it ships, not a
-nice-to-have. Two signer implementations sit behind one interface: `createCircleAgentSigner` is the
-demo path and `createLocalSigner` is a viem externally owned account, kept so the bid flow and its
-tests run before a Circle wallet exists. The bid flow never sees the difference. The fallback ships
-only if `docs/scratch/verification/issues/07-circle-agent-stack-wallets.md` says the Circle wallet
-cannot sign on Arc testnet.
+`submitReceipt` calls. This is what the Arc track asks for, so it ships. It is required, not
+optional. Two signer implementations sit behind one interface: `createCircleAgentSigner` is the demo
+path and `createLocalSigner` is a viem externally owned account, kept so the bid flow and its tests
+run before a Circle wallet exists. The bid flow never sees the difference. The fallback ships only
+if `docs/scratch/verification/issues/07-circle-agent-stack-wallets.md` says the Circle wallet cannot
+sign on Arc testnet.
 
 ## Requisition service
 
@@ -395,7 +395,7 @@ cannot sign on Arc testnet.
 - Privy: the organization wallet signs. Its policy allows USDC transfers to `SealedAuction` and
   nothing else. Above the ceiling, a key quorum of two signs, travel manager and finance, and both
   approvals show on the page.
-- The ceiling is 500 USDC and the demo Budget is 750, so the quorum fires on camera every time. A
+- The ceiling is 500 USDC and the demo Budget is 750, so the quorum fires in the video every time. A
   Budget under 500 goes through on the policy alone, which is the path the tests use.
 
 ## Links

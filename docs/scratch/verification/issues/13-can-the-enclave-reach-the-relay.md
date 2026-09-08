@@ -9,8 +9,8 @@ all. This asks the narrower question the demo actually depends on: whether that 
 
 If the simulation executes the handler in a container or a sandbox with its own network namespace,
 `http://localhost:8787` resolves inside that namespace and the relay is unreachable. The failure
-looks like every sealed bid being missing, which ends in a refund with no winner — the one outcome
-the demo cannot survive.
+looks like every sealed bid being missing, which ends in a refund with no winner. That is the one
+outcome the demo cannot survive.
 
 What to establish, in this order:
 

@@ -22,8 +22,8 @@ microdegrees.
 
 The restriction is what makes RFC 8785 safe here. Its number rule is ECMAScript's
 `Number::toString`, which is exact and unambiguous for integers and merely well-defined for
-fractions — well-defined is enough for a conformant implementation and not enough for a hand-written
-one, and the Enclave runtime is where a hand-written one is most likely to appear.
+fractions. Well-defined is enough for a conformant implementation and not enough for a hand-written
+one. The Enclave runtime is where a hand-written one is most likely to appear.
 
 ## Consequences
 

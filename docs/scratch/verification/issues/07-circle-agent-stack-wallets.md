@@ -3,9 +3,9 @@
 Status: ready-for-human Type: research Blocked by: 05-arc-usdc-address-and-decimals.md,
 12-arc-chain-id-and-rpc-endpoint.md
 
-This is a priority row, not a nice-to-have. Goal 7 in `docs/spec.md` says the supplier agent wallets
-come from the Circle Agent Stack, so the Arc track's agentic-economy story rests on this answer. Do
-it early, before the bid flow is wired.
+This is a priority row, not optional. Goal 7 in `docs/spec.md` says the supplier agent wallets come
+from the Circle Agent Stack, so the Arc track's agentic-economy story rests on this answer. Do it
+early, before the bid flow is wired.
 
 Three things to establish, in this order:
 

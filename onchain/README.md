@@ -1,13 +1,10 @@
-# Sample Hardhat 3 Project (`node:test` and `viem`)
+# Onchain
 
-This project showcases a Hardhat 3 project using the native Node.js test runner (`node:test`) and
-the `viem` library for Ethereum interactions.
+The `SealedAuction` contract and its tests. Hardhat 3, the Node.js test runner (`node:test`), and
+`viem` for Ethereum calls.
 
-To learn more about Hardhat 3, please visit the
-[Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To
-share your feedback, join our [Hardhat 3](https://hardhat.org/hardhat3-telegram-group) Telegram
-group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue
-tracker.
+Hardhat 3 reference: the
+[Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3).
 
 ## Commands
 
@@ -31,59 +28,54 @@ npx hardhat test nodejs     # test/*.ts, which need @perdiem/core
 There is no deployment command yet. `ignition/modules/` is empty, and `hardhat.config.ts` still has
 the template's `sepolia` network rather than Arc testnet, chain id 5042002.
 
-## Project Overview
+## What is here
 
-This example project includes:
-
-- A simple Hardhat configuration file.
+- One Hardhat configuration file.
 - Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native
-  test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating
-  OP mainnet.
+- TypeScript integration tests that use [`node:test`](https://nodejs.org/api/test.html) and
+  [`viem`](https://viem.sh/).
+- Template examples that connect to several network types, including a local simulation of OP
+  mainnet.
 
 ## Usage
 
-### Running Tests
+### Running tests
 
-To run all the tests in the project, execute the following command:
+Run every test:
 
 ```shell
 npx hardhat test
 ```
 
-You can also selectively run the Solidity or `node:test` tests:
+Run one kind of test:
 
 ```shell
 npx hardhat test solidity
 npx hardhat test nodejs
 ```
 
-### Make a deployment to Sepolia
+### Deploy to Sepolia
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module
-to a locally simulated chain or to Sepolia.
+Template leftover. `ignition/modules/` is empty and this repository targets Arc testnet, so the
+commands below do not work yet.
 
-To run the deployment to a local chain:
+Deploy to a local chain:
 
 ```shell
 npx hardhat ignition deploy ignition/modules/Counter.ts
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The
-provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which
-you can use to set the private key of the account you want to use.
+A Sepolia deployment needs a funded account. The Hardhat configuration reads a configuration
+variable named `SEPOLIA_PRIVATE_KEY`. Set it with the `hardhat-keystore` plugin or as an environment
+variable.
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it
-as an environment variable.
-
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+Set it with `hardhat-keystore`:
 
 ```shell
 npx hardhat keystore set SEPOLIA_PRIVATE_KEY
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+Then deploy to Sepolia:
 
 ```shell
 npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
