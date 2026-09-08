@@ -39,8 +39,6 @@ function encode(value: unknown, path: string, ancestors: Set<object>): string {
       throw reject(path, "is a symbol, which is not JSON");
     case "object":
       return encodeObject(value, path, ancestors);
-    default:
-      throw reject(path, `is a ${typeof value}, which is not JSON`);
   }
 }
 
