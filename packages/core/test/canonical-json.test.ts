@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 
 import { canonicalJson } from "../src/canonical-json.ts";
 
-// These properties hold whatever the Policy schema turns out to be, so they are safe to assert
-// before docs/scratch/build/01 is resolved. They are red until canonicalJson is implemented.
+// These properties hold for any document the encoder is given, so they are stated once here and
+// not repeated per schema. The rule they implement is docs/adr/0003-canonical-encoding.md.
 
 test("sorts object keys", () => {
   assert.equal(canonicalJson({ b: 1, a: 2 }), '{"a":2,"b":1}');

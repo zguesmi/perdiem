@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { USDC_DECIMALS, usdcMinorUnits } from "../src/usdc.ts";
 
 // Every amount in a Policy, a Bid and the contract is in USDC minor units. The decimal count is
-// one constant, because docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md may
-// still change it, and a second copy of the number is a second thing to change.
+// one constant, because docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md has
+// not answered yet, and a second copy of the number is a second thing to change.
 
 test("scales by the decimal constant, not by a literal", () => {
   assert.equal(usdcMinorUnits(1), 10 ** USDC_DECIMALS);

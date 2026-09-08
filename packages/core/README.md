@@ -30,6 +30,13 @@ Nothing here is served or started; this package is a library.
 
 ## Status
 
-Every function throws. The tests state what they must do, and they are red until
-`docs/scratch/build/01-policy-schema-and-scoring-formula.md` is resolved. Nothing is written against
-the `Policy` type until then.
+The canonical encoder, the `Policy` schema and the Policy Hash are implemented, and the golden
+fixture the Enclave asserts against is `test/fixtures/policy-hash.json`: the Policy, its canonical
+bytes and its hash. Regenerate it whenever the schema changes, and bump `version` when you do.
+
+`USDC_DECIMALS` is 6 until `docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md`
+answers what the Arc testnet USDC uses. If the answer is not 6, that constant and the fixture change
+and no scoring rule does.
+
+Bid hashing and the Bids Root are not here yet. They arrive with
+`docs/scratch/build/issues/03-eip712-bid-hashing-and-commitments.md`.

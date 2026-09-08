@@ -4,9 +4,9 @@ import { parseUnits } from "viem";
  * How many decimal places the escrow USDC uses. The one place the number lives: the Budget, the
  * Payout, the Stake, the maximum price and every Preference Bonus are all denominated with it.
  *
- * Verified in docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md. If it turns out
- * to be something other than 6, only this line and the golden fixture change; no scoring rule
- * does, because every comparison is between two amounts in the same unit.
+ * Six until docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md answers what the
+ * Arc testnet USDC actually uses. If the answer is not 6, only this line and the golden fixture
+ * change; no scoring rule does, because every comparison is between two amounts in the same unit.
  */
 export const USDC_DECIMALS = 6;
 
