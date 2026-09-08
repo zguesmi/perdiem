@@ -8,6 +8,11 @@ paths:
 
 # Coding rules
 
+## Names
+
+Write short fully qualified names. No acronyms. Rename `req`, `cfg` and `impl` to the words they
+stand for.
+
 ## Comments
 
 Write a comment only when it carries information the code cannot: the reason behind a choice, a
