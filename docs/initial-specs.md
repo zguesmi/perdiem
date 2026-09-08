@@ -1,4 +1,4 @@
-# SPEC — Sealed Desk: confidential hotel procurement with a private buyer policy
+# SPEC — Sealed Desk: sealed-bid hotel booking with a private buyer policy
 
 
 ## How to use this file

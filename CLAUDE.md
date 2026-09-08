@@ -1,5 +1,7 @@
 # sealedesk
 
+Read the initial specs file @docs/initial-specs.md
+
 ## Agent skills
 
 ### Issue tracker
