@@ -5,7 +5,7 @@ import type { Bid } from "../src/bid.ts";
 
 type BidHashFixture = {
   readonly eip712Type: string;
-  readonly domain: { readonly verifyingContract: Address };
+  readonly domain: { readonly chainId: number; readonly verifyingContract: Address };
   readonly bid: Omit<Bid, "price"> & { readonly price: string };
   readonly salt: Hex;
   readonly expected: {
@@ -25,6 +25,7 @@ export const eip712Type = fixture.eip712Type;
 export const salt = fixture.salt;
 export const expected = fixture.expected;
 export const verifyingContract = fixture.domain.verifyingContract;
+export const chainId = fixture.domain.chainId;
 
 export const bid: Bid = {
   auctionId: fixture.bid.auctionId,

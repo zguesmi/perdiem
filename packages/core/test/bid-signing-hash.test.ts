@@ -5,7 +5,7 @@ import { concat, keccak256, pad, toBytes, toHex } from "viem";
 import { bidHash } from "../src/bid-hash.ts";
 import { bidDomain, bidSigningHash } from "../src/bid-signing-hash.ts";
 import { ARC_TESTNET_CHAIN_ID } from "../src/chain.ts";
-import { bid, expected, verifyingContract } from "./bid-fixture.ts";
+import { bid, chainId, expected, verifyingContract } from "./bid-fixture.ts";
 
 const domainSeparator = keccak256(
   concat([
@@ -42,4 +42,10 @@ test("binds the signature to one deployment", () => {
 
 test("matches the golden fixture", () => {
   assert.equal(bidSigningHash(bid, verifyingContract), expected.signingHash);
+});
+
+// Verification 12 is open. When it answers, this is the test that says the constant moved and the
+// fixture did not, instead of a hash mismatch that names nothing.
+test("was generated with the chain id the code signs with", () => {
+  assert.equal(chainId, ARC_TESTNET_CHAIN_ID);
 });
