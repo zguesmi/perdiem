@@ -338,4 +338,3 @@ If behind by day 4: cut Privy quorum to policy-only. If behind by day 5: cut the
 - Privy docs: https://docs.privy.io/
 - LiteAPI reference: https://docs.liteapi.travel/reference
 - LiteAPI booking step: https://docs.liteapi.travel/docs/step-4-booking-a-room
-             
