@@ -10,3 +10,7 @@ packages:
 # package.json, and a workspace member it does not know about is a member it will overwrite.
 # It reaches packages/core through a file: dependency instead. Revisit once the CLI's behaviour
 # is verified.
+# pnpm refuses to run a dependency's install scripts unless it is allowed here.
+# esbuild is pulled in by tsx, the loader that runs node:test over TypeScript.
+allowBuilds:
+  esbuild: true
