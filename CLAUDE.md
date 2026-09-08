@@ -1,6 +1,4 @@
-# sealedesk
-
-Read the initial specs file @docs/initial-specs.md
+Read the initial specs file @docs/initial-spec.md
 
 ## Agent skills
 

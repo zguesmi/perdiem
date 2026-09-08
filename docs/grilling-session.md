@@ -53,10 +53,10 @@ Yes, but not to anything containing "report".
 `finalizeDeadline`. Also remove "report" from the prose.
 
 **Q14 — Where does the Hardhat project sit, given the template hardcodes `contracts/` for sources?**
-Rename the component directory to `chain/`, so the generated layout is untouched.
+Rename the component directory to `onchain/`, so the generated layout is untouched.
 
 **Q15 — What do the packages without an init command get?**
-`pnpm init` plus a shared `@sealedesk/tsconfig` package. Keep the agent documentation the Hardhat template generates, then trim it.
+`pnpm init` plus a shared `@perdiem/tsconfig` package. Keep the agent documentation the Hardhat template generates, then trim it.
 
 **Q16 — Which external dependencies get fakes?**
 All three: LiteAPI, Privy, and the enclave handler runner.
@@ -87,7 +87,7 @@ Nothing removed. Two lines added: a pointer to the root glossary, and a note tha
 ## Round 5 — Layout, records and glossary
 
 **Q24 — Are package names scoped?**
-Yes, `@sealedesk/*`.
+Yes, `@perdiem/*`.
 
 **Q25 — What format is the decisions file?**
 A facts table plus an evidence appendix.
@@ -104,7 +104,7 @@ A backlog ticket, blocked by the beta access verification ticket.
 ## Round 6 — Monorepo shape and a spec defect
 
 **Q29 — Flat layout, everything under `packages/`, or `apps/` plus `packages/`?**
-Flat. `chain/` is neither an app nor a library, so a two-bucket convention would need three buckets. Add `workflow/` to the workspace later if the CRE CLI tolerates it.
+Flat. `onchain/` is neither an app nor a library, so a two-bucket convention would need three buckets. Add `workflow/` to the workspace later if the CRE CLI tolerates it.
 
 **Q30 — What are the buyer's locked funds and the winner's payment called?**
 Budget and Payout.
@@ -138,7 +138,7 @@ A `file:../packages/core` dependency, guarded by a fixture hash test that fails 
 `requisition/`. Plus a note: find a way to generate the enclave key so that nobody but the enclave can decrypt a bid.
 
 **Q39 — What shape are the preferences?**
-`preferences: [{ attribute, bonus }]`.
+A keyed map rather than an array, so no attribute can appear twice. Refined in Q47.
 
 ## Round 9 — Final sweep
 
@@ -146,7 +146,7 @@ A `file:../packages/core` dependency, guarded by a fixture hash test that fails 
 Spell out words, keep unit symbols, and keep `min` and `max`. So `attr` becomes `attribute`; `maxPrice`, `minStars`, `radiusKm` and `distanceKm` stay.
 
 **Q41 — Where do the renames land?**
-`docs/initial-specs.md` is frozen in place. `docs/spec.md` becomes the live source, and `CLAUDE.md` points there.
+`docs/initial-spec.md` is frozen in place. `docs/spec.md` becomes the live source, and `CLAUDE.md` points there.
 
 **Q42 — Would `shared/core` be better than `packages/core`?**
 No. `packages/*` is the glob every JavaScript monorepo tool expects; `shared/` is a category name, and category directories attract junk.
@@ -161,7 +161,23 @@ Artifacts. Hardhat generates an `artifacts/` directory, so the other spelling re
 Stake. `BOND` becomes `STAKE`; `bondReleased` and `bondSlashed` become `stakeReleased` and `stakeSlashed`.
 
 **Q46 — Does the bonus carry a unit field?**
-No. The bonus is a plain number and the attribute implies the unit: a `refundable` bonus is a percentage of the bid price, a `breakfast` bonus is an amount per night. The glossary must state the mapping.
+No. The bonus is a plain number. What that number means is settled in Q47.
+
+---
+
+## Round 10 — Simplification
+
+**Q47 — Does a preference carry an implied unit, or a flat number?**
+A flat total in USDC minor units, keyed by attribute: `preferences: { refundable: 50, breakfastIncluded: 40 }`. The requisition service converts percentages and per-night amounts at parse time, so the buyer confirms concrete numbers and the enclave only sums. The bid field `breakfast` becomes `breakfastIncluded`, so the policy keys equal the bid attribute names. What is lost: a refundable bonus no longer scales with the bid price.
+
+**Q48 — What goes in the root ignore file?**
+Only what is repository wide: `node_modules/`, the `.env` rules, `*.local` and `*.local.*`, `.DS_Store`, `*.log`. Every package keeps its own, and each init command writes one. No `typechain-types/`, because Hardhat 3 with the viem toolbox does not use TypeChain.
+
+**Q49 — What is the contracts directory called, so it is not confused with local chain infrastructure?**
+`onchain/`.
+
+**Q50 — What is the first build ticket?**
+Agree the Policy JSON schema and the scoring formula. Every other build ticket carries `Blocked by: 01`, so nothing is written against a moving schema.
 
 ---
 
@@ -172,10 +188,10 @@ No. The bonus is a plain number and the attribute implies the unit: a `refundabl
 | Decision | Settled |
 | --- | --- |
 | Scope | Documentation plus skeleton. Real red tests, no implementation |
-| Layout | Flat: `chain/`, `workflow/`, `agents/`, `requisition/`, `relay/`, `web/`, plus `packages/core` and `packages/tsconfig` |
+| Layout | Flat: `onchain/`, `workflow/`, `agents/`, `requisition/`, `relay/`, `web/`, plus `packages/core` and `packages/tsconfig` |
 | Package manager | pnpm 12.3.4 |
 | Workspace | Everything except `workflow/`; add it later if the CRE CLI tolerates it |
-| Package names | Scoped, `@sealedesk/*` |
+| Package names | Scoped, `@perdiem/*` |
 | Contracts | Hardhat 3.16.0, template `node-test-runner-viem`, solc 0.8.34, forge-std 1.16.2 |
 | Contract tests | Solidity for the state machine and access control; TypeScript with viem for EIP-712 and the bids root |
 | Init commands | `hardhat --init`, `pnpm create vite`, `cre init`, `pnpm create hono` twice; `pnpm init` for the libraries |
@@ -185,11 +201,13 @@ No. The bonus is a plain number and the attribute implies the unit: a `refundabl
 | Continuous integration | Two jobs: contracts, and TypeScript with typecheck and lint |
 | First tests | Real red tests taken from the spec, one per package |
 | Mocks | Fakes for LiteAPI, Privy and the enclave handler runner. Fakes may run the handler; fakes may never generate evidence |
-| Secrets | Root file for shared values, per package for scoped secrets; `chain/` uses `configVariable()` |
+| Secrets | Root file for shared values, per package for scoped secrets; `onchain/` uses `configVariable()` |
 | Tracker | `.scratch/verification/` and `.scratch/build/`, committed, public, never holding a secret |
 | Records | `docs/decisions.md` is a facts table plus an evidence appendix; `docs/adr/` holds trade-offs only |
 | Records written now | `0001-no-reveal-phase`, `0002-scoring-is-not-shared` |
-| Spec | `docs/initial-specs.md` frozen in place; `docs/spec.md` becomes the live source |
+| Spec | `docs/initial-spec.md` frozen in place, old name kept; `docs/spec.md` becomes the live source |
+| Project name | Perdiem. Scope `@perdiem/*` |
+| Root ignore file | Minimal and repository wide only; every package keeps its own |
 
 ### Vocabulary
 
@@ -211,14 +229,16 @@ Terms removed: Offer, Desk, Feasible, Fallback Tier, Credit, Bond, soft requirem
 - `Offer` becomes `Bid`, the sealed envelope becomes `SealedBid`, the on-chain hash becomes `BidCommitment`.
 - `escrowAmount` becomes `budget`; the settlement's `amount` becomes `payout`.
 - `BOND` becomes `STAKE`; `bondReleased` and `bondSlashed` become `stakeReleased` and `stakeSlashed`.
-- `softRequirements` becomes `preferences`, shaped `[{ attribute, bonus }]` with the unit implied by
-  the attribute.
+- `softRequirements` becomes `preferences`, a map from attribute to a flat bonus in USDC minor units:
+  `{ refundable: 50, breakfastIncluded: 40 }`. The bid field `breakfast` becomes `breakfastIncluded`.
 - `fallback` becomes `tradeDown`.
 - The budget is padded above the maximum price. Demo numbers: budget 750, maximum price 520, payout
   440, refund 310.
 - The score formula keeps the maximum price term for readability, and the glossary records that it is
   rank neutral.
-- Component directory `contracts/` becomes `chain/`; `desk/` becomes `requisition/`.
+- Component directory `contracts/` becomes `onchain/`; `desk/` becomes `requisition/`.
+- Demo table under flat bonuses: A is ineligible on the trade-down rule, B scores 120, C scores
+  80 + 50 + 40 = 170 and wins at 440. The cheapest still loses.
 - `attr` becomes `attribute`. `min` and `max` prefixes stay. Unit symbols such as `Km` stay.
 
 ### Recorded as later work

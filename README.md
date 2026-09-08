@@ -1,3 +1,3 @@
-# sealedesk
+# Perdiem
 
-Sealed-bid hotel booking with a private buyer policy.
+Corporate hotel booking where the buyer's selection rules stay private.
