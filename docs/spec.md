@@ -48,7 +48,7 @@ Non-goals, deliberately cut:
 
 | Directory | What it is |
 | --- | --- |
-| `onchain/` | `SealedAuction.sol` on Arc testnet, chain id 5042002. Hardhat 3, solc 0.8.34 |
+| `onchain/` | `SealedAuction.sol` on Arc testnet, chain id 5042002 pending `docs/scratch/verification/issues/12`. Hardhat 3, solc 0.8.34 |
 | `workflow/` | The Chainlink CRE workflow. Scoring runs inside `handlerInTee` |
 | `agents/` | Three supplier agents. One wraps the LiteAPI sandbox |
 | `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding |
@@ -68,7 +68,7 @@ Non-goals, deliberately cut:
 5. State is `Created`. Public: the Public Requirements and the enclave public key. Private: the
    preferences, the Trade-Down discount, and the maximum price.
 6. Each agent builds one Bid, signs it with EIP-712, and in one beat commits
-   `keccak256(structHash(bid), salt)` on chain with its Stake and posts the Sealed Bid to the relay.
+   `keccak256(abi.encode(bidHash, salt))` on chain with its Stake and posts the Sealed Bid to the relay.
    Both before `bidDeadline`. The first commit moves the auction to `Bidding`.
 7. There is no reveal phase. See `docs/adr/0001-no-reveal-phase.md`.
 8. After `bidDeadline` the workflow claims the auction with `startSettling`, then the Enclave fetches
@@ -86,15 +86,16 @@ Non-goals, deliberately cut:
 
 Private. Only its hash reaches the chain.
 
-**This section is what `docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md` settles.** The
-shape below is the agreed direction, not the agreed schema. Nothing is written against it until that
-ticket is resolved.
+This is the settled schema, closed by
+`docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md`. Code may be written against it.
+Changing a field name, a unit or a number here changes every Policy Hash, so a change means a new
+`version` and a regenerated hash fixture.
 
 ```json
 {
   "version": 1,
   "currency": "USDC",
-  "maxPrice": 520,
+  "maxPrice": 520000000,
   "nights": 2,
   "hardRequirements": {
     "city": "Paris",
@@ -103,34 +104,55 @@ ticket is resolved.
     "minStars": 4,
     "roomType": "double",
     "numberOfRooms": 1,
-    "location": { "name": "Gare du Nord", "latitude": 48.8809, "longitude": 2.3553 },
-    "radiusKm": 2
+    "location": {
+      "name": "Gare du Nord",
+      "latitudeMicro": 48880900,
+      "longitudeMicro": 2355300
+    },
+    "radiusMeters": 2000
   },
   "tradeDown": {
     "stars": 3,
     "requiredDiscountPercentage": 30
   },
   "preferences": {
-    "refundable": 50,
-    "breakfastIncluded": 40
+    "refundable": 50000000,
+    "breakfastIncluded": 40000000
   }
 }
 ```
 
+Every number above is an integer. No field in a Policy or a Bid is ever a fraction, because a
+fraction has more than one shortest decimal form in some encoders and two encoders that disagree by
+one digit produce two different Policy Hashes, which kills the auction. So money is minor units,
+distance is metres, and coordinates are microdegrees.
+
+The example is written at 6 decimals. The real decimal count comes from
+`docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md` and lives in exactly one
+constant in `packages/core`. If it turns out to be 18, only the fixture is regenerated; no rule and no
+formula changes, because every comparison in scoring is between two amounts in the same unit.
+
 Rules:
 
-- Every amount is an integer in USDC minor units once inside code. The example above uses whole units
-  for readability; conversion happens at the boundary.
+- Every amount is an integer in USDC minor units. The conversion from what the buyer typed happens
+  once, in the requisition service, before the buyer confirms. Nothing downstream converts anything.
 - A Preference Bonus is a flat number, not a rate. The requisition service converts what the buyer
   says — "12% more", "20 a night" — into what it is worth on this trip, before the buyer confirms.
   The buyer confirms concrete numbers, not a formula. What this loses: a refundable bonus no longer
   scales with the bid price.
-- Canonical JSON means sorted keys, no insignificant whitespace, UTF-8. One function, in
-  `packages/core`, used by the requisition service and the Enclave. Tested to produce the same hash on
-  both sides.
+- `version` and `currency` are inside the hash and are read by nothing during scoring. `version`
+  makes a schema change a different hash instead of a silent reinterpretation. `currency` makes a
+  future non-USDC Policy hash differently from today's.
+- `nights` is inside the hash and is read by nothing during scoring either. It is the divisor the
+  requisition service used to turn "20 a night" into a flat bonus, kept so that the Policy revealed
+  after settlement explains its own numbers.
+- Canonical encoding is RFC 8785 JSON Canonicalization Scheme, restricted to integers: no fractional
+  numbers, no exponents, no `null`, no absent-versus-undefined ambiguity. One function, in
+  `packages/core`, used by the requisition service and the Enclave, with a golden fixture both sides
+  assert against. See `docs/adr/0003-canonical-encoding.md`.
 
 Public Requirements, emitted in `AuctionCreated`: city, checkin, checkout, minStars, roomType,
-numberOfRooms, location, radiusKm, and `tradeDown.stars`.
+numberOfRooms, location, radiusMeters, and `tradeDown.stars`.
 
 Never emitted: `maxPrice`, `tradeDown.requiredDiscountPercentage`, `preferences`.
 
@@ -144,6 +166,23 @@ So the Budget is padded above the maximum price. In the demo: Budget 750, maximu
 
 This is a workaround, not a fix. The ceiling is still bounded from above by what anyone can see.
 
+### Auction identity and the signing domain
+
+`auctionId` is a monotonic counter cast to `bytes32`: the first auction is `0x00…01`. A counter is
+enough because a Bid signature is domain-separated, so a signature made for auction 1 on one
+deployment cannot be replayed against auction 1 on another.
+
+The EIP-712 domain is fixed for a deployment:
+
+```
+name              "Perdiem"
+version           "1"
+chainId           the Arc testnet chain id
+verifyingContract the SealedAuction address
+```
+
+Suppliers do not derive `auctionId`. They read it from `AuctionCreated`.
+
 ### Bid
 
 Signed by the supplier with EIP-712.
@@ -155,8 +194,8 @@ Signed by the supplier with EIP-712.
   "hotelId": "lp1a2b3",
   "hotelName": "Awesome Hotel",
   "stars": 4,
-  "distanceKm": 1,
-  "price": 440,
+  "distanceMeters": 1000,
+  "price": 440000000,
   "refundable": true,
   "breakfastIncluded": true,
   "roomType": "double",
@@ -165,8 +204,42 @@ Signed by the supplier with EIP-712.
 }
 ```
 
-The Bid Commitment is `keccak256(abi.encode(structHash(bid), salt))`. The salt stays out of the
-struct hash.
+The EIP-712 type is:
+
+```
+Bid(bytes32 auctionId,address supplier,string hotelId,string hotelName,uint8 stars,
+    uint32 distanceMeters,uint256 price,bool refundable,bool breakfastIncluded,
+    string roomType,uint8 numberOfRooms)
+```
+
+Three hashes, and the difference between them matters, because getting them the wrong way round is
+how honest bids get dropped:
+
+- `bidHash` is the EIP-712 `hashStruct` of the type above. No salt, no domain.
+- The signature is over `keccak256(0x1901 ‖ domainSeparator ‖ bidHash)`.
+- The Bid Commitment is `keccak256(abi.encode(bidHash, salt))`.
+
+The salt stays out of the struct hash, so the signature can be checked without it, and the
+commitment cannot be brute-forced with it.
+
+`hotelName` is signed and never scored. It exists so that the page can name the winner without a
+second lookup.
+
+### What a Bid is not
+
+The Enclave checks that a Bid was signed by the address that staked, and that it matches the
+commitment placed before the deadline. It does not check that the Bid is true. `stars`,
+`distanceMeters`, `refundable` and `breakfastIncluded` are self-attested by the supplier, and no
+oracle contradicts them.
+
+So the guarantee is narrower than "the best hotel wins". It is: the buyer's rule stayed private, the
+bids were sealed and single-shot, and the payout went to the supplier that claimed the best fit
+against that rule. A supplier that lies wins the auction and then has to produce a booking Receipt
+for what it claimed, or lose its Stake. That is the only enforcement, and it is deliberate. See
+`docs/adr/0004-bid-attributes-are-self-attested.md`.
+
+The demo agents price from real LiteAPI sandbox rates, so the numbers on screen are real even though
+nothing in the protocol requires them to be.
 
 ### Sealed Bid
 
@@ -192,6 +265,27 @@ Known limitation: today `requisition/` generates the keypair, so the buyer holds
 could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer. See
 `docs/scratch/build/issues/16-enclave-key-generation.md`.
 
+### The relay interface
+
+Two static bearer tokens from the environment, one write and one read. The relay stores bytes and
+nothing else: it parses no ciphertext, knows no deadline, and holds no auction state.
+
+| Call | Token | Behaviour |
+| --- | --- | --- |
+| `PUT /auctions/{auctionId}/bids/{supplier}` | write | Body is the raw ciphertext, at most 16 KiB. `201` on the first write for that pair, `409` on any later one |
+| `GET /auctions/{auctionId}/bids` | read | `200` with `[{ supplier, ciphertext }]`, ascending by supplier address. `[]` for an unknown auction |
+
+Rules the tests state:
+
+- A write token on the `GET` is `403`, not `404`. A supplier must not be able to read a rival's blob,
+  and must not be able to learn whether one exists.
+- A read token on the `PUT` is `403`.
+- Over the size cap is `413`.
+- First write wins. A supplier that posts the wrong blob cannot replace it, because its commitment is
+  already on chain and unchangeable; letting it overwrite would only let it swap the bid behind a
+  fixed commitment, which the Enclave would then drop anyway.
+- No delete, no auction listing, no enumeration of suppliers by anyone holding the write token.
+
 ### Settlement
 
 ```solidity
@@ -200,7 +294,7 @@ struct Settlement {
   address winner;
   uint256 payout;      // USDC minor units, first price
   bytes32 policyHash;
-  bytes32 bidsRoot;    // keccak256 over the sorted bid commitments
+  bytes32 bidsRoot;    // see below: keccak256 over the sorted bid commitments
 }
 ```
 
@@ -216,6 +310,19 @@ or swapped between the chain and the Enclave. It only means that if the **Enclav
   and the contract".
 
 Which path applies is `docs/scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md`.
+
+The construction is exact, because the contract recomputes it and a one-byte difference rejects a
+correct settlement:
+
+```
+bidsRoot = keccak256(abi.encodePacked(sorted))   // sorted: every commitment for the auction,
+                                                 // ascending as unsigned 32-byte big-endian
+bidsRoot = bytes32(0)                            // when there are no commitments at all
+```
+
+Duplicates cannot occur, because `commit` is once per address. The contract stores commitments in
+arrival order and sorts a memory copy when it verifies, which is an insertion sort over a handful of
+entries.
 
 Either way the root covers **all** on-chain commitments, including any committer whose Sealed Bid
 never arrived or failed to decrypt. Build it over only the scored bids and one missing blob turns a
@@ -235,7 +342,7 @@ Inside the Enclave. Deterministic integer arithmetic.
 2. Eligibility, per bid:
    - city, checkin and checkout equal the hard requirements.
    - roomType and numberOfRooms equal the hard requirements.
-   - `distanceKm <= radiusKm`.
+   - `distanceMeters <= radiusMeters`.
    - `price <= maxPrice`.
    - `stars >= minStars`, **or** the Trade-Down applies: `stars == tradeDown.stars` and
      `price * 100 <= cheapestEligibleAtMinStars * (100 - tradeDown.requiredDiscountPercentage)`.
@@ -256,17 +363,31 @@ because it makes scores positive and readable during the demo.
 ### The demo table
 
 All bids are one double room, two nights. Budget 750, maximum price 520, `refundable` 50,
-`breakfastIncluded` 40.
+`breakfastIncluded` 40. Whole USDC here for reading; the test carries the same figures in minor
+units.
 
 | Bid | Stars | Distance | Price | Refundable | Breakfast | Result |
 | --- | --- | --- | --- | --- | --- | --- |
-| A | 3 | 0.5 km | 330 | yes | no | Ineligible. 330 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
-| B | 4 | 0.7 km | 400 | no | no | Score 120 |
-| C | 4 | 1.0 km | 440 | yes | yes | Score 80 + 50 + 40 = **170. Wins** |
+| A | 3 | 500 m | 330 | yes | no | Ineligible. 330 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
+| B | 4 | 700 m | 400 | no | no | Score 120 |
+| C | 4 | 1000 m | 440 | yes | yes | Score 80 + 50 + 40 = **170. Wins** |
 
 Payout 440, refund 310. A and B get their Stakes back at settlement; C's is released on the Receipt.
 
 This table is a test in `workflow/`, and it is red until scoring is implemented.
+
+### Every USDC in and out
+
+Nine hundred USDC enters escrow: the 750 Budget from the buyer and three 50 Stakes. Every terminal
+path returns exactly that, and each row is a contract test.
+
+| Path | Out |
+| --- | --- |
+| Winner, Receipt posted | 440 winner, 310 buyer, 100 losing Stakes, 50 winner Stake |
+| Winner, silence, then slashed | 440 winner, 310 buyer, 100 losing Stakes, 50 Stake to buyer |
+| No Eligible bid | 750 buyer, 150 Stakes |
+| Timeout from `Bidding` or `Settling` | 750 buyer, 150 Stakes |
+| No commit before `bidDeadline`, then timeout | 750 buyer, nothing else entered |
 
 ## Contract
 
@@ -298,7 +419,15 @@ Timeout   → terminal, everything refunded
 
 `finalizeDeadline` exists to stop a race. If refunds opened at `bidDeadline`, any losing bidder could
 kill the auction a second later, before the Enclave ever ran. The gap has to cover the cron interval,
-the claim, scoring and the settlement write: a few minutes. `bidDeadline + 3 minutes` for the demo.
+the claim, scoring and the settlement write: a few minutes.
+
+Demo values, all passed to `createAuction`, none of them constants in the contract:
+
+```
+bidDeadline       creation + 90 seconds
+finalizeDeadline  bidDeadline + 180 seconds
+deliverDeadline   finalizeDeadline + 600 seconds
+```
 
 ### Functions
 
@@ -323,6 +452,15 @@ the claim, scoring and the settlement write: a few minutes. `bidDeadline + 3 min
   settlement. Refunds the Budget and every Stake. This is a liveness escape hatch, and it is
   documented as one.
 
+Three views, because the workflow has no state of its own and has to ask:
+
+- `pendingSettlement() → bytes32` — the lowest `auctionId` in `Bidding` with
+  `block.timestamp >= bidDeadline`, or `bytes32(0)` when there is none. This is what the cron reads.
+- `commitmentsOf(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this set.
+- `auctionOf(auctionId) → Auction` — state, buyer, deadlines, Policy Hash, enclave public key,
+  Budget, winner, Payout, `receiptHash`, `stakeReleased`, `stakeSlashed`. One call for the page and
+  one for the workflow.
+
 ### Invariants
 
 - USDC out never exceeds USDC in, per auction.
@@ -344,8 +482,7 @@ decimals and the ERC-20 used for escrow may differ, so nothing hardcodes 6.
 ## CRE workflow
 
 - Start from `cre init --template=hello-confidential-workflows-ts`.
-- A cron trigger, every 60 seconds in simulation, asks the contract whether an auction is ready. If
-  none, exit.
+- A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`, exit.
 - Claim it with `startSettling` before doing any scoring work.
 - Read the commitments and pass them into the confidential handler. The workflow nodes do not compute
   the Bids Root.
@@ -383,6 +520,9 @@ breakfast, margin.
 - Privy: the organization wallet signs. Its policy allows USDC transfers to `SealedAuction` and
   nothing else. Above the ceiling, a key quorum of two signs: travel manager and finance. Both
   approvals show on the page.
+- The ceiling is 500 USDC. The demo Budget is 750, so the quorum fires on camera every time rather
+  than being described. A Budget under 500 goes through on the policy alone, which is the path the
+  tests use when they are not exercising the quorum.
 
 ## The page
 

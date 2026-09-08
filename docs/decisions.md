@@ -33,6 +33,8 @@ written until the row is closed.
 | V9 | Do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment method called? | open | `docs/scratch/verification/09` |
 | V10 | Chainlink Confidential Workflows beta: request sent, response received? | open | `docs/scratch/verification/10` |
 | V11 | Which Hardhat `chainType` does Arc testnet need: `l1` or `generic`? | open | `docs/scratch/verification/11` |
+| V12 | What is the Arc testnet chain id, its public RPC URL and its explorer base URL? | open | `docs/scratch/verification/12` |
+| V13 | Can the confidential handler reach a relay running on the developer's machine? | open | `docs/scratch/verification/13` |
 
 ## Evidence
 

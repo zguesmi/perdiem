@@ -2,18 +2,6 @@ Read the live specification @docs/spec.md
 
 ## Agent skills
 
-### Issue tracker
-
-Issues live as markdown files under `docs/scratch/<feature>/` in this repo. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default five roles, label string equals role name. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
-
-## Coding rules
-
-- Comments, naming, and style. See `docs/agents/coding.md`.
+- Issues: markdown files under `docs/scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+- Triage labels: five roles, label string equals role name. See `docs/agents/triage-labels.md`.
+- Domain docs: `CONTEXT.md` plus `docs/adr/` at repo root. See `docs/agents/domain.md`.

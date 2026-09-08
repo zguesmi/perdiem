@@ -1,6 +1,12 @@
-# Coding Rules
+---
+paths:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.sol"
+  - "**/*.js"
+---
 
-Rules for writing code in this repo. Read before editing or creating source files.
+# Coding Rules
 
 ## Comments
 

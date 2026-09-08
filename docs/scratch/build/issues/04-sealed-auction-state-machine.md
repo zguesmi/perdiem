@@ -12,6 +12,14 @@ The invariants to test: money out never exceeds money in; no payout unless the P
 Bids Root both match; the buyer cannot withdraw between creation and settlement except through
 `timeoutRefund`; Finalized and Timeout are terminal.
 
+One test per row of the "Every USDC in and out" table in `docs/spec.md`. Nine hundred USDC enters
+escrow in the demo — a 750 Budget and three 50 Stakes — and each of the five terminal paths returns
+exactly that. Asserting the invariant as a sentence is not the same as asserting it as five numbers.
+
+`pendingSettlement`, `commitmentsOf` and `auctionOf` are ticket 20, not this one, but the storage
+this ticket chooses decides whether they are cheap. `commitmentsOf` needs the commitments as an
+array, so a mapping alone is not enough.
+
 Blocked on the USDC decimals, because every figure in the tests depends on them.
 
 ## Comments
