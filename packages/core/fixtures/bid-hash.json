@@ -1,0 +1,27 @@
+{
+  "description": "One Bid, one salt and one EIP-712 domain, with the hashes they must produce. TypeScript and Solidity both read this file and neither computes its own expected value. Regenerate it whenever a field name, a field type or the chain id changes; every hash below changes with them.",
+  "eip712Type": "Bid(bytes32 auctionId,address supplier,string hotelId,string hotelName,uint8 stars,uint32 distanceMeters,uint256 price,bool refundable,bool breakfastIncluded,string roomType,uint8 numberOfRooms)",
+  "domain": {
+    "name": "Perdiem",
+    "version": "1",
+    "chainId": 5042002,
+    "comment": "verifyingContract is a placeholder SealedAuction address, not a deployment record.",
+    "verifyingContract": "0x1111111111111111111111111111111111111111"
+  },
+  "bid": {
+    "comment": "Bid C of the demo table in docs/spec.md: the second cheapest bid, and the winner.",
+    "auctionId": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "supplier": "0x2222222222222222222222222222222222222222",
+    "hotelId": "lp1a2b3",
+    "hotelName": "Awesome Hotel",
+    "stars": 4,
+    "distanceMeters": 1000,
+    "price": "440000000",
+    "priceComment": "USDC minor units, as a decimal string: uint256 does not survive a JSON number.",
+    "refundable": true,
+    "breakfastIncluded": true,
+    "roomType": "double",
+    "numberOfRooms": 1
+  },
+  "salt": "0x1f2e3d4c5b6a798879685a4b3c2d1e0f1f2e3d4c5b6a798879685a4b3c2d1e0f"
+}
