@@ -1,0 +1,7 @@
+# This package is deliberately not a member of the repository's workspace: the Chainlink CRE CLI
+# owns its package.json and would overwrite a member it does not know about. Its own workspace file
+# stops pnpm walking up to the root, so `pnpm install` here installs this package alone.
+packages: []
+
+allowBuilds:
+  esbuild: true
