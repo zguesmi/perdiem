@@ -1,8 +1,7 @@
-# SPEC — Perdiem: confidential hotel procurement with a private buyer policy
+# SPEC — Perdiem: confidential hotel booking with a private buyer policy
 
 The live specification. `docs/initial-spec.md` is the frozen original, kept as the record of the idea
 as it was at the beginning; every decision that changed it is in `docs/grilling-session.md`.
-Read them only when necessary.
 
 Vocabulary is defined once, in `CONTEXT.md`, and used here without redefinition.
 
@@ -429,3 +428,4 @@ open row.
 - Circle Agent Stack: https://github.com/circlefin/agent-stack-starter-kits
 - Privy: https://docs.privy.io/
 - LiteAPI: https://docs.liteapi.travel/reference
+                               

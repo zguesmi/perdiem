@@ -2,7 +2,7 @@
 pragma solidity ^0.8.34;
 
 /// @title SealedAuction
-/// @notice One confidential procurement auction. The contract plays the Escrow role: it holds the
+/// @notice One confidential booking auction. The contract plays the Escrow role: it holds the
 ///         buyer's Budget and every supplier's Stake, and it pays only against a settlement whose
 ///         policy hash and bids root match what was committed before bidding opened.
 /// @dev    Nothing here is implemented yet. The full signature of `createAuction`, including the
