@@ -4,7 +4,7 @@ import { concat, keccak256 } from "viem";
 
 import { bidCommitment } from "../src/bid-commitment.ts";
 import { bidHash } from "../src/bid-hash.ts";
-import { bid, salt } from "./bid-fixture.ts";
+import { bid, expected, salt } from "./bid-fixture.ts";
 
 // abi.encode of two bytes32 values is their concatenation, and stating it here is the point: the
 // contract stores what this returns, so encodePacked and encode must not be swapped by accident.
@@ -24,4 +24,8 @@ test("changes with the salt, while the struct hash does not", () => {
 
 test("rejects a salt that is not 32 bytes", () => {
   assert.throws(() => bidCommitment(bidHash(bid), "0xff"), /salt must be 32 bytes/);
+});
+
+test("matches the golden fixture, which Solidity reads too", () => {
+  assert.equal(bidCommitment(bidHash(bid), salt), expected.commitment);
 });

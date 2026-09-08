@@ -8,6 +8,11 @@ type BidHashFixture = {
   readonly domain: { readonly verifyingContract: Address };
   readonly bid: Omit<Bid, "price"> & { readonly price: string };
   readonly salt: Hex;
+  readonly expected: {
+    readonly bidHash: Hex;
+    readonly signingHash: Hex;
+    readonly commitment: Hex;
+  };
 };
 
 // Read from disk, not imported, because the Solidity test in onchain/ reads the same file the same
@@ -18,6 +23,7 @@ const fixture = JSON.parse(
 
 export const eip712Type = fixture.eip712Type;
 export const salt = fixture.salt;
+export const expected = fixture.expected;
 export const verifyingContract = fixture.domain.verifyingContract;
 
 export const bid: Bid = {

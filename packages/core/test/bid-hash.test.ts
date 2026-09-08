@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { concat, keccak256, pad, toBytes, toHex } from "viem";
 
 import { bidHash, bidTypes } from "../src/bid-hash.ts";
-import { bid, eip712Type } from "./bid-fixture.ts";
+import { bid, eip712Type, expected } from "./bid-fixture.ts";
 
 // EIP-712 encodeData is rebuilt here from keccak256 and padding rather than from viem's typed-data
 // helpers. An implementation asserted against itself proves nothing, and this is the hash the
@@ -40,4 +40,8 @@ test("is keccak256 of the EIP-712 encodeData", () => {
 
 test("changes when a single field changes", () => {
   assert.notEqual(bidHash(bid), bidHash({ ...bid, price: bid.price + 1n }));
+});
+
+test("matches the golden fixture, which Solidity reads too", () => {
+  assert.equal(bidHash(bid), expected.bidHash);
 });
