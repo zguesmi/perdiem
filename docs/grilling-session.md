@@ -5,9 +5,15 @@ Date: 2026-09-08.
 Method: `/grill-with-docs`, worked as a design tree in rounds.
 Each entry is the question and the decision it produced.
 
+Two sections:
+- **Grilling rounds** holds the questions Claude put to the developer, numbered `Q`.
+- **Requests from the developer** holds the challenges and instructions the developer raised, numbered `R`.
+
 ---
 
-## Round 1 — Foundations
+## Grilling rounds
+
+### Round 1 — Foundations
 
 **Q1 — What does "ready to use" mean: documentation only, documentation plus skeleton, or a walking skeleton?**
 Documentation plus skeleton. Workspace config, one package per component, one failing test per package, continuous integration. No implementation.
@@ -27,7 +33,7 @@ Bid. The contract already used `bidDeadline` and `bidsRoot`, so the schema chang
 **Q6 — Do verification answers go in a decisions file or in architecture decision records?**
 Split by kind. `docs/decisions.md` holds verified facts; `docs/adr/` holds genuine trade-offs.
 
-## Round 2 — Toolchain detail and vocabulary
+### Round 2 — Toolchain detail and vocabulary
 
 **Q7 — Does the scoring function live in the shared package?**
 No. Scoring stays in `workflow/`, so no supplier process can import it.
@@ -47,7 +53,7 @@ Two features: `.scratch/verification/` and `.scratch/build/`, linked by `Blocked
 **Q12 — `settleDeadline` gates the refund, not the settlement. Rename it?**
 Yes, but not to anything containing "report".
 
-## Round 3 — Init commands and external dependencies
+### Round 3 — Init commands and external dependencies
 
 **Q13 — Rename it to what?**
 `finalizeDeadline`. Also remove "report" from the prose.
@@ -64,7 +70,7 @@ All three: LiteAPI, Privy, and the enclave handler runner.
 **Q17 — How are secrets laid out across six processes?**
 Root file for shared values; per package for scoped secrets. The enclave private key and the relay read token never reach the agents.
 
-## Round 4 — Naming scope and process rules
+### Round 4 — Naming scope and process rules
 
 **Q18 — How far does "remove the word report" go?**
 Rename ours. `onReport` and `writeReport` keep their names, because they are Chainlink's.
@@ -84,7 +90,7 @@ The first real red test taken from the spec.
 **Q23 — What is trimmed from the generated agent documentation?**
 Nothing removed. Two lines added: a pointer to the root glossary, and a note that `packages/core` owns canonical JSON and hashing.
 
-## Round 5 — Layout, records and glossary
+### Round 5 — Layout, records and glossary
 
 **Q24 — Are package names scoped?**
 Yes, `@perdiem/*`.
@@ -101,7 +107,7 @@ Two: `0001-no-reveal-phase` and `0002-scoring-is-not-shared`.
 **Q28 — Where does the rule "the real CRE runs at the end" live?**
 A backlog ticket, blocked by the beta access verification ticket.
 
-## Round 6 — Monorepo shape and a spec defect
+### Round 6 — Monorepo shape and a spec defect
 
 **Q29 — Flat layout, everything under `packages/`, or `apps/` plus `packages/`?**
 Flat. `onchain/` is neither an app nor a library, so a two-bucket convention would need three buckets. Add `workflow/` to the workspace later if the CRE CLI tolerates it.
@@ -118,7 +124,7 @@ A synonym for procurement. Settled in Q38.
 **Q33 — What was wrong with the "Rules" group?**
 Both the label and the terms. It becomes **Scoring Rules**, and "feasible" becomes **Eligible**.
 
-## Round 7 — Final naming and wiring
+### Round 7 — Final naming and wiring
 
 **Q34 — Which procurement synonym?**
 Describe what the service does first. Settled in Q38.
@@ -132,15 +138,15 @@ Yes. Escrow is the custody role it plays, not a separate contract.
 **Q37 — How does `workflow/` reach the shared package from outside the workspace?**
 A `file:../packages/core` dependency, guarded by a fixture hash test that fails loudly if the CRE CLI drops it.
 
-## Round 8 — Service name and preference shape
+### Round 8 — Service name and preference shape
 
 **Q38 — Given that the service parses the intent, hashes the policy, drives the Privy quorum and funds the auction, what is it called?**
 `requisition/`. Plus a note: find a way to generate the enclave key so that nobody but the enclave can decrypt a bid.
 
 **Q39 — What shape are the preferences?**
-A keyed map rather than an array, so no attribute can appear twice. Refined in Q47.
+A keyed map rather than an array, so no attribute can appear twice. Refined in R6.
 
-## Round 9 — Final sweep
+### Round 9 — Final sweep
 
 **Q40 — How far does the abbreviation sweep go?**
 Spell out words, keep unit symbols, and keep `min` and `max`. So `attr` becomes `attribute`; `maxPrice`, `minStars`, `radiusKm` and `distanceKm` stay.
@@ -148,36 +154,42 @@ Spell out words, keep unit symbols, and keep `min` and `max`. So `attr` becomes 
 **Q41 — Where do the renames land?**
 `docs/initial-spec.md` is frozen in place. `docs/spec.md` becomes the live source, and `CLAUDE.md` points there.
 
-**Q42 — Would `shared/core` be better than `packages/core`?**
-No. `packages/*` is the glob every JavaScript monorepo tool expects; `shared/` is a category name, and category directories attract junk.
-
-**Q43 — Should the repository use `CONTEXT-MAP.md`?**
-No. A map is for several bounded contexts. This project has one vocabulary shared by every package.
-
-**Q44 — "Artefacts" or "artifacts"?**
-Artifacts. Hardhat generates an `artifacts/` directory, so the other spelling reads as a different concept.
-
-**Q45 — Is the supplier's locked USDC a bond or a stake?**
-Stake. `BOND` becomes `STAKE`; `bondReleased` and `bondSlashed` become `stakeReleased` and `stakeSlashed`.
-
-**Q46 — Does the bonus carry a unit field?**
-No. The bonus is a plain number. What that number means is settled in Q47.
-
 ---
 
-## Round 10 — Simplification
+## Requests from the developer
 
-**Q47 — Does a preference carry an implied unit, or a flat number?**
-A flat total in USDC minor units, keyed by attribute: `preferences: { refundable: 50, breakfastIncluded: 40 }`. The requisition service converts percentages and per-night amounts at parse time, so the buyer confirms concrete numbers and the enclave only sums. The bid field `breakfast` becomes `breakfastIncluded`, so the policy keys equal the bid attribute names. What is lost: a refundable bonus no longer scales with the bid price.
+**R1 — Use `shared/core` instead of `packages/core`**
+No. `packages/*` is the glob every JavaScript monorepo tool expects; `shared/` is a category name, and category directories attract junk.
 
-**Q48 — What goes in the root ignore file?**
-Only what is repository wide: `node_modules/`, the `.env` rules, `*.local` and `*.local.*`, `.DS_Store`, `*.log`. Every package keeps its own, and each init command writes one. No `typechain-types/`, because Hardhat 3 with the viem toolbox does not use TypeChain.
+**R3 — Use "artifacts" not "Artefacts"**
+Artifacts. Hardhat generates an `artifacts/` directory, so the other spelling reads as a different concept.
 
-**Q49 — What is the contracts directory called, so it is not confused with local chain infrastructure?**
-`onchain/`.
+**R4 — Replace "bond" with "stake".**
+Done. `BOND` becomes `STAKE`; `bondReleased` and `bondSlashed` become `stakeReleased` and `stakeSlashed`.
 
-**Q50 — What is the first build ticket?**
-Agree the Policy JSON schema and the scoring formula. Every other build ticket carries `Blocked by: 01`, so nothing is written against a moving schema.
+**R5 — Drop the unit field from the bonus; it is just a number.**
+Done. What the number means is settled in R6.
+
+**R6 — Use a number per attribute instead of a percentage of the bid price**
+Agreed, and simplified further to a flat total in USDC minor units, keyed by attribute:
+`preferences: { refundable: 50, breakfastIncluded: 40 }`. The requisition service converts percentages
+and per-night amounts at parse time, so the buyer confirms concrete numbers and the enclave only sums.
+The bid field `breakfast` becomes `breakfastIncluded`, so the policy keys equal the bid attribute names.
+What is lost: a refundable bonus no longer scales with the bid price.
+
+**R7 — The root ignore file should be minimal; each package keeps its own.**
+Root holds only what is repository wide: `node_modules/`, the `.env` rules, `*.local` and `*.local.*`,
+`.DS_Store`, `*.log`. Each init command writes the package's own.
+
+**R8 — Remove `typechain-types/`**
+It was wrong. TypeChain belongs to Hardhat 2 with ethers. Hardhat 3 with the viem toolbox generates
+types into `artifacts/` and installs no TypeChain. Nothing to ignore.
+
+**R9 — Rename `chain/` to `onchain/`, so it is not confused with local chain infrastructure.**
+Done.
+
+**R10 — Agree on the Policy JSON schema and the scoring formula before anything is built on them.**
+That becomes the first build ticket. Every other build ticket carries `Blocked by: 01`.
 
 ---
 
