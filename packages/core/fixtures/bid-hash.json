@@ -23,5 +23,11 @@
     "roomType": "double",
     "numberOfRooms": 1
   },
-  "salt": "0x1f2e3d4c5b6a798879685a4b3c2d1e0f1f2e3d4c5b6a798879685a4b3c2d1e0f"
+  "salt": "0x1f2e3d4c5b6a798879685a4b3c2d1e0f1f2e3d4c5b6a798879685a4b3c2d1e0f",
+  "expected": {
+    "comment": "bidHash is hashStruct: no salt, no domain. signingHash is keccak256(0x1901, domainSeparator, bidHash) and has no Solidity side, because nothing on chain verifies a bid signature. commitment is keccak256(abi.encode(bidHash, salt)), which the contract stores.",
+    "bidHash": "0x0f0852b5b8233fb29b2b76eb56e1fc486d9ca04c202b5376d6731102788e91fd",
+    "signingHash": "0x2b584fb721ae40d59b92e82752907df14580418ec3de20b1c33c09996e4c977b",
+    "commitment": "0x39640f3aed462f13d48967d995b63eb4140f288539c9bc6045f6c194508aafb4"
+  }
 }
