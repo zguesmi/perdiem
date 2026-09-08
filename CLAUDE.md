@@ -13,3 +13,7 @@ Default five roles, label string equals role name. See `docs/agents/triage-label
 ### Domain docs
 
 Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
+
+## Coding rules
+
+- Comments, naming, and style. See `docs/agents/coding.md`.
