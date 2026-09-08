@@ -21,3 +21,7 @@ test("changes with the salt, while the struct hash does not", () => {
 
   assert.notEqual(bidCommitment(hash, salt), bidCommitment(hash, otherSalt));
 });
+
+test("rejects a salt that is not 32 bytes", () => {
+  assert.throws(() => bidCommitment(bidHash(bid), "0xff"), /salt must be 32 bytes/);
+});
