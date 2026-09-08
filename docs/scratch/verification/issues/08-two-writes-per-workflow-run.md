@@ -1,11 +1,9 @@
 # Can one workflow run issue two writes to the same contract: `startSettling`, then the settlement?
 
-Status: ready-for-human
-Type: research
-Blocked by: 01-cre-simulate-writes-to-arc.md
+Status: ready-for-human Type: research Blocked by: 01-cre-simulate-writes-to-arc.md
 
-If not, the claim and the settlement go on separate cron ticks, and the simulation cron drops to
-20 seconds so the demo does not stall waiting for the second tick.
+If not, the claim and the settlement go on separate cron ticks, and the simulation cron drops to 20
+seconds so the demo does not stall waiting for the second tick.
 
 ## Acceptance criteria
 

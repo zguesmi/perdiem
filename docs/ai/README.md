@@ -5,11 +5,11 @@ what came out of it, and where the artifacts live. It is updated as the work con
 
 ## Tools
 
-| Tool | Use |
-| --- | --- |
-| claude.ai | Idea development, research and verification, before any code existed |
-| Claude Code (CLI) | Every phase after that: spec hardening, scaffolding, implementation |
-| Model | Claude Opus 5 (`claude-opus-5`) |
+| Tool                                      | Use                                                                                    |
+| ----------------------------------------- | -------------------------------------------------------------------------------------- |
+| claude.ai                                 | Idea development, research and verification, before any code existed                   |
+| Claude Code (CLI)                         | Every phase after that: spec hardening, scaffolding, implementation                    |
+| Model                                     | Claude Opus 5 (`claude-opus-5`)                                                        |
 | `mattpocock-skills` plugin, version 1.2.3 | The `/grill-with-docs` command, which runs the `grilling` and `domain-modeling` skills |
 
 ## Phases
@@ -27,15 +27,17 @@ like at the beginning.
 ### Phase 2 — Spec hardening
 
 Done in Claude Code with the `mattpocock-skills` plugin. The `/grill-with-docs` command runs two
-skills in sequence: `grilling`, which interviews the developer round by round over a design tree, and
-`domain-modeling`, which builds the project's vocabulary as the decisions land.
+skills in sequence: `grilling`, which interviews the developer round by round over a design tree,
+and `domain-modeling`, which builds the project's vocabulary as the decisions land.
 
 The session ran ten rounds. Claude asked 41 questions, each with a recommended answer; the developer
-raised 10 challenges and instructions of their own. Both are recorded, separately, in the transcript.
+raised 10 challenges and instructions of their own. Both are recorded, separately, in the
+transcript.
 
 What it settled: the repository layout, the toolchain, the test strategy, the secrets layout, the
 issue tracker shape, and the domain vocabulary. It also found two defects in the initial spec — the
-budget leaking the maximum price on chain, and two words used for one concept across seven components.
+budget leaking the maximum price on chain, and two words used for one concept across seven
+components.
 
 **Output:** `docs/grilling-session.md`.
 
@@ -50,8 +52,8 @@ The renames and corrections the grilling session settled, applied to a single li
 
 Done in Claude Code. Every package was created with its own official init command where one exists —
 `hardhat --init`, `pnpm create vite`, `pnpm create hono` — and `pnpm init` where none does. Each
-package carries the first real test taken from the specification, and those tests are red on purpose:
-they state what has to be true, and the tickets in `docs/scratch/build/` make them pass.
+package carries the first real test taken from the specification, and those tests are red on
+purpose: they state what has to be true, and the tickets in `docs/scratch/build/` make them pass.
 
 **Output:** the workspace, `CONTEXT.md`, `docs/adr/`, `docs/decisions.md`, and the two backlogs in
 `docs/scratch/`.

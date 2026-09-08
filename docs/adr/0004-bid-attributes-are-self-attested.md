@@ -1,8 +1,9 @@
 # A Bid's attributes are self-attested
 
-A Bid carries `stars`, `distanceMeters`, `refundable` and `breakfastIncluded`. The Enclave checks the
-EIP-712 signature and the on-chain commitment, so it knows which staked address said this and that
-the words have not changed since before the deadline. It does not know whether the words are true.
+A Bid carries `stars`, `distanceMeters`, `refundable` and `breakfastIncluded`. The Enclave checks
+the EIP-712 signature and the on-chain commitment, so it knows which staked address said this and
+that the words have not changed since before the deadline. It does not know whether the words are
+true.
 
 Verifying them would mean the Enclave calling a hotel content API for every bid and treating that
 answer as authoritative. That is a second confidential HTTP dependency, a second failure mode in the

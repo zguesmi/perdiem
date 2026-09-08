@@ -1,7 +1,7 @@
 # @perdiem/agents
 
-Three supplier agents, one codebase, three configurations. Each one reads a real LiteAPI rate for the
-auction's public requirements, applies its own rate plan, and submits exactly one bid.
+Three supplier agents, one codebase, three configurations. Each one reads a real LiteAPI rate for
+the auction's public requirements, applies its own rate plan, and submits exactly one bid.
 
 Submitting a bid is one beat, not two: the agent commits the bid hash on chain with its Stake, and
 posts the sealed bid to the relay. Both happen before the bid deadline, in either order. There is no

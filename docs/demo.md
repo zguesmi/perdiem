@@ -7,7 +7,8 @@ The protocol is in `docs/spec.md`. This file holds only what the audience sees.
 One page, five panels, top to bottom. Every panel shows a transaction hash or a log line. No design
 work beyond a clean default. No mobile layout.
 
-1. **Intent** — the sentence, the parsed Policy, then the Policy Hash, its transaction and its block.
+1. **Intent** — the sentence, the parsed Policy, then the Policy Hash, its transaction and its
+   block.
 2. **Funding** — Budget, ceiling, Privy approvals, the `createAuction` transaction.
 3. **Bids** — commitment hashes only until settlement, then every bid with its price and attributes,
    so the audience sees why the cheapest lost.

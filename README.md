@@ -1,8 +1,8 @@
 # Perdiem
 
-> *Per diem (Latin for "per day") is a fixed daily allowance paid by an employer
-> to cover work-related expenses, such as meals, lodging, and incidentals, during
-> business travel or temporary assignments
+> *Per diem (Latin for "per day") is a fixed daily allowance paid by an employer to cover
+> work-related expenses, such as meals, lodging, and incidentals, during business travel or
+> temporary assignments
 
 Corporate hotel booking where the buyer's selection rules stay private and sealed bids guarantee the
 best deal.

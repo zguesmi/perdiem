@@ -11,11 +11,11 @@ The live specification. It states what the demo builds and nothing else.
 
 A corporate travel desk states a booking need in one English sentence. A large language model turns
 it into a Policy: hard requirements, weighted preferences, and a maximum price. The buyer confirms
-once, and the Policy Hash lands on chain before any Bid exists. The buyer locks a Budget in Escrow on
-Arc. The Policy goes into a Chainlink CRE confidential workflow as a secret. Supplier agents each
-submit one Sealed Bid. The Enclave scores them against the private Policy and reports only the winner
-and the Payout. The contract pays the winner, refunds the rest, and holds the winner's Stake until a
-booking Receipt arrives.
+once, and the Policy Hash lands on chain before any Bid exists. The buyer locks a Budget in Escrow
+on Arc. The Policy goes into a Chainlink CRE confidential workflow as a secret. Supplier agents each
+submit one Sealed Bid. The Enclave scores them against the private Policy and reports only the
+winner and the Payout. The contract pays the winner, refunds the rest, and holds the winner's Stake
+until a booking Receipt arrives.
 
 The money shot: three bids arrive, the cheapest loses, the second cheapest wins. The buyer pays more
 than the cheapest on purpose, for what the private Policy values.
@@ -39,14 +39,14 @@ iterative bidding, demo keys in `.env`, LiteAPI sandbox guests only, no mainnet.
 
 ## Architecture
 
-| Directory | What it is |
-| --- | --- |
-| `onchain/` | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34 |
-| `workflow/` | The Chainlink CRE workflow. Scoring runs inside `handlerInTee` |
-| `agents/` | Three supplier agents. One wraps the LiteAPI sandbox |
-| `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding |
-| `relay/` | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave |
-| `web/` | One page, five panels |
+| Directory       | What it is                                                                   |
+| --------------- | ---------------------------------------------------------------------------- |
+| `onchain/`      | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
+| `workflow/`     | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
+| `agents/`       | Three supplier agents. One wraps the LiteAPI sandbox                         |
+| `requisition/`  | The buyer's service: intent parsing, policy commit, Privy funding            |
+| `relay/`        | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
+| `web/`          | One page, five panels                                                        |
 | `packages/core` | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
 
 ### Flow
@@ -115,8 +115,8 @@ numberOfRooms, location, radiusMeters, `tradeDown.stars`. Never emitted: `maxPri
 `tradeDown.requiredDiscountPercentage`, `preferences`.
 
 The Budget is padded above `maxPrice`, because `transferFrom` is public and an exact Budget would
-publish the ceiling. Demo: Budget 750, maximum price 520, Payout 440, refund 310. A workaround, not a
-fix: the ceiling stays bounded from above by what anyone can see.
+publish the ceiling. Demo: Budget 750, maximum price 520, Payout 440, refund 310. A workaround, not
+a fix: the ceiling stays bounded from above by what anyone can see.
 
 ## Bid
 
@@ -160,8 +160,8 @@ signature for auction 1 on one deployment cannot be replayed against auction 1 o
 `SealedAuction` address.
 
 `stars`, `distanceMeters`, `refundable` and `breakfastIncluded` are self-attested and no oracle
-contradicts them. The Stake is the only enforcement. So the claim is "the payout went to the supplier
-that claimed the best fit against a private rule", not "the best hotel wins". See
+contradicts them. The Stake is the only enforcement. So the claim is "the payout went to the
+supplier that claimed the best fit against a private rule", not "the best hotel wins". See
 `docs/adr/0004-bid-attributes-are-self-attested.md`.
 
 ## Sealed Bid
@@ -171,30 +171,30 @@ enough that keccak256 brute-forces the commitment in seconds without it.
 
 - **Key**: one X25519 keypair per deployment. The private half is a workflow secret, loaded only
   inside `handlerInTee`. The public half is a `createAuction` argument, emitted in `AuctionCreated`.
-- **Envelope**: the agent seals `{bid, salt, signature}` to that public key. The salt goes inside the
-  ciphertext. Nothing but the ciphertext and the supplier address leaves the agent.
+- **Envelope**: the agent seals `{bid, salt, signature}` to that public key. The salt goes inside
+  the ciphertext. Nothing but the ciphertext and the supplier address leaves the agent.
 - **Enclave**: decrypt, check the EIP-712 signature, then check the commitment. Any failure drops
   that bid, and only a count is logged.
 
-Known limitation: `requisition/` generates the keypair, so the buyer holds the private half and could
-decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer.
+Known limitation: `requisition/` generates the keypair, so the buyer holds the private half and
+could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer.
 
 ### The relay interface
 
 No authentication. The relay stores bytes: it parses no ciphertext, knows no deadline, holds no
 auction state.
 
-| Call | Behaviour |
-| --- | --- |
+| Call                                        | Behaviour                                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `PUT /auctions/{auctionId}/bids/{supplier}` | Body is the raw ciphertext. `201` on the first write for that pair, `409` on any later one, `413` over 16 KiB |
-| `GET /auctions/{auctionId}/bids` | `200` with `[{ supplier, ciphertext }]`, ascending by supplier address. `[]` for an unknown auction |
+| `GET /auctions/{auctionId}/bids`            | `200` with `[{ supplier, ciphertext }]`, ascending by supplier address. `[]` for an unknown auction           |
 
 First write wins, because the commitment is already on chain: overwriting would only swap the bid
 behind a fixed commitment, which the Enclave then drops. No delete, no auction listing.
 
-What open access costs: a supplier can fetch a rival's ciphertext and count the bids. No price leaks,
-because only the Enclave holds the private key. Bearer tokens are the obvious hardening and are out
-of scope.
+What open access costs: a supplier can fetch a rival's ciphertext and count the bids. No price
+leaks, because only the Enclave holds the private key. Bearer tokens are the obvious hardening and
+are out of scope.
 
 ## Settlement
 
@@ -208,11 +208,11 @@ struct Settlement {
 }
 ```
 
-No Eligible bid means `winner = address(0)` and `payout = 0`, and the contract refunds the Budget and
-every Stake.
+No Eligible bid means `winner = address(0)` and `payout = 0`, and the contract refunds the Budget
+and every Stake.
 
-The Bids Root binds the Settlement to the exact set of on-chain commitments, so no bid can be dropped
-or swapped between the chain and the Enclave. The Enclave builds it, one of two ways:
+The Bids Root binds the Settlement to the exact set of on-chain commitments, so no bid can be
+dropped or swapped between the chain and the Enclave. The Enclave builds it, one of two ways:
 
 - Preferred: it reads the commitments from the chain itself and hashes the sorted set.
 - Fallback: the workflow passes them in, the Enclave checks that every Sealed Bid it scored is in
@@ -263,11 +263,11 @@ because it makes scores positive and readable during the demo.
 One double room, two nights. Budget 750, maximum price 520, `refundable` 50, `breakfastIncluded` 40.
 Whole USDC here for reading; the test carries the same figures in minor units.
 
-| Bid | Stars | Distance | Price | Refundable | Breakfast | Result |
-| --- | --- | --- | --- | --- | --- | --- |
-| A | 3 | 500 m | 330 | yes | no | Ineligible. 330 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
-| B | 4 | 700 m | 400 | no | no | Score 120 |
-| C | 4 | 1000 m | 440 | yes | yes | Score 80 + 50 + 40 = **170. Wins** |
+| Bid | Stars | Distance | Price | Refundable | Breakfast | Result                                                                                 |
+| --- | ----- | -------- | ----- | ---------- | --------- | -------------------------------------------------------------------------------------- |
+| A   | 3     | 500 m    | 330   | yes        | no        | Ineligible. 330 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
+| B   | 4     | 700 m    | 400   | no         | no        | Score 120                                                                              |
+| C   | 4     | 1000 m   | 440   | yes        | yes       | Score 80 + 50 + 40 = **170. Wins**                                                     |
 
 Payout 440, refund 310. A and B get their Stakes back at settlement; C's is released on the Receipt.
 This table is a test in `workflow/`.
@@ -277,13 +277,13 @@ This table is a test in `workflow/`.
 Nine hundred USDC enters escrow: the 750 Budget and three 50 Stakes. Every terminal path returns
 exactly that, and each row is a contract test.
 
-| Path | Out |
-| --- | --- |
-| Winner, Receipt posted | 440 winner, 310 buyer, 100 losing Stakes, 50 winner Stake |
-| Winner, silence, then slashed | 440 winner, 310 buyer, 100 losing Stakes, 50 Stake to buyer |
-| No Eligible bid | 750 buyer, 150 Stakes |
-| Timeout from `Bidding` or `Settling` | 750 buyer, 150 Stakes |
-| No commit before `bidDeadline`, then timeout | 750 buyer, nothing else entered |
+| Path                                         | Out                                                         |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Winner, Receipt posted                       | 440 winner, 310 buyer, 100 losing Stakes, 50 winner Stake   |
+| Winner, silence, then slashed                | 440 winner, 310 buyer, 100 losing Stakes, 50 Stake to buyer |
+| No Eligible bid                              | 750 buyer, 150 Stakes                                       |
+| Timeout from `Bidding` or `Settling`         | 750 buyer, 150 Stakes                                       |
+| No commit before `bidDeadline`, then timeout | 750 buyer, nothing else entered                             |
 
 ## Contract
 
@@ -315,11 +315,10 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
 
 ### Functions
 
-- `createAuction(policyHash, publicRequirements, enclavePublicKey, bidDeadline, finalizeDeadline,
-  deliverDeadline, budget) → auctionId` — buyer only. Requires
-  `block.timestamp < bidDeadline < finalizeDeadline < deliverDeadline`, so no auction can exist that
-  is undeliverable or unslashable. Pulls the Budget, records the block number, emits
-  `AuctionCreated`.
+- `createAuction(policyHash, publicRequirements, enclavePublicKey, bidDeadline, finalizeDeadline, deliverDeadline, budget) → auctionId`
+  — buyer only. Requires `block.timestamp < bidDeadline < finalizeDeadline < deliverDeadline`, so no
+  auction can exist that is undeliverable or unslashable. Pulls the Budget, records the block
+  number, emits `AuctionCreated`.
 - `commit(auctionId, commitment)` — any address, once, before `bidDeadline`. Pulls the `STAKE`
   constant, 50 USDC. Emits `Committed`.
 - `startSettling(auctionId)` — the CRE forwarder only. Requires `Bidding` and
@@ -331,8 +330,8 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
 - `submitReceipt(auctionId, receiptHash)` — the winner only, before `deliverDeadline`. Releases its
   Stake.
 - `slash(auctionId)` — anyone, after `deliverDeadline` with no Receipt. The Stake goes to the buyer.
-- `timeoutRefund(auctionId)` — anyone, from `Bidding` or `Settling`, after `finalizeDeadline` with no
-  settlement. Refunds the Budget and every Stake. A liveness escape hatch, documented as one.
+- `timeoutRefund(auctionId)` — anyone, from `Bidding` or `Settling`, after `finalizeDeadline` with
+  no settlement. Refunds the Budget and every Stake. A liveness escape hatch, documented as one.
 
 Three views, because the workflow holds no state of its own:
 
@@ -354,7 +353,8 @@ no-winner path; the slash path; the timeout path.
 ## CRE workflow
 
 - Start from `cre init --template=hello-confidential-workflows-ts`.
-- A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`, exit.
+- A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`,
+  exit.
 - Claim the auction with `startSettling` before any scoring work.
 - Read the commitments and pass them into the confidential handler. The workflow nodes never compute
   the Bids Root.
@@ -364,8 +364,8 @@ no-winner path; the slash path; the timeout path.
 - Encode the Settlement and write it to `SealedAuction`.
 - Save one full `cre workflow simulate` run to `docs/evidence/`.
 
-Never logged outside the enclave section: the Policy, the maximum price, the preferences, the enclave
-private key, any decrypted Bid. Grep the logs before committing them.
+Never logged outside the enclave section: the Policy, the maximum price, the preferences, the
+enclave private key, any decrypted Bid. Grep the logs before committing them.
 
 ## Supplier agents
 
@@ -373,17 +373,18 @@ Three processes, one codebase, three rate plans: hotel, stars, distance, base pr
 breakfast, margin.
 
 - On start, call the LiteAPI sandbox for the Public Requirements and pick a real hotel and a real
-  rate as the base price, then apply the rate plan. That is the decision logic tied to a real signal.
+  rate as the base price, then apply the rate plan. That is the decision logic tied to a real
+  signal.
 - Build one Bid, sign it, commit with the Stake, post the Sealed Bid. Both before `bidDeadline`.
 - On winning: prebook, book with the sandbox payment method, post the Receipt.
 
 Each agent holds a Circle Agent Stack wallet, and that wallet signs the `commit` and the
-`submitReceipt` calls. This is the Arc track's agentic-economy story, so it ships, not a nice-to-have.
-Two signer implementations sit behind one interface: `createCircleAgentSigner` is the demo path and
-`createLocalSigner` is a viem externally owned account, kept so the bid flow and its tests run before
-a Circle wallet exists. The bid flow never sees the difference. The fallback ships only if
-`docs/scratch/verification/issues/07-circle-agent-stack-wallets.md` says the Circle wallet cannot
-sign on Arc testnet.
+`submitReceipt` calls. This is the Arc track's agentic-economy story, so it ships, not a
+nice-to-have. Two signer implementations sit behind one interface: `createCircleAgentSigner` is the
+demo path and `createLocalSigner` is a viem externally owned account, kept so the bid flow and its
+tests run before a Circle wallet exists. The bid flow never sees the difference. The fallback ships
+only if `docs/scratch/verification/issues/07-circle-agent-stack-wallets.md` says the Circle wallet
+cannot sign on Arc testnet.
 
 ## Requisition service
 

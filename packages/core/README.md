@@ -31,5 +31,5 @@ Nothing here is served or started; this package is a library.
 ## Status
 
 Every function throws. The tests state what they must do, and they are red until
-`docs/scratch/build/01-policy-schema-and-scoring-formula.md` is resolved. Nothing is written against the
-`Policy` type until then.
+`docs/scratch/build/01-policy-schema-and-scoring-formula.md` is resolved. Nothing is written against
+the `Policy` type until then.

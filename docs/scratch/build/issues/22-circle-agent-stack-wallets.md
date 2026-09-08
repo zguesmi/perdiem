@@ -1,9 +1,7 @@
 # Give each supplier agent a Circle Agent Stack wallet
 
-Status: ready-for-agent
-Type: task
-Blocked by: none (can start immediately; see ../verification/issues/07-circle-agent-stack-wallets.md
-before the Circle client)
+Status: ready-for-agent Type: task Blocked by: none (can start immediately; see
+../verification/issues/07-circle-agent-stack-wallets.md before the Circle client)
 
 Two signer implementations behind one interface, as `docs/spec.md` states under "Supplier agents".
 `createLocalSigner` wraps a viem externally owned account and exists so the bid flow runs today.

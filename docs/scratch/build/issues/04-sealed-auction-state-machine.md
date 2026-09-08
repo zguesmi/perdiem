@@ -1,8 +1,7 @@
 # Implement the SealedAuction state machine and escrow
 
-Status: ready-for-agent
-Type: task
-Blocked by: 01, ../verification/issues/05-arc-usdc-address-and-decimals.md
+Status: ready-for-agent Type: task Blocked by: 01,
+../verification/issues/05-arc-usdc-address-and-decimals.md
 
 How real the decimals block is: the contract itself is decimal-agnostic, because every comparison is
 between two amounts in the same unit. What the open row actually gates is the figures in the tests
@@ -11,8 +10,8 @@ from the decimal constant in `packages/core` and the test figures parameterised 
 answer changes numbers rather than code. Note that `SealedAuction.t.sol` already hardcodes `750e6`,
 which is an assumption of 6 decimals that nothing has verified.
 
-Created, Bidding, Settling, Finalized, Timeout. `createAuction` pulls the Budget, `commit` pulls
-the Stake, `startSettling` claims the auction for the workflow, the settlement pays and refunds,
+Created, Bidding, Settling, Finalized, Timeout. `createAuction` pulls the Budget, `commit` pulls the
+Stake, `startSettling` claims the auction for the workflow, the settlement pays and refunds,
 `submitReceipt` releases the winner's Stake, `slash` pays it to the buyer, `timeoutRefund` is the
 escape hatch.
 

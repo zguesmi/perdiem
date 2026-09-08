@@ -1,8 +1,8 @@
 # @perdiem/requisition
 
-A requisition is the internal request to buy something, carrying its budget approval. That is exactly
-what this service produces: it takes one English sentence from the buyer and ends with a funded
-auction on chain.
+A requisition is the internal request to buy something, carrying its budget approval. That is
+exactly what this service produces: it takes one English sentence from the buyer and ends with a
+funded auction on chain.
 
 1. `POST /intent` — one LLM call with a fixed system prompt, validated against the Policy schema.
    One retry, then it gives up.

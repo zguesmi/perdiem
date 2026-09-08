@@ -1,8 +1,6 @@
 # Implement the relay store
 
-Status: ready-for-agent
-Type: task
-Blocked by: none (can start immediately)
+Status: ready-for-agent Type: task Blocked by: none (can start immediately)
 
 The two endpoints, the status codes, the 16 KiB cap and the first-write-wins rule are specified in
 `docs/spec.md` under "The relay interface". Implement that table and nothing beyond it.

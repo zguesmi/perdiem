@@ -1,27 +1,22 @@
 # Write the intent system prompt, and make the requisition service testable without an LLM
 
-Status: ready-for-agent
-Type: task
-Blocked by: 01
+Status: ready-for-agent Type: task Blocked by: 01
 
 Two gaps, one ticket, because they are the same boundary.
 
-**The prompt does not exist.** `docs/spec.md` and ticket 10 both point at `docs/ai/intent-
-prompt.md`,
-and the file is not in the repository. `docs/ai/README.md` has an empty `## Prompts` section waiting
-for it. ETHGlobal requires every prompt to be in the repository, so this is a submission requirement
-and not a nicety.
+**The prompt does not exist.** `docs/spec.md` and ticket 10 both point at
+`docs/ai/intent- prompt.md`, and the file is not in the repository. `docs/ai/README.md` has an empty
+`## Prompts` section waiting for it. ETHGlobal requires every prompt to be in the repository, so
+this is a submission requirement and not a nicety.
 
 The prompt has to state: the exact Policy schema from `docs/spec.md`, integers only, USDC minor
 units, metres, microdegrees, and the conversion the service is responsible for — "12% more" and "20
-a
-night" become flat per-trip numbers before the buyer sees them. It also has to state what the model
-must not invent: no preference the sentence does not mention, and no maximum price the sentence does
-not imply.
+a night" become flat per-trip numbers before the buyer sees them. It also has to state what the
+model must not invent: no preference the sentence does not mention, and no maximum price the
+sentence does not imply.
 
 **The test seam.** `requisition/test/intent.test.ts` exists but a test that calls a real model is
-not
-a test: it is slow, it costs money, it needs a key in continuous integration, and it fails for
+not a test: it is slow, it costs money, it needs a key in continuous integration, and it fails for
 reasons that have nothing to do with the code. The seam is the model client, injected into the
 service, so the tests drive the service through its HTTP surface with a stub that returns a canned
 completion.

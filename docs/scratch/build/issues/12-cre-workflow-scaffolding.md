@@ -1,8 +1,7 @@
 # Generate the CRE workflow with the official template
 
-Status: ready-for-human
-Type: task
-Blocked by: ../verification/issues/10-confidential-workflows-beta-access.md,
+Status: ready-for-human Type: task Blocked by:
+../verification/issues/10-confidential-workflows-beta-access.md,
 ../verification/issues/02-enclave-chain-read-and-confidential-http.md
 
 `cre init --template=hello-confidential-workflows-ts`. The CLI owns the generated package.json,

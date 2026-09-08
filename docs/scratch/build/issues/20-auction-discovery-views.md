@@ -1,8 +1,6 @@
 # Give the workflow and the page something to read
 
-Status: ready-for-agent
-Type: task
-Blocked by: 04
+Status: ready-for-agent Type: task Blocked by: 04
 
 The workflow holds no state of its own. Every 60 seconds the cron has to answer "is there an auction
 to settle", and the Enclave has to answer "which commitments are on chain for it". Neither question

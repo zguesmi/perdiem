@@ -4,10 +4,10 @@
 domain types, canonical JSON, the Policy Hash and the EIP-712 hashing. The obvious next step is to
 put the scoring function there too, since it is pure, deterministic and easy to unit test.
 
-It is deliberately not there. A supplier agent depends on `@perdiem/core`, so scoring in that package
-is scoring a supplier can import, read, and brute-force its own price against. The product claims the
-selection rule is private from the platform and from the suppliers; a shared scoring function makes
-that claim false in the repository itself, where any judge can see it.
+It is deliberately not there. A supplier agent depends on `@perdiem/core`, so scoring in that
+package is scoring a supplier can import, read, and brute-force its own price against. The product
+claims the selection rule is private from the platform and from the suppliers; a shared scoring
+function makes that claim false in the repository itself, where any judge can see it.
 
 Scoring lives in `workflow/`, which nothing else depends on, and it runs inside `handlerInTee`.
 

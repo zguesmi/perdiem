@@ -8,107 +8,80 @@ winner against a policy nobody else can read. The chain pays.
 
 ### Actors
 
-**Buyer**:
-The corporate travel desk that owns the Policy and the Budget. One per auction.
-_Avoid_: Desk, customer, client
+**Buyer**: The corporate travel desk that owns the Policy and the Budget. One per auction. _Avoid_:
+Desk, customer, client
 
-**Supplier**:
-A party that submits one Bid and stakes USDC behind it.
-_Avoid_: Seller, vendor, hotel
+**Supplier**: A party that submits one Bid and stakes USDC behind it. _Avoid_: Seller, vendor, hotel
 
-**Enclave**:
-The confidential handler inside the Chainlink CRE workflow. The only place the Policy is readable.
-_Avoid_: TEE handler, secure worker
+**Enclave**: The confidential handler inside the Chainlink CRE workflow. The only place the Policy
+is readable. _Avoid_: TEE handler, secure worker
 
 ### Artifacts
 
-**Intent**:
-The buyer's need, written as one English sentence.
-_Avoid_: Prompt, request, query
+**Intent**: The buyer's need, written as one English sentence. _Avoid_: Prompt, request, query
 
-**Policy**:
-The structured private ruleset derived from an Intent. Never leaves the buyer except as a hash and
-as a workflow secret.
-_Avoid_: Rules, criteria, preferences object
+**Policy**: The structured private ruleset derived from an Intent. Never leaves the buyer except as
+a hash and as a workflow secret. _Avoid_: Rules, criteria, preferences object
 
-**Policy Hash**:
-The keccak256 of the canonically encoded Policy, committed on chain before any Bid exists.
+**Policy Hash**: The keccak256 of the canonically encoded Policy, committed on chain before any Bid
+exists.
 
-**Public Requirements**:
-The subset of the Policy emitted on chain: city, dates, minimum stars, room type, number of rooms,
-location, radius, and the trade-down star level. Everything else stays private.
+**Public Requirements**: The subset of the Policy emitted on chain: city, dates, minimum stars, room
+type, number of rooms, location, radius, and the trade-down star level. Everything else stays
+private.
 
-**Bid**:
-One supplier's priced offer: hotel, stars, distance, price, and its attributes.
-_Avoid_: Offer, quote, proposal
+**Bid**: One supplier's priced offer: hotel, stars, distance, price, and its attributes. _Avoid_:
+Offer, quote, proposal
 
-**Bid Commitment**:
-The keccak256 that binds a Bid on chain. Placed before the bid deadline, with the Stake.
-_Avoid_: Commitment hash, sealed hash
+**Bid Commitment**: The keccak256 that binds a Bid on chain. Placed before the bid deadline, with
+the Stake. _Avoid_: Commitment hash, sealed hash
 
-**Sealed Bid**:
-The Bid, its salt and its signature, encrypted to the enclave's public key and stored at the relay.
-_Avoid_: Envelope, blob, ciphertext
+**Sealed Bid**: The Bid, its salt and its signature, encrypted to the enclave's public key and
+stored at the relay. _Avoid_: Envelope, blob, ciphertext
 
-**Bids Root**:
-The keccak256 over every on-chain Bid Commitment for an auction, sorted. Built inside the enclave,
-over all commitments, including any whose Sealed Bid never arrived.
+**Bids Root**: The keccak256 over every on-chain Bid Commitment for an auction, sorted. Built inside
+the enclave, over all commitments, including any whose Sealed Bid never arrived.
 
-**Settlement**:
-What the enclave reports: the auction, the winner, the payout, the Policy Hash and the Bids Root.
-_Avoid_: Report, result, outcome
+**Settlement**: What the enclave reports: the auction, the winner, the payout, the Policy Hash and
+the Bids Root. _Avoid_: Report, result, outcome
 
-**Receipt**:
-The keccak256 of the LiteAPI booking id, posted by the winner to release its Stake.
+**Receipt**: The keccak256 of the LiteAPI booking id, posted by the winner to release its Stake.
 
 ### Money
 
-**Budget**:
-The USDC the buyer locks when the auction is created. Deliberately padded above the maximum price,
-so the ceiling cannot be read off the chain.
-_Avoid_: Escrow amount, deposit, funds
+**Budget**: The USDC the buyer locks when the auction is created. Deliberately padded above the
+maximum price, so the ceiling cannot be read off the chain. _Avoid_: Escrow amount, deposit, funds
 
-**Payout**:
-The USDC the winner receives. First price: exactly what the winning Bid asked for.
+**Payout**: The USDC the winner receives. First price: exactly what the winning Bid asked for.
 _Avoid_: Amount, award, price paid
 
-**Stake**:
-The USDC a supplier locks when committing a Bid. Refunded on losing, released on a Receipt, and paid
-to the buyer if the winner never delivers.
-_Avoid_: Bond, deposit, collateral
+**Stake**: The USDC a supplier locks when committing a Bid. Refunded on losing, released on a
+Receipt, and paid to the buyer if the winner never delivers. _Avoid_: Bond, deposit, collateral
 
-**Escrow**:
-The custody role the `SealedAuction` contract plays while it holds the Budget and the Stakes. Not a
-separate contract.
+**Escrow**: The custody role the `SealedAuction` contract plays while it holds the Budget and the
+Stakes. Not a separate contract.
 
 ### Scoring rules
 
-**Eligible**:
-A Bid that satisfies every hard requirement: city, dates, room type, room count, distance, price
-ceiling, and either the minimum stars or the Trade-Down.
-_Avoid_: Feasible, valid, qualifying
+**Eligible**: A Bid that satisfies every hard requirement: city, dates, room type, room count,
+distance, price ceiling, and either the minimum stars or the Trade-Down. _Avoid_: Feasible, valid,
+qualifying
 
-**Trade-Down**:
-The rule that accepts a lower star level in exchange for a required discount against the cheapest
-Eligible bid at the minimum stars.
-_Avoid_: Fallback, downgrade, second tier
+**Trade-Down**: The rule that accepts a lower star level in exchange for a required discount against
+the cheapest Eligible bid at the minimum stars. _Avoid_: Fallback, downgrade, second tier
 
-**Preference Bonus**:
-Score points a Bid earns for an attribute the buyer values. Denominated in USDC minor units so it is
-comparable with price, but never paid to anyone. The attribute implies what the number means: a
-`refundable` bonus is worth that much on this trip, and so is `breakfastIncluded`.
-_Avoid_: Credit, uplift, perk value
+**Preference Bonus**: Score points a Bid earns for an attribute the buyer values. Denominated in
+USDC minor units so it is comparable with price, but never paid to anyone. The attribute implies
+what the number means: a `refundable` bonus is worth that much on this trip, and so is
+`breakfastIncluded`. _Avoid_: Credit, uplift, perk value
 
 ### Services
 
-**Requisition**:
-The buyer's service. Turns an Intent into a Policy, gets the spend approved through Privy, and funds
-the auction.
-_Avoid_: Desk, backend, API
+**Requisition**: The buyer's service. Turns an Intent into a Policy, gets the spend approved through
+Privy, and funds the auction. _Avoid_: Desk, backend, API
 
-**Relay**:
-The blind store for Sealed Bids. Holds ciphertext, serves the enclave, and can read nothing.
+**Relay**: The blind store for Sealed Bids. Holds ciphertext, serves the enclave, and can read
+nothing.
 
-**Workflow**:
-The Chainlink CRE workflow that claims a ready auction, scores it inside the Enclave, and writes the
-Settlement to the chain.
+**Workflow**: The Chainlink CRE workflow that claims a ready auction, scores it inside the Enclave,
+and writes the Settlement to the chain.

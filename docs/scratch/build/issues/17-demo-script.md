@@ -1,8 +1,6 @@
 # Drive the whole flow from one script
 
-Status: ready-for-agent
-Type: task
-Blocked by: 05, 09, 11, 13, 14
+Status: ready-for-agent Type: task Blocked by: 05, 09, 11, 13, 14
 
 `scripts/demo.sh` runs the flow end to end: intent, confirm, funding, three commits, three sealed
 bids, settlement, booking, receipt. If the UI slips, this script is the demo.
