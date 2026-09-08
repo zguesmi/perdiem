@@ -22,7 +22,7 @@ out of it were made on that data. What the partner technologies actually do, wha
 does, and what the idea has to be worth to be worth building.
 
 **Output:** `docs/initial-spec.md`. That file is frozen. It is the record of what the idea looked
-like before anyone argued with it.
+like at the beginning.
 
 ### Phase 2 — Spec hardening
 

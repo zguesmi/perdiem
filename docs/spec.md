@@ -1,7 +1,8 @@
 # SPEC — Perdiem: confidential hotel procurement with a private buyer policy
 
 The live specification. `docs/initial-spec.md` is the frozen original, kept as the record of the idea
-before it was argued with; every decision that changed it is in `docs/grilling-session.md`.
+as it was at the beginning; every decision that changed it is in `docs/grilling-session.md`.
+Read them only when necessary.
 
 Vocabulary is defined once, in `CONTEXT.md`, and used here without redefinition.
 
