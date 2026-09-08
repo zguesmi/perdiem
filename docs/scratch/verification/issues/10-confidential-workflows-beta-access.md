@@ -12,3 +12,9 @@ plan does not depend on approval, but the answer changes what the README can cla
       because that is what the plan actually rests on.
 
 ## Comments
+
+- 2026-09-08 — request submitted, no response yet
+
+The plan does not wait on approval. Two documentation statements say so directly: "Your CRE
+organization can run Confidential Workflows using the local simulator", and "Do not wait for early
+access. Simulate confidential workflows in minutes."
