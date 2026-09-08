@@ -1,12 +1,11 @@
 # Perdiem
 
->*Per diem (Latin for "per day") is a fixed daily allowance paid by an employer
-> to cover work-related  expenses, such as meals, lodging, and incidentals, during
+> *Per diem (Latin for "per day") is a fixed daily allowance paid by an employer
+> to cover work-related expenses, such as meals, lodging, and incidentals, during
 > business travel or temporary assignments
 
 Corporate hotel booking where the buyer's selection rules stay private and sealed bids guarantee the
 best deal.
-
 
 ## AI tool attribution
 
@@ -54,11 +53,11 @@ pnpm --filter @perdiem/relay dev
 
 Run the services for the demo, one terminal each:
 
-| Command | What it starts | Port |
-| --- | --- | --- |
-| `pnpm --filter @perdiem/relay dev` | the sealed-bid relay | 8787, `RELAY_PORT` |
+| Command                                  | What it starts          | Port                     |
+| ---------------------------------------- | ----------------------- | ------------------------ |
+| `pnpm --filter @perdiem/relay dev`       | the sealed-bid relay    | 8787, `RELAY_PORT`       |
 | `pnpm --filter @perdiem/requisition dev` | the requisition service | 8788, `REQUISITION_PORT` |
-| `pnpm --filter @perdiem/web dev` | the demo page | 5173 |
+| `pnpm --filter @perdiem/web dev`         | the demo page           | 5173                     |
 
 The test suites are red on purpose. They state the behaviour each package owes before it is written;
 every package README says what its own red tests are waiting on.

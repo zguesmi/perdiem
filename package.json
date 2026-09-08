@@ -8,9 +8,20 @@
     "node": ">=22"
   },
   "scripts": {
+    "prepare": "husky",
     "build": "pnpm --recursive --if-present build",
     "test": "pnpm --recursive --if-present test",
     "typecheck": "pnpm --recursive --if-present typecheck",
-    "lint": "pnpm --recursive --if-present lint"
+    "lint": "pnpm --recursive --if-present lint",
+    "format:md": "prettier --write \"**/*.md\"",
+    "format:md:check": "prettier --check \"**/*.md\""
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.0",
+    "prettier": "^3.9.6"
+  },
+  "lint-staged": {
+    "*.md": "prettier --write"
   }
 }
