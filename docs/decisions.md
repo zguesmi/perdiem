@@ -1,6 +1,6 @@
 # Verified facts
 
-Things with a single right answer, checked rather than assumed. Trade-offs live in `docs/adr/`
+Things with a single right answer, checked rather than assumed. Trade-offs is in `docs/adr/`
 instead, and the reasoning behind the project's shape is in `docs/grilling-session.md`.
 
 Each open row has a ticket in `docs/scratch/verification/`. Nothing downstream of an open row gets
@@ -38,8 +38,8 @@ written until the row is closed.
 
 ## Evidence
 
-Terminal output and logs behind the answers above live in `docs/evidence/`. A row is not closed
-until its evidence is in that directory.
+Terminal output and logs behind the answers above is in `docs/evidence/`. A row is not closed until
+its evidence is in that directory.
 
 ### T5 — this Node cannot strip types
 
