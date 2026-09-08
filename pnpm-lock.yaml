@@ -109,6 +109,25 @@ importers:
 
   .: {}
 
+  agents:
+    dependencies:
+      '@perdiem/core':
+        specifier: workspace:*
+        version: link:../packages/core
+    devDependencies:
+      '@perdiem/tsconfig':
+        specifier: workspace:*
+        version: link:../packages/tsconfig
+      '@types/node':
+        specifier: ^22.20.1
+        version: 22.20.1
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
+
   onchain:
     devDependencies:
       '@nomicfoundation/hardhat-ignition':
