@@ -1,6 +1,7 @@
 # Give the workflow and the page something to read
 
 Status: ready-for-agent
+Type: task
 Blocked by: 04
 
 The workflow holds no state of its own. Every 60 seconds the cron has to answer "is there an auction
@@ -24,5 +25,15 @@ What has to be true:
   Enclave's no-commitment path is a legitimate one that ends in a refund.
 - The scan is bounded. One buyer and a handful of auctions in the demo, so a loop from the lowest
   unsettled id is fine, but it needs a written bound rather than an unbounded loop over all history.
+
+## Acceptance criteria
+
+- [ ] `pendingSettlement()` returns `bytes32(0)` when the only candidates are `Created`, `Settling`,
+      `Finalized` or `Timeout`.
+- [ ] It returns `bytes32(0)` before `bidDeadline`, even with commitments already in.
+- [ ] It returns the lowest eligible `auctionId` when several qualify.
+- [ ] `commitmentsOf` returns the empty array for an unknown auction instead of reverting.
+- [ ] `auctionOf` returns every field the page and the workflow read, as listed in `docs/spec.md`.
+- [ ] The scan has a written bound, and one test drives more auctions than that bound.
 
 ## Comments

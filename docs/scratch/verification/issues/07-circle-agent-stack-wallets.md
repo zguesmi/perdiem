@@ -1,6 +1,8 @@
 # Can the Circle Agent Stack create a wallet on Arc testnet, and can that wallet sign a contract call?
 
 Status: ready-for-human
+Type: research
+Blocked by: 05-arc-usdc-address-and-decimals.md, 12-arc-chain-id-and-rpc-endpoint.md
 
 This is a priority row, not a nice-to-have. Goal 7 in `docs/spec.md` says the supplier agent wallets
 come from the Circle Agent Stack, so the Arc track's agentic-economy story rests on this answer. Do
@@ -21,5 +23,14 @@ call do not have to come from the same key, but they do have to come from the sa
 The fallback is `createLocalSigner`, a viem externally owned account, which already exists so the
 tests run without a Circle wallet. Taking the fallback loses goal 7 and weakens the Arc submission,
 so take it only after this row is answered and answered no.
+
+## Acceptance criteria
+
+- [ ] Row V7 is answered on all three items, in order: wallet created and funded, contract call
+      signed and broadcast, EIP-712 signature over `Bid`.
+- [ ] If item 3 fails, the ticket records which key signed the bid and which signed the chain calls,
+      and that both resolve to one address.
+- [ ] The transaction hash for a `commit` call from a Circle wallet is in `docs/evidence/`, or the
+      failure is.
 
 ## Comments
