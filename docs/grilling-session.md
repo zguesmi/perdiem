@@ -5,9 +5,8 @@ Date: 2026-09-08.
 Method: `/grill-with-docs`, worked as a design tree in rounds.
 Each entry is the question and the decision it produced.
 
-Two sections:
-- **Grilling rounds** holds the questions Claude put to the developer, numbered `Q`.
-- **Requests from the developer** holds the challenges and instructions the developer raised, numbered `R`.
+Two sections. **Grilling rounds** holds the questions Claude put to the developer, numbered `Q`.
+**Requests from the developer** holds the challenges and instructions the developer raised, numbered `R`.
 
 ---
 
@@ -48,7 +47,7 @@ No. Scoring stays in `workflow/`, so no supplier process can import it.
 Two jobs: contracts, and TypeScript with typecheck and lint.
 
 **Q11 — How is the issue backlog grouped?**
-Two features: `.scratch/verification/` and `.scratch/build/`, linked by `Blocked by:` lines.
+Two features: `docs/scratch/verification/` and `docs/scratch/build/`, linked by `Blocked by:` lines.
 
 **Q12 — `settleDeadline` gates the refund, not the settlement. Rename it?**
 Yes, but not to anything containing "report".
@@ -81,7 +80,7 @@ No. Fakes may run the handler; fakes may never generate evidence. `cre workflow 
 **Q20 — Which HTTP framework for the two services?**
 Hono.
 
-**Q21 — Is `.scratch/` committed?**
+**Q21 — Is `docs/scratch/` committed?**
 Yes, and it never holds a key or a token.
 
 **Q22 — What shape is the first test in each package?**
@@ -158,10 +157,13 @@ Spell out words, keep unit symbols, and keep `min` and `max`. So `attr` becomes 
 
 ## Requests from the developer
 
-**R1 — Use `shared/core` instead of `packages/core`**
+**R1 — Would `shared/core` be better than `packages/core`?**
 No. `packages/*` is the glob every JavaScript monorepo tool expects; `shared/` is a category name, and category directories attract junk.
 
-**R3 — Use "artifacts" not "Artefacts"**
+**R2 — Should the repository use `CONTEXT-MAP.md`?**
+No. A map is for several bounded contexts. This project has one vocabulary shared by every package.
+
+**R3 — "Artefacts" or "artifacts"?**
 Artifacts. Hardhat generates an `artifacts/` directory, so the other spelling reads as a different concept.
 
 **R4 — Replace "bond" with "stake".**
@@ -170,7 +172,7 @@ Done. `BOND` becomes `STAKE`; `bondReleased` and `bondSlashed` become `stakeRele
 **R5 — Drop the unit field from the bonus; it is just a number.**
 Done. What the number means is settled in R6.
 
-**R6 — Use a number per attribute instead of a percentage of the bid price**
+**R6 — Why a percentage of the bid price? Why not one number per attribute, applied to all?**
 Agreed, and simplified further to a flat total in USDC minor units, keyed by attribute:
 `preferences: { refundable: 50, breakfastIncluded: 40 }`. The requisition service converts percentages
 and per-night amounts at parse time, so the buyer confirms concrete numbers and the enclave only sums.
@@ -181,14 +183,14 @@ What is lost: a refundable bonus no longer scales with the bid price.
 Root holds only what is repository wide: `node_modules/`, the `.env` rules, `*.local` and `*.local.*`,
 `.DS_Store`, `*.log`. Each init command writes the package's own.
 
-**R8 — Remove `typechain-types/`**
+**R8 — Why `typechain-types/`?**
 It was wrong. TypeChain belongs to Hardhat 2 with ethers. Hardhat 3 with the viem toolbox generates
 types into `artifacts/` and installs no TypeChain. Nothing to ignore.
 
 **R9 — Rename `chain/` to `onchain/`, so it is not confused with local chain infrastructure.**
 Done.
 
-**R10 — Agree on the Policy JSON schema and the scoring formula before anything is built on them.**
+**R10 — Agree the Policy JSON schema and the scoring formula before anything is built on them.**
 That becomes the first build ticket. Every other build ticket carries `Blocked by: 01`.
 
 ---
@@ -214,7 +216,7 @@ That becomes the first build ticket. Every other build ticket carries `Blocked b
 | First tests | Real red tests taken from the spec, one per package |
 | Mocks | Fakes for LiteAPI, Privy and the enclave handler runner. Fakes may run the handler; fakes may never generate evidence |
 | Secrets | Root file for shared values, per package for scoped secrets; `onchain/` uses `configVariable()` |
-| Tracker | `.scratch/verification/` and `.scratch/build/`, committed, public, never holding a secret |
+| Tracker | `docs/scratch/verification/` and `docs/scratch/build/`, committed, public, never holding a secret |
 | Records | `docs/decisions.md` is a facts table plus an evidence appendix; `docs/adr/` holds trade-offs only |
 | Records written now | `0001-no-reveal-phase`, `0002-scoring-is-not-shared` |
 | Spec | `docs/initial-spec.md` frozen in place, old name kept; `docs/spec.md` becomes the live source |
@@ -259,5 +261,4 @@ Terms removed: Offer, Desk, Feasible, Fallback Tier, Credit, Bond, soft requirem
    buyer can decrypt every sealed bid. A scheme is needed where only the enclave ever holds the
    private half.
 2. **Budget padding is a workaround.** The ceiling is still bounded from above on chain.
-3. **Add `workflow/` to the workspace** once the CRE CLI's behaviour is known.
-4. **Swap the fake handler runner for the real CRE** and capture the simulation log as evidence.
+3. **Add 

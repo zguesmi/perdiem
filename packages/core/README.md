@@ -19,5 +19,5 @@ step and cannot typecheck against a stale `dist`. The `build` script still exist
 ## Status
 
 Every function throws. The tests state what they must do, and they are red until
-`.scratch/build/01-policy-schema-and-scoring-formula.md` is resolved. Nothing is written against the
+`docs/scratch/build/01-policy-schema-and-scoring-formula.md` is resolved. Nothing is written against the
 `Policy` type until then.

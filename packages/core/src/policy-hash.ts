@@ -7,6 +7,6 @@ import type { Policy } from "./policy.ts";
  */
 export function policyHash(_policy: Policy): `0x${string}` {
   throw new Error(
-    "policyHash is not implemented yet. See .scratch/build/01-policy-schema-and-scoring-formula.md",
+    "policyHash is not implemented yet. See docs/scratch/build/01-policy-schema-and-scoring-formula.md",
   );
 }

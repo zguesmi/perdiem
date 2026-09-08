@@ -22,7 +22,7 @@ out of it were made on that data. What the partner technologies actually do, wha
 does, and what the idea has to be worth to be worth building.
 
 **Output:** `docs/initial-spec.md`. That file is frozen. It is the record of what the idea looked
-like at the beginning.
+like before anyone argued with it.
 
 ### Phase 2 — Spec hardening
 
@@ -51,15 +51,13 @@ The renames and corrections the grilling session settled, applied to a single li
 Done in Claude Code. Every package was created with its own official init command where one exists —
 `hardhat --init`, `pnpm create vite`, `pnpm create hono` — and `pnpm init` where none does. Each
 package carries the first real test taken from the specification, and those tests are red on purpose:
-they state what has to be true, and the tickets in `.scratch/build/` make them pass.
+they state what has to be true, and the tickets in `docs/scratch/build/` make them pass.
 
 **Output:** the workspace, `CONTEXT.md`, `docs/adr/`, `docs/decisions.md`, and the two backlogs in
-`.scratch/`.
+`docs/scratch/`.
 
 ### Phase 5 onwards
 
 Pending. This file is updated as each phase completes.
 
-## Where the prompts live
-
-TODO
+## Where the prompt

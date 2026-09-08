@@ -16,7 +16,7 @@ Settlement to. A relay-only design has none of those.
 ## Consequences
 
 This depends on the enclave being able to decrypt in-enclave, which is
-`.scratch/verification/03-enclave-decrypts-sealed-bids.md`. If that comes back negative and the
+`docs/scratch/verification/03-enclave-decrypts-sealed-bids.md`. If that comes back negative and the
 fallback is plaintext at the relay behind a bearer token, then the envelope hides nothing, a relay
 leak during bidding becomes exploitable, and a reveal deadline after the bid deadline has to come
 back. Reopen this decision only in that case.

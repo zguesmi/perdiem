@@ -19,4 +19,4 @@ reads the relay.
 ## Status
 
 Both routes answer `501`. The tests are red, and the Policy shape they assume is blocked on
-`.scratch/build/01-policy-schema-and-scoring-formula.md`.
+`docs/scratch/build/01-policy-schema-and-scoring-formula.md`.

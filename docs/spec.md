@@ -86,7 +86,7 @@ Non-goals, deliberately cut:
 
 Private. Only its hash reaches the chain.
 
-**This section is what `.scratch/build/issues/01-policy-schema-and-scoring-formula.md` settles.** The
+**This section is what `docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md` settles.** The
 shape below is the agreed direction, not the agreed schema. Nothing is written against it until that
 ticket is resolved.
 
@@ -190,7 +190,7 @@ the Bids Root catches.
 
 Known limitation: today `requisition/` generates the keypair, so the buyer holds the private half and
 could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer. See
-`.scratch/build/issues/16-enclave-key-generation.md`.
+`docs/scratch/build/issues/16-enclave-key-generation.md`.
 
 ### Settlement
 
@@ -215,7 +215,7 @@ or swapped between the chain and the Enclave. It only means that if the **Enclav
   in that set, and hashes it. The guarantee degrades to "the same lie was not fed to both the Enclave
   and the contract".
 
-Which path applies is `.scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md`.
+Which path applies is `docs/scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md`.
 
 Either way the root covers **all** on-chain commitments, including any committer whose Sealed Bid
 never arrived or failed to decrypt. Build it over only the scored bids and one missing blob turns a
@@ -338,7 +338,7 @@ from a non-forwarder rejected; a settlement before `startSettling` rejected; `ti
 slash path; the timeout path.
 
 The USDC address and its decimals are
-`.scratch/verification/issues/05-arc-usdc-address-and-decimals.md`. Arc's native gas is USDC with 18
+`docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md`. Arc's native gas is USDC with 18
 decimals and the ERC-20 used for escrow may differ, so nothing hardcodes 6.
 
 ## CRE workflow
@@ -359,7 +359,7 @@ Never logged, anywhere outside the enclave section: the Policy, the maximum pric
 the enclave private key, any decrypted Bid. Grep the logs before committing them.
 
 Whether one run can issue two writes is
-`.scratch/verification/issues/08-two-writes-per-workflow-run.md`. If it cannot, the claim and the
+`docs/scratch/verification/issues/08-two-writes-per-workflow-run.md`. If it cannot, the claim and the
 settlement go on separate cron ticks and the interval drops to 20 seconds.
 
 ## Supplier agents
@@ -414,7 +414,7 @@ No design work beyond a clean default. No mobile layout.
 
 ## What is verified, and what is open
 
-Verified facts live in `docs/decisions.md`. Open questions are tickets in `.scratch/verification/`,
+Verified facts live in `docs/decisions.md`. Open questions are tickets in `docs/scratch/verification/`,
 and the build tickets that depend on them carry a `Blocked by:` line. Nothing gets written against an
 open row.
 

@@ -5,7 +5,7 @@ name: CI
 # other's cache.
 #
 # The test steps are red on purpose right now. Every package ships the first real test taken from
-# the specification, and those tests stay failing until the tickets in `.scratch/build/` implement
+# the specification, and those tests stay failing until the tickets in `docs/scratch/build/` implement
 # what they describe. Red here means "not written yet", not "broken".
 
 on:

@@ -8,7 +8,7 @@ import { settle, type Bid } from "../src/scoring.ts";
 // difference in price. If this test ever goes green for a different winner, the demo is dead.
 //
 // Red until settle is implemented. The Policy shape is blocked on
-// .scratch/build/01-policy-schema-and-scoring-formula.md.
+// docs/scratch/build/01-policy-schema-and-scoring-formula.md.
 
 const policy = {
   maxPrice: 520,
