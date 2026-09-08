@@ -11,22 +11,27 @@ test("scales by the decimal constant, not by a literal", () => {
   assert.equal(usdcMinorUnits(1), 10 ** USDC_DECIMALS);
 });
 
+// The Budget, the maximum price, the Payout and the Stake, scaled by the constant rather than by
+// a literal, so a different decimal count changes the constant and the fixture and nothing else.
 test("converts the demo figures", () => {
-  assert.equal(usdcMinorUnits(750), 750_000_000);
-  assert.equal(usdcMinorUnits(520), 520_000_000);
-  assert.equal(usdcMinorUnits(440), 440_000_000);
-  assert.equal(usdcMinorUnits(50), 50_000_000);
+  for (const whole of [750, 520, 440, 50]) {
+    assert.equal(usdcMinorUnits(whole), whole * 10 ** USDC_DECIMALS, String(whole));
+  }
 });
 
-// Through the decimal string, so 0.07 never becomes 70000.00000000001.
+// Through the decimal string, so 0.07 never becomes 70000.00000000001. Stated as a relation
+// between two conversions, because the exact minor-unit figure depends on the decimal count.
 test("converts a fractional amount exactly", () => {
-  assert.equal(usdcMinorUnits(1.5), 1_500_000);
-  assert.equal(usdcMinorUnits("0.07"), 70_000);
-  assert.equal(usdcMinorUnits("-0.000001"), -1);
+  assert.equal(usdcMinorUnits(1.5) * 2, usdcMinorUnits(3));
+  assert.equal(usdcMinorUnits("0.07") * 100, usdcMinorUnits(7));
+});
+
+test("converts the smallest unit USDC has", () => {
+  assert.equal(usdcMinorUnits(`-0.${"0".repeat(USDC_DECIMALS - 1)}1`), -1);
 });
 
 test("rejects more precision than USDC has", () => {
-  assert.throws(() => usdcMinorUnits("0.0000001"), /precision/i);
+  assert.throws(() => usdcMinorUnits(`0.${"0".repeat(USDC_DECIMALS)}1`), /precision/i);
 });
 
 test("rejects an amount past the safe integer range", () => {
