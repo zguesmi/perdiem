@@ -22,7 +22,7 @@ out of it were made on that data. What the partner technologies actually do, wha
 does, and what the idea has to be worth to be worth building.
 
 **Output:** `docs/initial-spec.md`. That file is frozen. It is the record of what the idea looked
-at the start.
+like before anyone argued with it.
 
 ### Phase 2 — Spec hardening
 
@@ -44,12 +44,30 @@ budget leaking the maximum price on chain, and two words used for one concept ac
 The renames and corrections the grilling session settled, applied to a single live document.
 `docs/initial-spec.md` stays frozen beside it.
 
-**Output:** `docs/spec.md`. Pending.
+**Output:** `docs/spec.md`.
 
-### Phase 4 onwards
+### Phase 4 — Scaffolding
+
+Done in Claude Code. Every package was created with its own official init command where one exists —
+`hardhat --init`, `pnpm create vite`, `pnpm create hono` — and `pnpm init` where none does. Each
+package carries the first real test taken from the specification, and those tests are red on purpose:
+they state what has to be true, and the tickets in `.scratch/build/` make them pass.
+
+**Output:** the workspace, `CONTEXT.md`, `docs/adr/`, `docs/decisions.md`, and the two backlogs in
+`.scratch/`.
+
+### Phase 5 onwards
 
 Pending. This file is updated as each phase completes.
 
 ## Where the prompts live
 
-TODO
+Every prompt and spec file lives in this repository, as ETHGlobal requires:
+
+- `docs/initial-spec.md` — the frozen output of phase 1. It sits in `docs/`, not `docs/ai/`, because
+  it is the product specification rather than a prompt
+- `docs/grilling-session.md` — the phase 2 questions, requests and decisions
+- `CLAUDE.md` — the standing instructions Claude Code reads on every session
+- `docs/spec.md` — the live specification, and what everything is built against
+- `docs/agents/` — how the skills consume this repository
+- `docs/ai/intent-prompt.md` — the system prompt for the one LLM call the product itself makes. Pending.

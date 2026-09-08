@@ -1,4 +1,7 @@
-Read the initial specs file @docs/initial-spec.md
+Read the live specification @docs/spec.md
+
+`docs/initial-spec.md` is frozen: it records the idea before it was argued with. Do not build from
+it. Every change between the two is in `docs/grilling-session.md`.
 
 ## Agent skills
 
