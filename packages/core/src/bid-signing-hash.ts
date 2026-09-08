@@ -1,10 +1,10 @@
 import { hashTypedData } from "viem";
 import type { Address, Hex, TypedDataDomain } from "viem";
 
-import { bidTypes } from "./bid-hash.ts";
-import { ARC_TESTNET_CHAIN_ID } from "./chain.ts";
 import { assertBid } from "./bid.ts";
 import type { Bid } from "./bid.ts";
+import { bidTypes } from "./bid-hash.ts";
+import { ARC_TESTNET_CHAIN_ID } from "./chain.ts";
 
 /**
  * The EIP-712 domain, fixed per deployment, so a signature for auction 1 on one deployment cannot

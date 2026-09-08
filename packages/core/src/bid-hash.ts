@@ -1,5 +1,6 @@
 import { hashStruct } from "viem";
 import type { Hex } from "viem";
+
 import { assertBid } from "./bid.ts";
 import type { Bid } from "./bid.ts";
 
