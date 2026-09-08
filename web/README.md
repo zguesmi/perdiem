@@ -17,6 +17,20 @@ This package keeps the `tsconfig.json`, `vite.config.ts` and lint setup that `pn
 generated, rather than extending `@perdiem/tsconfig`. Same rule as `onchain/`: where a tool owns its
 configuration, the generated file is left alone.
 
+## Commands
+
+Run from the repository root, after `pnpm install`.
+
+```sh
+pnpm --filter @perdiem/web dev         # vite dev server on port 5173
+pnpm --filter @perdiem/web build       # tsc -b, then vite build into dist/
+pnpm --filter @perdiem/web preview     # serves the built dist/
+pnpm --filter @perdiem/web typecheck   # tsc -b
+pnpm --filter @perdiem/web lint        # oxlint
+```
+
+This package has no test script.
+
 ## Status
 
 Five empty panels. Nothing is wired to the chain or the relay yet.

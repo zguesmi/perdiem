@@ -38,6 +38,24 @@ If the CRE CLI ever drops that line, the hashing tests fail loudly rather than t
 quietly at settlement. Adding this package to the workspace is worth revisiting once the CLI's
 behaviour is verified.
 
+## Commands
+
+This package is outside the pnpm workspace, so the root scripts skip it and it installs on its own.
+
+```sh
+pnpm --dir workflow install
+pnpm --dir workflow test        # tsx --test over test/**/*.test.ts
+pnpm --dir workflow typecheck   # tsc --noEmit
+```
+
+There is no build script, and no `cre` command yet: the CRE CLI is not installed and Confidential
+Workflows is in private beta. Once it is generated, the simulation run that produces the evidence in
+`docs/evidence/` is:
+
+```sh
+cre workflow simulate
+```
+
 ## Status
 
 The CRE scaffolding is not generated yet: the CLI is not installed, and Confidential Workflows is in

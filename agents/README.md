@@ -20,6 +20,20 @@ key, so the agents run before a sandbox key exists. `createSandboxLiteApiClient`
 
 The fake may run the agents. The fake may never produce the booking receipt in the demo.
 
+## Commands
+
+Run from the repository root, after `pnpm install`.
+
+```sh
+pnpm --filter @perdiem/agents test        # tsx --test over test/**/*.test.ts
+pnpm --filter @perdiem/agents typecheck   # tsc --noEmit
+pnpm --filter @perdiem/agents build       # emits dist/
+pnpm --filter @perdiem/agents start       # tsx src/index.ts
+```
+
+`start` has nothing to run yet: `src/index.ts` is still only the barrel export. The three agent
+processes get their entry point when the bid flow is written.
+
 ## Status
 
 Every function throws. The rate plan tests state the three prices the demo depends on and are red.

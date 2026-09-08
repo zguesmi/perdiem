@@ -4,6 +4,28 @@ This project showcases a Hardhat 3 project using the native Node.js test runner 
 
 To learn more about Hardhat 3, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3](https://hardhat.org/hardhat3-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
 
+## Commands
+
+Run from the repository root, after `pnpm install`.
+
+```sh
+pnpm --filter @perdiem/onchain build       # hardhat compile
+pnpm --filter @perdiem/onchain test        # every test, Solidity and TypeScript
+pnpm --filter @perdiem/onchain typecheck   # hardhat compile, then tsc --noEmit
+```
+
+Inside `onchain/`, Hardhat's own commands work directly, and let you pick one kind of test:
+
+```sh
+npx hardhat compile
+npx hardhat test
+npx hardhat test solidity   # contracts/*.t.sol
+npx hardhat test nodejs     # test/*.ts, which need @perdiem/core
+```
+
+There is no deployment command yet. `ignition/modules/` is empty, and `hardhat.config.ts` still has
+the template's `sepolia` network rather than Arc testnet, chain id 5042002.
+
 ## Project Overview
 
 This example project includes:

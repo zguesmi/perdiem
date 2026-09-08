@@ -16,6 +16,20 @@ travel manager and finance both sign.
 What this service is not: it does not score bids, does not book anything, holds no bids, and never
 reads the relay.
 
+## Commands
+
+Run from the repository root, after `pnpm install`.
+
+```sh
+pnpm --filter @perdiem/requisition dev         # tsx watch, reloads on change
+pnpm --filter @perdiem/requisition test        # tsx --test over test/**/*.test.ts
+pnpm --filter @perdiem/requisition typecheck   # tsc --noEmit
+pnpm --filter @perdiem/requisition build       # emits dist/
+pnpm --filter @perdiem/requisition start       # runs dist/index.js, needs build first
+```
+
+The server listens on port 8788. Set `REQUISITION_PORT` to move it.
+
 ## Status
 
 Both routes answer `501`. The tests are red, and the Policy shape they assume is blocked on

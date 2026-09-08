@@ -16,6 +16,18 @@ TypeScript directly — tsx for the services, Hardhat for the contracts — so a
 step and cannot typecheck against a stale `dist`. The `build` script still exists, because
 `workflow/` lives outside the workspace and may need compiled JavaScript.
 
+## Commands
+
+Run from the repository root, after `pnpm install`.
+
+```sh
+pnpm --filter @perdiem/core test        # tsx --test over test/**/*.test.ts
+pnpm --filter @perdiem/core typecheck   # tsc --noEmit
+pnpm --filter @perdiem/core build       # emits dist/, only workflow/ needs it
+```
+
+Nothing here is served or started; this package is a library.
+
 ## Status
 
 Every function throws. The tests state what they must do, and they are red until
