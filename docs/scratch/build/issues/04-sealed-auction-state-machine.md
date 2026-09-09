@@ -6,9 +6,13 @@ USDC on Arc testnet has 6 decimals, verified on chain, so `SealedAuction.t.sol` 
 is correct. See `../verification/issues/05-arc-usdc-address-and-decimals.md`.
 
 Created, Bidding, Settling, Finalized, Timeout. `createAuction` pulls the Budget, `commit` pulls the
-Stake, `startSettling` claims the auction for the workflow, the settlement pays and refunds,
+Stake, `_startSettling` claims the auction for the workflow, the settlement pays and refunds,
 `submitReceipt` releases the winner's Stake, `slash` pays it to the buyer, `timeoutRefund` is the
 escape hatch.
+
+`_startSettling` is internal. A workflow reaches it only through a kind `1` report to `onReport`,
+which is ticket 05. This ticket owns the transition and its guards; ticket 05 owns the dispatch and
+the forwarder check.
 
 The invariants to test: money out never exceeds money in; no payout unless the Policy Hash and the
 Bids Root both match; the buyer cannot withdraw between creation and settlement except through
@@ -30,7 +34,8 @@ Blocked on the USDC decimals, because every figure in the tests depends on them.
       buyer, winner, losers and the contract, and the contract balance is zero at the end of each.
 - [ ] `commit` is once per address, before `bidDeadline`, and pulls `STAKE`.
 - [ ] The first commit moves `Created → Bidding` with no extra transaction.
-- [ ] `startSettling` is rejected from a non-forwarder, outside `Bidding`, and before `bidDeadline`.
+- [ ] `_startSettling` is rejected outside `Bidding` and before `bidDeadline`. The non-forwarder
+      caller is ticket 05's test, because the forwarder check lives on `onReport`.
 - [ ] `Finalized` and `Timeout` reject every further state-changing call.
 - [ ] `timeoutRefund` before `finalizeDeadline` reverts.
 - [ ] Deadlines that are not strictly increasing from now revert at creation. That test is already
