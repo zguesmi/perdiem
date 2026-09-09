@@ -29,3 +29,8 @@ work beyond a clean default. No mobile layout.
 - 1:50 "Name Your Own Price had one dimension and the platform saw the bid. Here the scoring rule is
   private from the platform too."
 - 2:00 End card.
+
+## Notes
+
+- Privy policies are realistic (exact abi, exact contract)
+- privy: HR don't need to manage wallets
