@@ -56,12 +56,13 @@ iterative bidding, demo keys in `.env`, LiteAPI sandbox guests only, no mainnet.
 2. The buyer confirms. `requisition/` canonicalizes the Policy and computes the Policy Hash.
 3. `requisition/` uploads the Policy and the enclave private key as workflow secrets, then calls
    `createAuction`, which pulls the Budget in the same call. State is `Created`.
-4. Privy signs that call from the organization wallet. Above the ceiling, the key quorum approves.
+4. Privy signs that call from the organization wallet and `requisition/` broadcasts it. Above the
+   ceiling, the key quorum approves.
 5. Each agent builds one Bid, signs it with EIP-712, commits `keccak256(abi.encode(bidHash, salt))`
    with its Stake, and posts the Sealed Bid to the relay. Both before `bidDeadline`, in either
    order. The first commit moves the auction to `Bidding`.
 6. There is no reveal phase. See `docs/adr/0001-no-reveal-phase.md`.
-7. After `bidDeadline` the workflow claims the auction with `startSettling`. The Enclave fetches the
+7. After `bidDeadline` the workflow claims the auction with a claim report. The Enclave fetches the
    Sealed Bids, decrypts them, checks each signature and each commitment, filters for Eligible,
    scores, picks a winner, and builds the Bids Root.
 8. Only the Settlement leaves the Enclave. The workflow writes it to `SealedAuction`.
@@ -100,7 +101,6 @@ regenerated fixture.
 - Every number is an integer: money in USDC minor units, distance in metres, coordinates in
   microdegrees. A fraction has more than one shortest decimal form, and one digit of disagreement
   between two encoders produces two Policy Hashes.
-- The decimal count is one constant in `packages/core`. Nothing hardcodes 6.
 - The requisition service converts what the buyer typed into these integers once, before the buyer
   confirms. Nothing downstream converts anything.
 - A Preference Bonus is a flat number, not a rate: "20 a night" becomes what it is worth on this
@@ -153,6 +153,16 @@ The salt stays out of the struct hash, so the signature is checkable without it 
 cannot be brute-forced with it. `hotelName` is signed and never scored; the page names the winner
 from it.
 
+A supplier is a contract account, so the signature check is ERC-1271, not `ecrecover`. Circle agent
+wallets are ERC-4337 smart contract accounts: `circle wallet sign typed-data` returns a 65-byte
+ECDSA signature from the account's owner key, and recovering it yields the owner, never the wallet.
+The wallet is the address that stakes, wins and gets paid, so the wallet is the address the
+signature has to bind to. The check is therefore `eth_call isValidSignature(digest, signature)` on
+the supplier address, valid on the magic value `0x1626ba7e`, where `digest` is the signed
+`keccak256(0x1901 ‖ domainSeparator ‖ bidHash)` and not `bidHash`. `ecrecover` is tried first and
+accepted when it returns the supplier, which keeps `createLocalSigner` working. See
+`docs/scratch/verification/issues/07-circle-agent-stack-wallets.md`.
+
 `auctionId` is a monotonic counter cast to `bytes32`, so the first auction is `0x00…01`. Suppliers
 read it from `AuctionCreated` and never derive it. The EIP-712 domain is fixed per deployment, so a
 signature for auction 1 on one deployment cannot be replayed against auction 1 on another:
@@ -174,10 +184,21 @@ enough that keccak256 brute-forces the commitment in seconds without it.
 - **Envelope**: the agent seals `{bid, salt, signature}` to that public key. The salt goes inside
   the ciphertext. Nothing but the ciphertext and the supplier address leaves the agent.
 - **Enclave**: decrypt, check the EIP-712 signature, then check the commitment. Any failure drops
-  that bid, and only a count is logged.
+  that bid, and only a count is logged. The signature check costs one `eth_call` per bid, because a
+  contract-account supplier is checked with ERC-1271.
+
+The envelope is `epk(32) ‖ nonce(24) ‖ ciphertext`, with the key
+`HKDF-SHA256(X25519(esk, enclavePublicKey), epk ‖ enclavePublicKey, "perdiem/sealed-bid/v1" ‖ auctionId, 32)`
+and XChaCha20-Poly1305 over the JSON. One ephemeral keypair per bid. `@noble/curves`,
+`@noble/ciphers` and `@noble/hashes` on both sides, which `viem` already puts in the tree. Verified
+in a confidential handler, row V3: 11 ms per bid, 30 ms for three. A wrong key or one flipped byte
+fails with `invalid tag`. See `docs/adr/0005-sealed-bid-envelope-scheme.md` for the schemes this
+beat.
 
 Known limitation: `requisition/` generates the keypair, so the buyer holds the private half and
-could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer.
+could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer. The
+enclave cannot generate the pair itself: it has no randomness, and `x25519.utils.randomPrivateKey()`
+throws `crypto.getRandomValues must be defined` there.
 
 ### The relay interface
 
@@ -212,12 +233,9 @@ No Eligible bid means `winner = address(0)` and `payout = 0`, and the contract r
 and every Stake.
 
 The Bids Root binds the Settlement to the exact set of on-chain commitments, so no bid can be
-dropped or swapped between the chain and the Enclave. The Enclave builds it, one of two ways:
-
-- Preferred: it reads the commitments from the chain itself and hashes the sorted set.
-- Fallback: the workflow passes them in, the Enclave checks that every Sealed Bid it scored is in
-  that set, and hashes it. The guarantee degrades to "the same lie was not fed to both the Enclave
-  and the contract".
+dropped or swapped between the chain and the Enclave. The Enclave reads `commitmentsOf` from the
+chain itself and hashes the sorted set. It does this with `EVMClient.callContract`, which is typed
+for `Runtime` and takes the `TeeRuntime` through a cast. Verified in simulation only: row V2.
 
 The construction is exact, because the contract recomputes it and one byte of difference rejects a
 correct settlement:
@@ -240,7 +258,8 @@ Receipt: `keccak256(bytes(liteApiBookingId))`.
 
 Inside the Enclave. Deterministic integer arithmetic.
 
-1. Decrypt, check the signature, check the commitment. Drop any failure; log counts only.
+1. Decrypt, check the signature by `ecrecover` then ERC-1271, check the commitment. Drop any
+   failure; log counts only.
 2. Eligibility, per bid:
    - city, checkin, checkout, roomType and numberOfRooms equal the hard requirements.
    - `distanceMeters <= radiusMeters`.
@@ -300,7 +319,7 @@ Timeout   → terminal, everything refunded
 
 - `Created → Bidding` on the first commit, with no extra transaction. The contract never sees the
   sealed post.
-- `startSettling` drives `Bidding → Settling`, not the clock. A time-based flip cannot tell "the
+- The claim report drives `Bidding → Settling`, not the clock. A time-based flip cannot tell "the
   workflow never ran" from "the workflow ran and its settlement was rejected". It costs one extra
   write and it says which service to debug during the demo.
 - `Settling → Finalized` on a valid settlement, with or without a winner.
@@ -321,12 +340,26 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
   number, emits `AuctionCreated`.
 - `commit(auctionId, commitment)` — any address, once, before `bidDeadline`. Pulls the `STAKE`
   constant, 50 USDC. Emits `Committed`.
-- `startSettling(auctionId)` — the CRE forwarder only. Requires `Bidding` and
-  `block.timestamp >= bidDeadline`.
 - `onReport(bytes metadata, bytes report)` — the CRE forwarder only, through the Chainlink receiver
   template. The name belongs to Chainlink and is kept verbatim; everywhere else the word is
-  "settlement". Requires `Settling`, a matching Policy Hash, a matching Bids Root, a Payout within
-  the Budget, and a winner that either committed or is the zero address. Pays, refunds, finalizes.
+  "settlement". It is the only entry a workflow has, so it carries both writes and dispatches on a
+  kind: `1` is the claim, `2` is the settlement. An unknown kind reverts.
+  - `report` is `abi.encode(uint8 kind, bytes payload)`. The claim payload is
+    `abi.encode(bytes32 auctionId)`. The settlement payload is `abi.encode(Settlement)`.
+  - Kind `1` requires `Bidding` and `block.timestamp >= bidDeadline`, then moves to `Settling`.
+  - Kind `2` requires `Settling`, a matching Policy Hash, a matching Bids Root, a Payout within the
+    Budget, and a winner that either committed or is the zero address. Pays, refunds, finalizes.
+  - It reads nothing from `metadata`: simulation passes a placeholder workflow id and workflow
+    owner. The kind cannot live there either, because `reportId` is `0001` for every report in one
+    run. Row V8.
+  - `startSettling(auctionId)` is internal, reached only through kind `1`. The `evm@1.0.0`
+    capability has one write RPC, `writeReport`, with no calldata field, so a workflow cannot call
+    any other function on the receiver. Row V8.
+- `supportsInterface(bytes4 id) → bool` — returns `true` for `0x01ffc9a7` and for the `IReceiver`
+  interface id `0x805f2132`, and `false` for everything else. The forwarder probes it before every
+  settlement. A receiver that answers `true` to `0xffffffff` is skipped: the forwarder calls nothing
+  and emits `ReportProcessed(result: false)`, while the workflow still reads `TxStatus.SUCCESS`. The
+  auction then sits in `Settling` until `timeoutRefund`. A test asserts the `0xffffffff` answer.
 - `submitReceipt(auctionId, receiptHash)` — the winner only, before `deliverDeadline`. Releases its
   Stake.
 - `slash(auctionId)` — anyone, after `deliverDeadline` with no Receipt. The Stake goes to the buyer.
@@ -345,24 +378,35 @@ Invariants: USDC out never exceeds USDC in, per auction; no payout unless the Po
 Bids Root both match; the buyer cannot withdraw between `createAuction` and `Finalized`, except
 through `timeoutRefund`; `Finalized` and `Timeout` are terminal.
 
-Tests: the demo table end to end; a wrong Policy Hash rejected; a wrong Bids Root rejected;
-`startSettling` from a non-forwarder rejected; a settlement before `startSettling` rejected;
-`timeoutRefund` before `finalizeDeadline` rejected; deadlines out of order rejected at creation; the
-no-winner path; the slash path; the timeout path.
+Tests: the demo table end to end; a wrong Policy Hash rejected; a wrong Bids Root rejected; a claim
+report from a non-forwarder rejected; a settlement report before the claim report rejected; an
+unknown report kind rejected; `timeoutRefund` before `finalizeDeadline` rejected; deadlines out of
+order rejected at creation; the no-winner path; the slash path; the timeout path.
 
 ## CRE workflow
 
 - Start from `cre init --template=hello-confidential-workflows-ts`.
 - A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`,
   exit.
-- Claim the auction with `startSettling` before any scoring work.
-- Read the commitments and pass them into the confidential handler. The workflow nodes never compute
-  the Bids Root.
-- Inside `handlerInTee`: load the Policy and the enclave private key from secrets; fetch the Sealed
-  Bids; decrypt; check signatures; check commitments; build the Bids Root; score; return only the
-  Settlement.
-- Encode the Settlement and write it to `SealedAuction`.
+- Claim the auction with a kind `1` report before any scoring work.
+- Inside `handlerInTee`: load the Policy and the enclave private key from secrets; read the
+  commitments from the chain; fetch the Sealed Bids with `cre.capabilities.HTTPClient`; decrypt;
+  check signatures; check commitments; build the Bids Root; score; return only the Settlement.
+- The workflow nodes never read the commitments and never compute the Bids Root.
+- Encode the Settlement as a kind `2` report and write it to `SealedAuction`. Two `writeReport`
+  calls fit one run and the second sees the state the first committed, so the claim and the
+  settlement need no second cron tick. Row V8.
 - Save one full `cre workflow simulate` run to `docs/evidence/`.
+
+The relay runs on `http://localhost:8787` and the handler reads it there: in simulation the HTTP
+capability runs in the CLI's own process, so localhost resolves, plain HTTP is allowed and no host
+allow list exists. Verified in row V13. A deployed workflow cannot reach a developer's machine, so a
+deployed demo needs the relay on a public host.
+
+Secrets are environment variables named in `secrets.yaml`, and `cre workflow simulate` needs
+`-e .env` to resolve them. One secret holds at most 131,072 bytes, which is the operating system's
+`exec` limit rather than a CRE limit. The Policy is 425 characters and the enclave private key
+is 44. Verified in row V4.
 
 Never logged outside the enclave section: the Policy, the maximum price, the preferences, the
 enclave private key, any decrypted Bid. Grep the logs before committing them.
@@ -378,13 +422,24 @@ breakfast, margin.
 - Build one Bid, sign it, commit with the Stake, post the Sealed Bid. Both before `bidDeadline`.
 - On winning: prebook, book with the sandbox payment method, post the Receipt.
 
-Each agent holds a Circle Agent Stack wallet, and that wallet signs the `commit` and the
+Each agent holds a Circle Agent Stack wallet, and that wallet signs the Bid, the `commit` and the
 `submitReceipt` calls. This is what the Arc track asks for, so it ships. It is required, not
 optional. Two signer implementations sit behind one interface: `createCircleAgentSigner` is the demo
 path and `createLocalSigner` is a viem externally owned account, kept so the bid flow and its tests
-run before a Circle wallet exists. The bid flow never sees the difference. The fallback ships only
-if `docs/scratch/verification/issues/07-circle-agent-stack-wallets.md` says the Circle wallet cannot
-sign on Arc testnet.
+run without a Circle session. The bid flow never sees the difference.
+
+Verified on Arc testnet, row V7:
+
+- The wallet is provisioned by the first `circle wallet login <email> --testnet`. There is nothing
+  to create.
+- `circle wallet execute` broadcasts a contract call and Circle pays the gas from the wallet.
+- `circle wallet sign typed-data` signs the `Bid` type, and the wallet validates that signature
+  through ERC-1271. Hence the check in the Bid section.
+- Spending policies are mainnet only: `circle wallet limit` refuses a testnet chain. On Arc testnet
+  the agent wallet runs on Circle's default policy, so supplier-side limits are not part of the
+  demo. Buyer-side control is the Privy half, where the rules read calldata and a quorum signs.
+- The session is email OTP and lasts 28 days. A human types the code once per agent, and creating or
+  changing a policy needs another. Nothing else in the run is interactive.
 
 ## Requisition service
 
@@ -392,11 +447,24 @@ sign on Arc testnet.
   validated against the Policy schema. One retry, then it fails.
 - `POST /confirm` — canonicalize, hash, upload the workflow secrets, call `createAuction` with the
   Budget.
-- Privy: the organization wallet signs. Its policy allows USDC transfers to `SealedAuction` and
-  nothing else. Above the ceiling, a key quorum of two signs, travel manager and finance, and both
-  approvals show on the page.
+- Privy: the organization wallet signs with `eth_signTransaction` and the requisition service
+  broadcasts the signed RLP to `ARC_RPC_URL`. Privy does not broadcast on Arc: `eth_sendTransaction`
+  returns `App is not authorized to transact on chain eip155:5042002`.
+- Funding takes two signed transactions, so the spend policy needs two `ALLOW` rules. Both read the
+  calldata, not just the destination address:
+  - `approve(spender, value)` on the USDC ERC-20, with `spender` equal to `SealedAuction`.
+  - `createAuction(...)` on `SealedAuction`, with the Budget argument within the signer's ceiling.
+- A calldata rule is `field_source: ethereum_calldata` and needs the contract's JSON ABI in the
+  condition. A rule on the destination address alone would let any call through, including one that
+  approves a different spender.
+- Every rule also pins `chain_id` to 5042002 and uses `method: eth_signTransaction`.
 - The ceiling is 500 USDC and the demo Budget is 750, so the quorum fires in the video every time. A
   Budget under 500 goes through on the policy alone, which is the path the tests use.
+- The ceiling is a per-signer override policy, not a quorum threshold. A quorum threshold is fixed
+  and cannot depend on the Budget. The wallet carries two signers: a server authorization key capped
+  at the ceiling, and a key quorum of two, travel manager and finance, with no cap. The requisition
+  service picks the signer from the Budget. Unverified: the override-policy path is documented and
+  has not been run.
 
 ## Links
 

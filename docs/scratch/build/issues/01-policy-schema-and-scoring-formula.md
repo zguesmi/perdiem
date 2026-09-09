@@ -32,10 +32,9 @@ Four things this ticket had left implicit, now decided:
   `radiusMeters`), coordinates in microdegrees. The old `distanceKm` was a fraction, and a fraction
   in a hashed document is a hash divergence waiting to happen. The demo distances are 500, 700 and
   1000 metres.
-- **The decimal count is one constant.** It comes from
-  `../../verification/issues/05-arc-usdc-address-and-decimals.md` and is in `packages/core`. If it
-  is 18 rather than 6, only the fixture regenerates; no rule changes, because every comparison in
-  scoring is between two amounts in the same unit.
+- **USDC minor units are 6 decimals**, verified on chain in
+  `../../verification/issues/05-arc-usdc-address-and-decimals.md`. No rule depends on the count,
+  because every comparison in scoring is between two amounts in the same unit.
 - **Canonical encoding is RFC 8785 restricted to integers**, not the looser "sorted keys, no
   whitespace, UTF-8" prose, which two conformant implementations can satisfy while producing
   different bytes. `packages/core` ships a golden fixture that both the requisition service and the

@@ -1,6 +1,6 @@
 # What is the Arc testnet chain id and public RPC endpoint?
 
-Status: ready-for-agent Type: research
+Status: closed Type: research
 
 `docs/spec.md` states chain id 5042002 in three places, and `docs/decisions.md` has no row for it.
 It came from reading, not from a connection. Everything downstream assumes it: the Hardhat network
@@ -18,10 +18,11 @@ Answerable from the Arc documentation and one `eth_chainId` call, so an agent ca
 
 ## Acceptance criteria
 
-- [ ] Row V12 records the chain id, the public RPC URL, whether a websocket endpoint exists, and the
+- [x] Row V12 records the chain id, the public RPC URL, whether a websocket endpoint exists, and the
       explorer base URL.
-- [ ] Each came from a connection, with the command that produced it, not from a page.
-- [ ] `eth_chainId` confirms the chain id, and the 5042002 in `docs/initial-spec.md` and
+- [x] Each came from a connection, with the command that produced it, not from a page. The explorer
+      base URL is the exception, and it is marked as one.
+- [x] `eth_chainId` confirms the chain id, and the 5042002 in `docs/initial-spec.md` and
       `onchain/README.md` is either confirmed or corrected everywhere it appears.
 
 ## Comments

@@ -12,20 +12,6 @@ the file.
   `docs/scratch/build/issues/13-real-cre-simulation-evidence.md`.
 - One file per closed verification ticket, named after the ticket.
 
-## The root `.gitignore` excludes these files today
-
-`.gitignore` contains `*.log`, so `docs/evidence/simulate-<date>.log` is ignored and a
-`git add` of it does nothing without `-f`. The Chainlink prize accepts simulation output as its
-evidence, so an ignored log is a submission with no evidence in it.
-
-The fix is one line in the root `.gitignore`, below the `*.log` rule:
-
-```
-!docs/evidence/*.log
-```
-
-Until that line exists, use `git add -f docs/evidence/<file>.log` and check `git status` afterwards.
-
 ## Before committing a log
 
 Grep it for the Policy, the maximum price, the preferences, the enclave private key and any

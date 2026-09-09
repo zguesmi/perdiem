@@ -25,9 +25,6 @@ npx hardhat test solidity   # contracts/*.t.sol
 npx hardhat test nodejs     # test/*.ts, which need @perdiem/core
 ```
 
-There is no deployment command yet. `ignition/modules/` is empty, and `hardhat.config.ts` still has
-the template's `sepolia` network rather than Arc testnet, chain id 5042002.
-
 ## What is here
 
 - One Hardhat configuration file.
