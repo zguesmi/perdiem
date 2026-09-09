@@ -56,7 +56,8 @@ iterative bidding, demo keys in `.env`, LiteAPI sandbox guests only, no mainnet.
 2. The buyer confirms. `requisition/` canonicalizes the Policy and computes the Policy Hash.
 3. `requisition/` uploads the Policy and the enclave private key as workflow secrets, then calls
    `createAuction`, which pulls the Budget in the same call. State is `Created`.
-4. Privy signs that call from the organization wallet. Above the ceiling, the key quorum approves.
+4. Privy signs that call from the organization wallet and `requisition/` broadcasts it. Above the
+   ceiling, the key quorum approves.
 5. Each agent builds one Bid, signs it with EIP-712, commits `keccak256(abi.encode(bidHash, salt))`
    with its Stake, and posts the Sealed Bid to the relay. Both before `bidDeadline`, in either
    order. The first commit moves the auction to `Bidding`.
@@ -391,11 +392,24 @@ sign on Arc testnet.
   validated against the Policy schema. One retry, then it fails.
 - `POST /confirm` — canonicalize, hash, upload the workflow secrets, call `createAuction` with the
   Budget.
-- Privy: the organization wallet signs. Its policy allows USDC transfers to `SealedAuction` and
-  nothing else. Above the ceiling, a key quorum of two signs, travel manager and finance, and both
-  approvals show on the page.
+- Privy: the organization wallet signs with `eth_signTransaction` and the requisition service
+  broadcasts the signed RLP to `ARC_RPC_URL`. Privy does not broadcast on Arc: `eth_sendTransaction`
+  returns `App is not authorized to transact on chain eip155:5042002`.
+- Funding takes two signed transactions, so the spend policy needs two `ALLOW` rules. Both read the
+  calldata, not just the destination address:
+  - `approve(spender, value)` on the USDC ERC-20, with `spender` equal to `SealedAuction`.
+  - `createAuction(...)` on `SealedAuction`, with the Budget argument within the signer's ceiling.
+- A calldata rule is `field_source: ethereum_calldata` and needs the contract's JSON ABI in the
+  condition. A rule on the destination address alone would let any call through, including one that
+  approves a different spender.
+- Every rule also pins `chain_id` to 5042002 and uses `method: eth_signTransaction`.
 - The ceiling is 500 USDC and the demo Budget is 750, so the quorum fires in the video every time. A
   Budget under 500 goes through on the policy alone, which is the path the tests use.
+- The ceiling is a per-signer override policy, not a quorum threshold. A quorum threshold is fixed
+  and cannot depend on the Budget. The wallet carries two signers: a server authorization key capped
+  at the ceiling, and a key quorum of two, travel manager and finance, with no cap. The requisition
+  service picks the signer from the Budget. Unverified: the override-policy path is documented and
+  has not been run.
 
 ## Links
 
