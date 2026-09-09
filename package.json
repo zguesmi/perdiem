@@ -9,6 +9,7 @@
   },
   "scripts": {
     "prepare": "husky",
+    "circle": "./node_modules/.bin/circle",
     "build": "pnpm --recursive --if-present build",
     "test": "pnpm --recursive --if-present test",
     "typecheck": "pnpm --recursive --if-present typecheck",
@@ -17,6 +18,7 @@
     "format:md:check": "prettier --check \"**/*.md\""
   },
   "devDependencies": {
+    "@circle-fin/cli": "^1.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.0",
     "prettier": "^3.9.6"

@@ -13,7 +13,11 @@ packages:
 # pnpm refuses to run a dependency's install scripts unless it is allowed here.
 # esbuild is pulled in by tsx, the loader that runs node:test over TypeScript.
 allowBuilds:
+  # bufferutil and utf-8-validate are optional native speedups for ws, pulled in by the Circle CLI.
+  # The CLI runs without them.
+  bufferutil: false
   esbuild: true
+  utf-8-validate: false
 
 # pnpm holds back packages published very recently. Hardhat 3.16.0 is newer than that threshold and
 # is the version the project is pinned to, so it is excluded from the hold.
