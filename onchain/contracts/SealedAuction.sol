@@ -6,7 +6,7 @@ import {IERC20} from "./IERC20.sol";
 /// @title SealedAuction
 /// @notice One confidential booking auction. The contract plays the Escrow role: it holds the
 ///         buyer's Budget and every supplier's Stake, and it pays only against a settlement whose
-///         Policy Hash and Bids Root match what was committed before bidding auction.
+///         Policy Hash and Bids Root match what was committed before bidding opened.
 contract SealedAuction {
     enum State {
         None,
@@ -128,7 +128,7 @@ contract SealedAuction {
     /// @param deliverDeadline  Last moment the winner may post a booking receipt.
     /// @param budget           USDC the buyer locks. Padded above the policy's maximum price, so the
     ///                         ceiling is not readable from the chain.
-    /// @return auctionId       Identifier of the auction that was auction.
+    /// @return auctionId       Identifier of the auction that was opened.
     function createAuction(
         bytes32 policyHash,
         PublicRequirements calldata requirements,
