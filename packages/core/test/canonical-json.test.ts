@@ -1,10 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { canonicalJson } from "../src/canonical-json.ts";
+import { canonicalJson, CanonicalJsonError } from "../src/canonical-json.ts";
 
-// These properties hold whatever the Policy schema turns out to be, so they are safe to assert
-// before docs/scratch/build/01 is resolved. They are red until canonicalJson is implemented.
+// The rule is RFC 8785 restricted to integers. See docs/adr/0003-canonical-encoding.md.
 
 test("sorts object keys", () => {
   assert.equal(canonicalJson({ b: 1, a: 2 }), '{"a":2,"b":1}');
@@ -25,4 +24,66 @@ test("emits no insignificant whitespace", () => {
 
 test("is stable across two objects that differ only in key order", () => {
   assert.equal(canonicalJson({ a: 1, b: 2 }), canonicalJson({ b: 2, a: 1 }));
+});
+
+test("sorts keys by UTF-16 code unit, not by code point", () => {
+  // U+1F600 is the surrogate pair D83D DE00, and U+FB00 is the single unit FB00. D83D is the
+  // smaller unit, so the pair sorts first. Code-point order reverses that, and the two orders hash
+  // to different bytes.
+  assert.equal(canonicalJson({ "ﬀ": 1, "\u{1F600}": 2 }), '{"\u{1F600}":2,"ﬀ":1}');
+});
+
+test("rejects a fractional number rather than rounding it", () => {
+  assert.throws(() => canonicalJson({ maxPrice: 520.5 }), CanonicalJsonError);
+});
+
+test("names the field that carried the fractional number", () => {
+  assert.throws(() => canonicalJson({ tradeDown: { discount: 0.3 } }), {
+    message: /tradeDown\.discount/,
+  });
+});
+
+test("rejects an integer outside the safe range", () => {
+  assert.throws(() => canonicalJson({ price: 2 ** 53 }), CanonicalJsonError);
+});
+
+test("rejects null, because an optional field is absent or present", () => {
+  assert.throws(() => canonicalJson({ breakfastIncluded: null }), CanonicalJsonError);
+});
+
+test("rejects undefined rather than dropping the key", () => {
+  assert.throws(() => canonicalJson({ breakfastIncluded: undefined }), CanonicalJsonError);
+});
+
+test("rejects a value no JSON type covers", () => {
+  assert.throws(() => canonicalJson({ checkin: new Date(0) }), CanonicalJsonError);
+  assert.throws(() => canonicalJson({ price: 1n }), CanonicalJsonError);
+  assert.throws(() => canonicalJson({ score: Number.NaN }), CanonicalJsonError);
+});
+
+test("escapes control characters as lowercase four-digit hex", () => {
+  assert.equal(canonicalJson({ a: "\u0001\u001f" }), '{"a":"\\u0001\\u001f"}');
+});
+
+test("escapes the five characters RFC 8785 gives a two-character form", () => {
+  assert.equal(canonicalJson({ a: "\b\t\n\f\r" }), '{"a":"\\b\\t\\n\\f\\r"}');
+});
+
+test("escapes the backslash and the quote and nothing else", () => {
+  assert.equal(canonicalJson({ a: '\\"é' }), '{"a":"\\\\\\"é"}');
+});
+
+test("rejects a lone surrogate", () => {
+  assert.throws(() => canonicalJson({ city: "Paris\ud800" }), CanonicalJsonError);
+});
+
+test("encodes a bare value, not only an object", () => {
+  assert.equal(canonicalJson(520000000), "520000000");
+  assert.equal(canonicalJson("Paris"), '"Paris"');
+  assert.equal(canonicalJson(true), "true");
+  assert.equal(canonicalJson([]), "[]");
+});
+
+test("folds negative zero to zero", () => {
+  assert.equal(canonicalJson(-0), "0");
 });
