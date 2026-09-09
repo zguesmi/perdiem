@@ -10,5 +10,4 @@ USDC decimals are known, and the sealed bid envelope cannot be written before th
 to decrypt.
 
 Most of these need an account, a key, or a beta approval that only a human can obtain, so they are
-labelled `ready-for-human`. Two are answerable from documentation and one call, and are labelled
-`ready-for-agent`: 11, the Hardhat chain type, and 12, the chain id and endpoints.
+labelled `ready-for-human`.

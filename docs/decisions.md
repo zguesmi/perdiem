@@ -25,6 +25,7 @@ written until the row is closed.
 - Gas unit USDC 18 decimals. Gas accounting only, never a Policy, Bid or Settlement number.
 - EIP-1559 + EWMA. Target ~$0.01/tx. Floor 20 Gwei testnet, ceiling 20,000 Gwei. 0.5 s blocks, 30M
   gas/block.
+- Osaka hard fork baseline, plus EIP-7708 from Amsterdam.
 
 ## Open
 
@@ -40,8 +41,6 @@ written until the row is closed.
 | V8  | Can one workflow run issue two writes to the same contract?                                                               | open                                                            | `docs/scratch/verification/08` |
 | V9  | Do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment method called?                    | open                                                            | `docs/scratch/verification/09` |
 | V10 | Chainlink Confidential Workflows beta: request sent, response received?                                                   | request sent 2026-09-08, no response yet                        | `docs/scratch/verification/10` |
-| V11 | Which Hardhat `chainType` does Arc testnet need: `l1` or `generic`?                                                       | open                                                            | `docs/scratch/verification/11` |
-| V12 | What is the Arc testnet chain id, its public RPC URL and its explorer base URL?                                           | open                                                            | `docs/scratch/verification/12` |
 | V13 | Can the confidential handler reach a relay running on the developer's machine?                                            | open                                                            | `docs/scratch/verification/13` |
 
 ## Evidence
