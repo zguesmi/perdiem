@@ -1,6 +1,6 @@
 # Can the confidential handler load an X25519 private key from secrets and decrypt a sealed box in-enclave?
 
-Status: resolved Type: research Blocked by: 01-cre-simulate-writes-to-arc.md
+Status: closed Type: research Blocked by: 01-cre-simulate-writes-to-arc.md
 
 This is the load-bearing one. If the enclave cannot decrypt, the relay has to hold plaintext behind
 a bearer token, the envelope stops hiding anything, and a relay leak during bidding lets a late
