@@ -69,7 +69,12 @@ written until the row is closed.
   `docs/scratch/verification/08`.
 - V9 — do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment
   method called? Open. `docs/scratch/verification/09`.
-- V10 — Chainlink Confidential Workflows beta. Request sent 2026-09-08, no response yet.
-  `docs/scratch/verification/10`.
+- V10 — Chainlink Confidential Workflows beta. Request sent 2026-09-08, no response by 2026-09-09;
+  `cre whoami` reports `Deploy Access: Not enabled`. Simulation does not need it: CRE CLI v1.32.0
+  scaffolded and ran `hello-confidential-workflows-ts`, the secret resolved inside `handlerInTee`,
+  and the enclave HTTP call carried it. Enrollment gates deployment only. The simulator is not a
+  real TEE and produces no attestation. `docs/evidence/10-confidential-workflows-beta-access.md`.
+- V10a — `--non-interactive` needs `--deployment-registry` at `cre init` and `--trigger-index` at
+  `cre workflow simulate`. Ran both.
 - V13 — can the confidential handler reach a relay running on the developer's machine? Open.
   `docs/scratch/verification/13`.
