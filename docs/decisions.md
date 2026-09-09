@@ -140,9 +140,15 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   with a `userToken` from email OTP. It accepts no console API key, so Circle Console API Logs stay
   at zero. The session lasts 28 days.
 
-## Open
+## LiteAPI
 
-- V9 — do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment
-  method called?
+- V9 — the booking id is `data.bookingId` in the `POST /rates/book` response, nine URL-safe base64
+  characters, and it is what the Receipt hashes. Prebook returns a separate `data.prebookId`. The
+  sandbox payment method is `payment.method` set to `"ACC_CREDIT_CARD"`; a missing or unknown value
+  fails with code `5000`. The id is stable across later reads of `GET /bookings/{bookingId}`, but
+  `book` is not idempotent on the prebook id, so the agent sets `clientReference` to the `auctionId`
+  and a repeat is refused with code `4005`.
   - Ticket:
     [09 — LiteAPI booking id and payment method](scratch/verification/issues/09-liteapi-booking-id-and-payment-method.md)
+  - Evidence:
+    [09 — The LiteAPI booking id and the sandbox payment method](evidence/09-liteapi-booking-id-and-payment-method.md)
