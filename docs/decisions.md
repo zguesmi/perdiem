@@ -64,6 +64,16 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [01 — CRE simulate writes to Arc](scratch/verification/issues/01-cre-simulate-writes-to-arc.md)
   - Evidence: [01 — CRE simulate writing to Arc testnet](evidence/01-cre-simulate-writes-to-arc.md)
+- V2 — `handlerInTee` reads the chain and calls confidential HTTP in simulation. The Enclave builds
+  the Bids Root itself, the preferred path. `EVMClient.callContract` is typed for `Runtime`, so the
+  `TeeRuntime` goes through a cast; the cast costs nothing, because `TeeRuntimeImpl.callCapability`
+  delegates to the `RuntimeImpl` that `usingTheDons()` returns. Confidential HTTP is
+  `cre.capabilities.HTTPClient` with the TEE runtime, `http-actions@1.0.0-alpha`, not
+  `ConfidentialHTTPClient`, `confidential-http@1.0.0-alpha`.
+  - Ticket:
+    [02 — Enclave chain read and confidential HTTP](scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md)
+  - Evidence:
+    [02 — The chain read and confidential HTTP inside handlerInTee](evidence/02-enclave-chain-read-and-confidential-http.md)
 - V10 — the Confidential Workflows private beta gates deployment, not simulation.
   `cre workflow simulate` ran the confidential template on an account with no deploy access, and the
   secret resolved inside `handlerInTee`. The simulator is not a real TEE and attests nothing.
@@ -74,9 +84,6 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 
 ## Open
 
-- V2 — can the confidential handler read the chain and call confidential HTTP in simulation?
-  - Ticket:
-    [02 — Enclave chain read and confidential HTTP](scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md)
 - V3 — can the confidential handler load an X25519 private key from secrets and decrypt in-enclave?
   - Ticket:
     [03 — Enclave decrypts sealed bids](scratch/verification/issues/03-enclave-decrypts-sealed-bids.md)

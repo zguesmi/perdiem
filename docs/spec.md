@@ -212,12 +212,9 @@ No Eligible bid means `winner = address(0)` and `payout = 0`, and the contract r
 and every Stake.
 
 The Bids Root binds the Settlement to the exact set of on-chain commitments, so no bid can be
-dropped or swapped between the chain and the Enclave. The Enclave builds it, one of two ways:
-
-- Preferred: it reads the commitments from the chain itself and hashes the sorted set.
-- Fallback: the workflow passes them in, the Enclave checks that every Sealed Bid it scored is in
-  that set, and hashes it. The guarantee degrades to "the same lie was not fed to both the Enclave
-  and the contract".
+dropped or swapped between the chain and the Enclave. The Enclave reads `commitmentsOf` from the
+chain itself and hashes the sorted set. It does this with `EVMClient.callContract`, which is typed
+for `Runtime` and takes the `TeeRuntime` through a cast. Verified in simulation only: row V2.
 
 The construction is exact, because the contract recomputes it and one byte of difference rejects a
 correct settlement:
@@ -362,11 +359,10 @@ no-winner path; the slash path; the timeout path.
 - A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`,
   exit.
 - Claim the auction with `startSettling` before any scoring work.
-- Read the commitments and pass them into the confidential handler. The workflow nodes never compute
-  the Bids Root.
-- Inside `handlerInTee`: load the Policy and the enclave private key from secrets; fetch the Sealed
-  Bids; decrypt; check signatures; check commitments; build the Bids Root; score; return only the
-  Settlement.
+- Inside `handlerInTee`: load the Policy and the enclave private key from secrets; read the
+  commitments from the chain; fetch the Sealed Bids with `cre.capabilities.HTTPClient`; decrypt;
+  check signatures; check commitments; build the Bids Root; score; return only the Settlement.
+- The workflow nodes never read the commitments and never compute the Bids Root.
 - Encode the Settlement and write it to `SealedAuction`.
 - Save one full `cre workflow simulate` run to `docs/evidence/`.
 
