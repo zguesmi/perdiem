@@ -153,6 +153,16 @@ The salt stays out of the struct hash, so the signature is checkable without it 
 cannot be brute-forced with it. `hotelName` is signed and never scored; the page names the winner
 from it.
 
+A supplier is a contract account, so the signature check is ERC-1271, not `ecrecover`. Circle agent
+wallets are ERC-4337 smart contract accounts: `circle wallet sign typed-data` returns a 65-byte
+ECDSA signature from the account's owner key, and recovering it yields the owner, never the wallet.
+The wallet is the address that stakes, wins and gets paid, so the wallet is the address the
+signature has to bind to. The check is therefore `eth_call isValidSignature(digest, signature)` on
+the supplier address, valid on the magic value `0x1626ba7e`, where `digest` is the signed
+`keccak256(0x1901 ‖ domainSeparator ‖ bidHash)` and not `bidHash`. `ecrecover` is tried first and
+accepted when it returns the supplier, which keeps `createLocalSigner` working. See
+`docs/scratch/verification/issues/07-circle-agent-stack-wallets.md`.
+
 `auctionId` is a monotonic counter cast to `bytes32`, so the first auction is `0x00…01`. Suppliers
 read it from `AuctionCreated` and never derive it. The EIP-712 domain is fixed per deployment, so a
 signature for auction 1 on one deployment cannot be replayed against auction 1 on another:
@@ -174,7 +184,8 @@ enough that keccak256 brute-forces the commitment in seconds without it.
 - **Envelope**: the agent seals `{bid, salt, signature}` to that public key. The salt goes inside
   the ciphertext. Nothing but the ciphertext and the supplier address leaves the agent.
 - **Enclave**: decrypt, check the EIP-712 signature, then check the commitment. Any failure drops
-  that bid, and only a count is logged.
+  that bid, and only a count is logged. The signature check costs one `eth_call` per bid, because a
+  contract-account supplier is checked with ERC-1271.
 
 Known limitation: `requisition/` generates the keypair, so the buyer holds the private half and
 could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer.
@@ -237,7 +248,8 @@ Receipt: `keccak256(bytes(liteApiBookingId))`.
 
 Inside the Enclave. Deterministic integer arithmetic.
 
-1. Decrypt, check the signature, check the commitment. Drop any failure; log counts only.
+1. Decrypt, check the signature by `ecrecover` then ERC-1271, check the commitment. Drop any
+   failure; log counts only.
 2. Eligibility, per bid:
    - city, checkin, checkout, roomType and numberOfRooms equal the hard requirements.
    - `distanceMeters <= radiusMeters`.
@@ -380,13 +392,24 @@ breakfast, margin.
 - Build one Bid, sign it, commit with the Stake, post the Sealed Bid. Both before `bidDeadline`.
 - On winning: prebook, book with the sandbox payment method, post the Receipt.
 
-Each agent holds a Circle Agent Stack wallet, and that wallet signs the `commit` and the
+Each agent holds a Circle Agent Stack wallet, and that wallet signs the Bid, the `commit` and the
 `submitReceipt` calls. This is what the Arc track asks for, so it ships. It is required, not
 optional. Two signer implementations sit behind one interface: `createCircleAgentSigner` is the demo
 path and `createLocalSigner` is a viem externally owned account, kept so the bid flow and its tests
-run before a Circle wallet exists. The bid flow never sees the difference. The fallback ships only
-if `docs/scratch/verification/issues/07-circle-agent-stack-wallets.md` says the Circle wallet cannot
-sign on Arc testnet.
+run without a Circle session. The bid flow never sees the difference.
+
+Verified on Arc testnet, row V7:
+
+- The wallet is provisioned by the first `circle wallet login <email> --testnet`. There is nothing
+  to create.
+- `circle wallet execute` broadcasts a contract call and Circle pays the gas from the wallet.
+- `circle wallet sign typed-data` signs the `Bid` type, and the wallet validates that signature
+  through ERC-1271. Hence the check in the Bid section.
+- Spending policies are mainnet only: `circle wallet limit` refuses a testnet chain. On Arc testnet
+  the agent wallet runs on Circle's default policy, so supplier-side limits are not part of the
+  demo. Buyer-side control is the Privy half, where the rules read calldata and a quorum signs.
+- The session is email OTP and lasts 28 days. A human types the code once per agent, and creating or
+  changing a policy needs another. Nothing else in the run is interactive.
 
 ## Requisition service
 

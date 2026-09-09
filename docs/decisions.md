@@ -82,6 +82,23 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Evidence:
     [10 — Confidential Workflows without beta approval](evidence/10-confidential-workflows-beta-access.md)
 
+## Circle
+
+- V7 — the first `circle wallet login <email> --testnet` provisions an agent wallet on
+  `ARC-TESTNET`, Circle's faucet funds it 20 USDC per drip, and `circle wallet execute` broadcasts a
+  contract call. `circle wallet sign typed-data` signs the `Bid` type, but the wallet is an ERC-4337
+  contract account, so the signature recovers to the account's owner key and must be checked with
+  ERC-1271 `isValidSignature` against the supplier address.
+  - Ticket:
+    [07 — Circle Agent Stack wallets](scratch/verification/issues/07-circle-agent-stack-wallets.md)
+  - Evidence:
+    [07 — Circle Agent Stack wallets on Arc testnet](evidence/07-circle-agent-stack-wallets.md)
+- Circle spending policies are mainnet only. `circle wallet limit` refuses a testnet chain, so an
+  agent wallet on Arc testnet runs on Circle's default policy.
+- The CLI authenticates as a Circle user against `agentic-wallet.circle.com`, on `/v1/w3s/user/...`
+  with a `userToken` from email OTP. It accepts no console API key, so Circle Console API Logs stay
+  at zero. The session lasts 28 days.
+
 ## Open
 
 - V3 — can the confidential handler load an X25519 private key from secrets and decrypt in-enclave?
@@ -90,10 +107,6 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 - V4 — how are workflow secrets supplied in simulation, and what is the size limit?
   - Ticket:
     [04 — Workflow secrets in simulation](scratch/verification/issues/04-workflow-secrets-in-simulation.md)
-- V7 — can a Circle Agent Stack wallet be created on Arc testnet, and can it sign a contract call
-  and an EIP-712 bid? Priority.
-  - Ticket:
-    [07 — Circle Agent Stack wallets](scratch/verification/issues/07-circle-agent-stack-wallets.md)
 - V8 — can one workflow run issue two writes to the same contract?
   - Ticket:
     [08 — Two writes per workflow run](scratch/verification/issues/08-two-writes-per-workflow-run.md)
