@@ -133,6 +133,12 @@ abstract contract SealedAuctionFixture is Test {
         auction.exposedStartSettling(auctionId);
     }
 
+    /// The same auction, settled on the demo result: supplier C wins at 440.
+    function finalizedAuction() internal returns (bytes32 auctionId) {
+        auctionId = claimedAuction();
+        auction.exposedSettle(winningSettlement(auctionId));
+    }
+
     function winningSettlement(bytes32 auctionId) internal pure returns (SealedAuction.Settlement memory) {
         return settlementOf(auctionId, SUPPLIER_C, PAYOUT);
     }

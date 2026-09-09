@@ -91,6 +91,8 @@ contract SealedAuction {
     event AuctionClaimed(bytes32 indexed auctionId);
     event AuctionFinalized(bytes32 indexed auctionId, address indexed winner, uint256 payout);
     event AuctionTimedOut(bytes32 indexed auctionId);
+    event ReceiptPosted(bytes32 indexed auctionId, address indexed winner, bytes32 receiptHash);
+    event StakeSlashed(bytes32 indexed auctionId, address indexed winner, address indexed buyer);
 
     /// @notice Thrown when the three deadlines are not strictly increasing from now.
     error DeadlinesOutOfOrder();
@@ -106,6 +108,9 @@ contract SealedAuction {
     error PayoutWithoutWinner();
     error WinnerWithoutPayout();
     error WinnerNeverCommitted();
+    error NotWinner();
+    error DeliveryClosed();
+    error StakeAlreadySettled();
     error TransferFailed();
 
     constructor(IERC20 usdc_, address buyer_) {
@@ -182,6 +187,39 @@ contract SealedAuction {
         _pull(msg.sender, STAKE);
 
         emit Committed(auctionId, msg.sender, commitment);
+    }
+
+    /// @notice Releases the winner's Stake against a booking Receipt, the keccak256 of the LiteAPI
+    ///         booking id. The winner only, before `deliverDeadline`.
+    function submitReceipt(bytes32 auctionId, bytes32 receiptHash) external {
+        Auction storage auction = _auctions[auctionId];
+        if (auction.state != State.Finalized) revert WrongState();
+        if (msg.sender != auction.winner || auction.winner == address(0)) revert NotWinner();
+        if (block.timestamp >= auction.deliverDeadline) revert DeliveryClosed();
+        if (auction.stakeReleased || auction.stakeSlashed) revert StakeAlreadySettled();
+
+        auction.receiptHash = receiptHash;
+        auction.stakeReleased = true;
+
+        _push(auction.winner, STAKE);
+
+        emit ReceiptPosted(auctionId, auction.winner, receiptHash);
+    }
+
+    /// @notice Pays the winner's Stake to the buyer once `deliverDeadline` has passed with no
+    ///         Receipt. Anyone may call it.
+    function slash(bytes32 auctionId) external {
+        Auction storage auction = _auctions[auctionId];
+        if (auction.state != State.Finalized) revert WrongState();
+        if (auction.winner == address(0)) revert NotWinner();
+        if (block.timestamp < auction.deliverDeadline) revert TooEarly();
+        if (auction.stakeReleased || auction.stakeSlashed) revert StakeAlreadySettled();
+
+        auction.stakeSlashed = true;
+
+        _push(auction.buyer, STAKE);
+
+        emit StakeSlashed(auctionId, auction.winner, auction.buyer);
     }
 
     /// @notice Refunds the Budget and every Stake once `finalizeDeadline` has passed with no
