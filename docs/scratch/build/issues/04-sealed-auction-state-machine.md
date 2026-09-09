@@ -30,16 +30,35 @@ Blocked on the USDC decimals, because every figure in the tests depends on them.
 
 ## Acceptance criteria
 
-- [ ] Each of the five rows of "Every USDC in and out" is one test asserting exact balances for
+- [x] Each of the five rows of "Every USDC in and out" is one test asserting exact balances for
       buyer, winner, losers and the contract, and the contract balance is zero at the end of each.
-- [ ] `commit` is once per address, before `bidDeadline`, and pulls `STAKE`.
-- [ ] The first commit moves `Created → Bidding` with no extra transaction.
-- [ ] `_startSettling` is rejected outside `Bidding` and before `bidDeadline`. The non-forwarder
+- [x] `commit` is once per address, before `bidDeadline`, and pulls `STAKE`.
+- [x] The first commit moves `Created → Bidding` with no extra transaction.
+- [x] `_startSettling` is rejected outside `Bidding` and before `bidDeadline`. The non-forwarder
       caller is ticket 05's test, because the forwarder check lives on `onReport`.
-- [ ] `Finalized` and `Timeout` reject every further state-changing call.
-- [ ] `timeoutRefund` before `finalizeDeadline` reverts.
-- [ ] Deadlines that are not strictly increasing from now revert at creation. That test is already
+- [x] `Finalized` and `Timeout` reject every further state-changing call.
+- [x] `timeoutRefund` before `finalizeDeadline` reverts.
+- [x] Deadlines that are not strictly increasing from now revert at creation. That test is already
       red in the repository.
-- [ ] Commitments are stored per auction as an array, so `commitmentsOf` in ticket 20 is one read.
+- [x] Commitments are stored per auction as an array, so `commitmentsOf` in ticket 20 is one read.
 
 ## Comments
+
+Built across four pull requests, so that each stays near the 400 changed lines the repository asks
+for: creation and escrow, `commit`, claim and settlement, then delivery.
+
+Two things the ticket did not decide, decided here:
+
+- `timeoutRefund` accepts `Created`. Row five of "Every USDC in and out" is an auction nobody
+  committed to, so it never leaves `Created`, and its Budget is stuck forever without this.
+  `docs/spec.md` said `Bidding` or `Settling` and is corrected.
+- A settlement with a named winner and a zero Payout is rejected. The Payout is the winning Bid's
+  price, and a winner paid nothing would have its Stake held against a delivery nobody bought.
+
+`viaIR` is on in both solc profiles. `createAuction` emits all seven of its arguments and the legacy
+pipeline fails with "Stack too deep" on that emit.
+
+The Solidity Bids Root asserts against a literal computed off chain with viem. That is not the
+cross-language parity test, which stays with ticket 19.
+
+47 Solidity tests pass.
