@@ -62,7 +62,7 @@ iterative bidding, demo keys in `.env`, LiteAPI sandbox guests only, no mainnet.
    with its Stake, and posts the Sealed Bid to the relay. Both before `bidDeadline`, in either
    order. The first commit moves the auction to `Bidding`.
 6. There is no reveal phase. See `docs/adr/0001-no-reveal-phase.md`.
-7. After `bidDeadline` the workflow claims the auction with `startSettling`. The Enclave fetches the
+7. After `bidDeadline` the workflow claims the auction with a claim report. The Enclave fetches the
    Sealed Bids, decrypts them, checks each signature and each commitment, filters for Eligible,
    scores, picks a winner, and builds the Bids Root.
 8. Only the Settlement leaves the Enclave. The workflow writes it to `SealedAuction`.
@@ -319,7 +319,7 @@ Timeout   → terminal, everything refunded
 
 - `Created → Bidding` on the first commit, with no extra transaction. The contract never sees the
   sealed post.
-- `startSettling` drives `Bidding → Settling`, not the clock. A time-based flip cannot tell "the
+- The claim report drives `Bidding → Settling`, not the clock. A time-based flip cannot tell "the
   workflow never ran" from "the workflow ran and its settlement was rejected". It costs one extra
   write and it says which service to debug during the demo.
 - `Settling → Finalized` on a valid settlement, with or without a winner.
@@ -340,13 +340,21 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
   number, emits `AuctionCreated`.
 - `commit(auctionId, commitment)` — any address, once, before `bidDeadline`. Pulls the `STAKE`
   constant, 50 USDC. Emits `Committed`.
-- `startSettling(auctionId)` — the CRE forwarder only. Requires `Bidding` and
-  `block.timestamp >= bidDeadline`.
 - `onReport(bytes metadata, bytes report)` — the CRE forwarder only, through the Chainlink receiver
   template. The name belongs to Chainlink and is kept verbatim; everywhere else the word is
-  "settlement". Requires `Settling`, a matching Policy Hash, a matching Bids Root, a Payout within
-  the Budget, and a winner that either committed or is the zero address. Pays, refunds, finalizes.
-  It reads nothing from `metadata`: simulation passes a placeholder workflow id and workflow owner.
+  "settlement". It is the only entry a workflow has, so it carries both writes and dispatches on a
+  kind: `1` is the claim, `2` is the settlement. An unknown kind reverts.
+  - `report` is `abi.encode(uint8 kind, bytes payload)`. The claim payload is
+    `abi.encode(bytes32 auctionId)`. The settlement payload is `abi.encode(Settlement)`.
+  - Kind `1` requires `Bidding` and `block.timestamp >= bidDeadline`, then moves to `Settling`.
+  - Kind `2` requires `Settling`, a matching Policy Hash, a matching Bids Root, a Payout within the
+    Budget, and a winner that either committed or is the zero address. Pays, refunds, finalizes.
+  - It reads nothing from `metadata`: simulation passes a placeholder workflow id and workflow
+    owner. The kind cannot live there either, because `reportId` is `0001` for every report in one
+    run. Row V8.
+  - `startSettling(auctionId)` is internal, reached only through kind `1`. The `evm@1.0.0`
+    capability has one write RPC, `writeReport`, with no calldata field, so a workflow cannot call
+    any other function on the receiver. Row V8.
 - `supportsInterface(bytes4 id) → bool` — returns `true` for `0x01ffc9a7` and for the `IReceiver`
   interface id `0x805f2132`, and `false` for everything else. The forwarder probes it before every
   settlement. A receiver that answers `true` to `0xffffffff` is skipped: the forwarder calls nothing
@@ -370,22 +378,24 @@ Invariants: USDC out never exceeds USDC in, per auction; no payout unless the Po
 Bids Root both match; the buyer cannot withdraw between `createAuction` and `Finalized`, except
 through `timeoutRefund`; `Finalized` and `Timeout` are terminal.
 
-Tests: the demo table end to end; a wrong Policy Hash rejected; a wrong Bids Root rejected;
-`startSettling` from a non-forwarder rejected; a settlement before `startSettling` rejected;
-`timeoutRefund` before `finalizeDeadline` rejected; deadlines out of order rejected at creation; the
-no-winner path; the slash path; the timeout path.
+Tests: the demo table end to end; a wrong Policy Hash rejected; a wrong Bids Root rejected; a claim
+report from a non-forwarder rejected; a settlement report before the claim report rejected; an
+unknown report kind rejected; `timeoutRefund` before `finalizeDeadline` rejected; deadlines out of
+order rejected at creation; the no-winner path; the slash path; the timeout path.
 
 ## CRE workflow
 
 - Start from `cre init --template=hello-confidential-workflows-ts`.
 - A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`,
   exit.
-- Claim the auction with `startSettling` before any scoring work.
+- Claim the auction with a kind `1` report before any scoring work.
 - Inside `handlerInTee`: load the Policy and the enclave private key from secrets; read the
   commitments from the chain; fetch the Sealed Bids with `cre.capabilities.HTTPClient`; decrypt;
   check signatures; check commitments; build the Bids Root; score; return only the Settlement.
 - The workflow nodes never read the commitments and never compute the Bids Root.
-- Encode the Settlement and write it to `SealedAuction`.
+- Encode the Settlement as a kind `2` report and write it to `SealedAuction`. Two `writeReport`
+  calls fit one run and the second sees the state the first committed, so the claim and the
+  settlement need no second cron tick. Row V8.
 - Save one full `cre workflow simulate` run to `docs/evidence/`.
 
 The relay runs on `http://localhost:8787` and the handler reads it there: in simulation the HTTP
