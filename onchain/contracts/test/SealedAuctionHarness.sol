@@ -13,6 +13,18 @@ import {SealedAuction} from "../SealedAuction.sol";
 contract SealedAuctionHarness is SealedAuction {
     constructor(IERC20 usdc_, address buyer_) SealedAuction(usdc_, buyer_) {}
 
+    function exposedStartSettling(bytes32 auctionId) external {
+        _startSettling(auctionId);
+    }
+
+    function exposedSettle(Settlement calldata settlement) external {
+        _settle(settlement);
+    }
+
+    function exposedBidsRoot(bytes32 auctionId) external view returns (bytes32) {
+        return _bidsRoot(auctionId);
+    }
+
     function exposedAuction(bytes32 auctionId) external view returns (Auction memory) {
         return _auctions[auctionId];
     }
