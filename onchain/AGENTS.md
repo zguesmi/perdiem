@@ -4,6 +4,7 @@
 
 ```
 contracts/        Solidity source files (*.sol) and unit tests (*.t.sol)
+contracts/test/   Solidity test scaffolding: mocks, fixtures, harnesses. Never imported by a source
 test/             TypeScript integration tests and Solidity unit tests (*.sol)
 ignition/         Hardhat Ignition deployment modules
 scripts/          Standalone scripts run with `hardhat run`
