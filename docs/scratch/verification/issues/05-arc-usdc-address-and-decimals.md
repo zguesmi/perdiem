@@ -1,4 +1,4 @@
-# What is the USDC ERC-20 address on Arc testnet, how many decimals does it use, and what are the faucet limits?
+# What is the USDC ERC-20 address on Arc testnet, and how many decimals does it use?
 
 Status: ready-for-human Type: research
 
@@ -9,15 +9,10 @@ Arc's native gas is USDC with 18 decimals. The ERC-20 used for escrow may differ
 before checking: every Budget, Payout and Stake figure in the contract and the tests depends on
 this.
 
-Faucet amounts and rate limit matter too, because the demo needs a funded buyer and three funded
-suppliers.
-
 ## Acceptance criteria
 
-- [ ] Row V5 is answered with the ERC-20 address, the decimal count and the faucet amount and rate
-      limit.
+- [x] Row V5 is answered with the ERC-20 address and the decimal count.
 - [ ] The decimal count is written into the one constant in `packages/core`, not into a test.
-- [ ] A funded buyer address and three funded supplier addresses exist, with the faucet output as
-      evidence.
+- [ ] A funded buyer address and three funded supplier addresses exist.
 
 ## Comments
