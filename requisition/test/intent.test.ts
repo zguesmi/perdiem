@@ -6,7 +6,7 @@ import { policyHash } from "@perdiem/core";
 import { createRequisitionApp } from "../src/app.ts";
 
 // The two beats of the demo, stated as tests. Red until the routes are implemented, and blocked on
-// docs/scratch/build/01-policy-schema-and-scoring-formula.md for the exact Policy shape.
+// docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md for the exact Policy shape.
 
 const intent =
   "Paris, 12 to 14 October, one double room, 4 star minimum, within 2 km of Gare du Nord. " +

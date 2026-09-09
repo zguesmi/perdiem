@@ -6,7 +6,8 @@
   "scripts": {
     "test": "tsx --test 'test/**/*.test.ts'",
     "build": "tsc --project tsconfig.build.json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:fixture": "tsx scripts/generate-fixture.ts"
   },
   "files": [
     "dist",

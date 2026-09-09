@@ -7,7 +7,7 @@ pragma solidity ^0.8.34;
 ///         policy hash and bids root match what was committed before bidding opened.
 /// @dev    Nothing here is implemented yet. The full signature of `createAuction`, including the
 ///         public requirements and the enclave public key, lands with
-///         `docs/scratch/build/01-policy-schema-and-scoring-formula.md`. What is fixed already is the
+///         `docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md`. What is fixed already is the
 ///         deadline ordering, so that no auction can exist that is undeliverable or unslashable.
 contract SealedAuction {
     error NotImplemented();

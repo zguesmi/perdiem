@@ -21,15 +21,26 @@ build step and cannot typecheck against a stale `dist`. The `build` script still
 Run from the repository root, after `pnpm install`.
 
 ```sh
-pnpm --filter @perdiem/core test        # tsx --test over test/**/*.test.ts
-pnpm --filter @perdiem/core typecheck   # tsc --noEmit
-pnpm --filter @perdiem/core build       # emits dist/, only workflow/ needs it
+pnpm --filter @perdiem/core test              # tsx --test over test/**/*.test.ts
+pnpm --filter @perdiem/core typecheck         # tsc --noEmit
+pnpm --filter @perdiem/core build             # emits dist/, only workflow/ needs it
+pnpm --filter @perdiem/core generate:fixture  # rewrites src/golden-policy.json
 ```
 
 Nothing here is served or started; this package is a library.
 
+## The golden fixture
+
+`src/golden-policy.json` holds the Policy from `docs/spec.md`, its canonical bytes and its Policy
+Hash. The requisition service and the enclave both assert against that file, so a divergence between
+the two encoders fails a test instead of an auction.
+
+The file is generated. Change the schema or `goldenPolicy`, bump `version`, then run
+`generate:fixture`. Never edit the JSON by hand.
+
+Ticket 19 extends the fixture to `bidHash`, the Bid Commitment and the Bids Root.
+
 ## Status
 
-Every function throws. The tests state what they must do, and they are red until
-`docs/scratch/build/01-policy-schema-and-scoring-formula.md` is resolved. Nothing is written against
-the `Policy` type until then.
+`canonicalJson`, `policyHash`, `policySchema` and the fixture are implemented. `settle` lives in
+`workflow/` and is ticket 06.
