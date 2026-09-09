@@ -388,6 +388,16 @@ no-winner path; the slash path; the timeout path.
 - Encode the Settlement and write it to `SealedAuction`.
 - Save one full `cre workflow simulate` run to `docs/evidence/`.
 
+The relay runs on `http://localhost:8787` and the handler reads it there: in simulation the HTTP
+capability runs in the CLI's own process, so localhost resolves, plain HTTP is allowed and no host
+allow list exists. Verified in row V13. A deployed workflow cannot reach a developer's machine, so a
+deployed demo needs the relay on a public host.
+
+Secrets are environment variables named in `secrets.yaml`, and `cre workflow simulate` needs
+`-e .env` to resolve them. One secret holds at most 131,072 bytes, which is the operating system's
+`exec` limit rather than a CRE limit. The Policy is 425 characters and the enclave private key
+is 44. Verified in row V4.
+
 Never logged outside the enclave section: the Policy, the maximum price, the preferences, the
 enclave private key, any decrypted Bid. Grep the logs before committing them.
 

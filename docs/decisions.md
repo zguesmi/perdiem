@@ -85,6 +85,14 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [03 — Enclave decrypts sealed bids](scratch/verification/issues/03-enclave-decrypts-sealed-bids.md)
   - Evidence: [03 — The enclave decrypts a sealed bid](evidence/03-enclave-decrypts-sealed-bids.md)
+- V4 — `secrets.yaml` maps a secret id to an environment variable name and holds no values, and
+  `-e .env` is required for the CLI to resolve them. The limit is 131,072 bytes per secret and it is
+  the operating system's, not CRE's: 131,100 characters fail the build with `E2BIG`. The canonical
+  Policy is 425 characters and a base64 X25519 private key is 44, so neither needs trimming. The
+  Vault DON path is unverified, because `cre secrets create` needs deploy access.
+  - Ticket:
+    [04 — Workflow secrets in simulation](scratch/verification/issues/04-workflow-secrets-in-simulation.md)
+  - Evidence: [04 — Workflow secrets in simulation](evidence/04-workflow-secrets-in-simulation.md)
 - V10 — the Confidential Workflows private beta gates deployment, not simulation.
   `cre workflow simulate` ran the confidential template on an account with no deploy access, and the
   secret resolved inside `handlerInTee`. The simulator is not a real TEE and attests nothing.
@@ -92,6 +100,16 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
     [10 — Confidential Workflows beta access](scratch/verification/issues/10-confidential-workflows-beta-access.md)
   - Evidence:
     [10 — Confidential Workflows without beta approval](evidence/10-confidential-workflows-beta-access.md)
+- V13 — the handler reaches a relay on `http://localhost:8787` in simulation, `200` in 5 to 7 ms,
+  because the HTTP capability runs in the CLI's own process and the request arrives from
+  `127.0.0.1`. No allow list and no TLS: plain `http` is permitted and `https` against an HTTP
+  server fails with `http: server gave HTTP response to HTTPS client`. A relay that is down throws
+  `connection refused`, while an unknown auction returns `200` with `[]`, so the two stay
+  distinguishable. A deployed workflow cannot reach a developer's localhost.
+  - Ticket:
+    [13 — Can the enclave reach the relay](scratch/verification/issues/13-can-the-enclave-reach-the-relay.md)
+  - Evidence:
+    [13 — The confidential handler reaches a relay on localhost](evidence/13-can-the-enclave-reach-the-relay.md)
 
 ## Circle
 
@@ -112,9 +130,6 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 
 ## Open
 
-- V4 — how are workflow secrets supplied in simulation, and what is the size limit?
-  - Ticket:
-    [04 — Workflow secrets in simulation](scratch/verification/issues/04-workflow-secrets-in-simulation.md)
 - V8 — can one workflow run issue two writes to the same contract?
   - Ticket:
     [08 — Two writes per workflow run](scratch/verification/issues/08-two-writes-per-workflow-run.md)
@@ -122,6 +137,3 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   method called?
   - Ticket:
     [09 — LiteAPI booking id and payment method](scratch/verification/issues/09-liteapi-booking-id-and-payment-method.md)
-- V13 — can the confidential handler reach a relay running on the developer's machine?
-  - Ticket:
-    [13 — Can the enclave reach the relay](scratch/verification/issues/13-can-the-enclave-reach-the-relay.md)
