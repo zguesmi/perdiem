@@ -74,6 +74,17 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
     [02 — Enclave chain read and confidential HTTP](scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md)
   - Evidence:
     [02 — The chain read and confidential HTTP inside handlerInTee](evidence/02-enclave-chain-read-and-confidential-http.md)
+- V3 — the enclave decrypts a sealed bid. `runtime.getSecret()` returns a 32-byte X25519 private key
+  inside `handlerInTee` and a sealed bid opens in 11 ms, three in 30 ms. The runtime exposes no
+  crypto of its own: `crypto`, `crypto.subtle`, `crypto.getRandomValues` and `WebAssembly` are
+  `undefined` and `node:crypto` is refused at build, so every primitive is pure JavaScript from
+  `@noble/*`. It cannot generate a keypair, for want of randomness. X25519 with HKDF-SHA256 and
+  XChaCha20-Poly1305 is the scheme, per `docs/adr/0005-sealed-bid-envelope-scheme.md`; NaCl
+  `crypto_box`, libsodium sealed box, secp256k1 ECIES and AES-256-GCM also work, and HPKE through
+  `@hpke/core` does not.
+  - Ticket:
+    [03 — Enclave decrypts sealed bids](scratch/verification/issues/03-enclave-decrypts-sealed-bids.md)
+  - Evidence: [03 — The enclave decrypts a sealed bid](evidence/03-enclave-decrypts-sealed-bids.md)
 - V10 — the Confidential Workflows private beta gates deployment, not simulation.
   `cre workflow simulate` ran the confidential template on an account with no deploy access, and the
   secret resolved inside `handlerInTee`. The simulator is not a real TEE and attests nothing.
@@ -101,9 +112,6 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 
 ## Open
 
-- V3 — can the confidential handler load an X25519 private key from secrets and decrypt in-enclave?
-  - Ticket:
-    [03 — Enclave decrypts sealed bids](scratch/verification/issues/03-enclave-decrypts-sealed-bids.md)
 - V4 — how are workflow secrets supplied in simulation, and what is the size limit?
   - Ticket:
     [04 — Workflow secrets in simulation](scratch/verification/issues/04-workflow-secrets-in-simulation.md)

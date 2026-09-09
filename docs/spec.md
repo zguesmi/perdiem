@@ -187,8 +187,18 @@ enough that keccak256 brute-forces the commitment in seconds without it.
   that bid, and only a count is logged. The signature check costs one `eth_call` per bid, because a
   contract-account supplier is checked with ERC-1271.
 
+The envelope is `epk(32) ‖ nonce(24) ‖ ciphertext`, with the key
+`HKDF-SHA256(X25519(esk, enclavePublicKey), epk ‖ enclavePublicKey, "perdiem/sealed-bid/v1" ‖ auctionId, 32)`
+and XChaCha20-Poly1305 over the JSON. One ephemeral keypair per bid. `@noble/curves`,
+`@noble/ciphers` and `@noble/hashes` on both sides, which `viem` already puts in the tree. Verified
+in a confidential handler, row V3: 11 ms per bid, 30 ms for three. A wrong key or one flipped byte
+fails with `invalid tag`. See `docs/adr/0005-sealed-bid-envelope-scheme.md` for the schemes this
+beat.
+
 Known limitation: `requisition/` generates the keypair, so the buyer holds the private half and
-could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer.
+could decrypt every Sealed Bid. Suppliers are protected from each other, not from the buyer. The
+enclave cannot generate the pair itself: it has no randomness, and `x25519.utils.randomPrivateKey()`
+throws `crypto.getRandomValues must be defined` there.
 
 ### The relay interface
 
