@@ -36,6 +36,23 @@ written until the row is closed.
 - Osaka hard fork baseline, plus EIP-7708 from Amsterdam.
 - explorer base URL `https://testnet.arcscan.app`.
 
+## Privy
+
+- Server wallets sign on Arc testnet chain id 5042002 through `eth_signTransaction`. Verified.
+- `eth_sendTransaction` refuses Arc: `App is not authorized to transact on chain eip155:5042002`,
+  HTTP 401. Privy signs, the requisition service broadcasts to `ARC_RPC_URL`.
+- `eth_signTransaction` takes no `caip2`. The chain id sits inside the transaction object.
+- Policy rules accept any chain id as a string: `field_source: ethereum_transaction`,
+  `field: chain_id`, `value: "5042002"`. Chain 1 on the same wallet returns `policy_violation`,
+  HTTP 400.
+- Policy rule methods include `eth_signTransaction`, so the policy still applies on the sign-only
+  path.
+- 2-of-2 key quorums create and enforce on the app in use. No signature and one signature both
+  return HTTP 401; two comma-separated signatures in `privy-authorization-signature` return 200.
+- The authorization signature is RFC 8785 canonical JSON over
+  `{version, method, url, body, headers: {"privy-app-id"}}`, ECDSA P-256 with SHA-256, base64.
+- Evidence: `docs/evidence/06-privy-server-wallets-on-arc.md`.
+
 ## Open
 
 - V1 — does `cre workflow simulate` broadcast a real write to Arc testnet, and with which forwarder
@@ -46,8 +63,6 @@ written until the row is closed.
   Open. `docs/scratch/verification/03`.
 - V4 — how are workflow secrets supplied in simulation, and what is the size limit? Open.
   `docs/scratch/verification/04`.
-- V6 — do Privy server wallets sign on chain id 5042002? Do policies accept a custom chain id? Are
-  key quorums on the free tier? Open. `docs/scratch/verification/06`.
 - V7 — can a Circle Agent Stack wallet be created on Arc testnet, and can it sign a contract call
   and an EIP-712 bid? Open, priority. `docs/scratch/verification/07`.
 - V8 — can one workflow run issue two writes to the same contract? Open.
