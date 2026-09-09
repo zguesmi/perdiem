@@ -63,22 +63,15 @@ const preferencesSchema = z.strictObject({
  * Every object is strict, because an unknown key is extra bytes in the canonical encoding and
  * therefore a different Policy Hash. Dropping it silently and carrying it silently are both wrong.
  */
-export const policySchema = z
-  .strictObject({
-    version: z.literal(POLICY_VERSION),
-    // The escrow token. Inside the hash, read by nothing during scoring.
-    currency: z.literal("USDC"),
-    maxPrice: usdcAmount.min(1),
-    nights: z.int().min(1),
-    hardRequirements: hardRequirementsSchema,
-    tradeDown: tradeDownSchema,
-    preferences: preferencesSchema,
-  })
-  .refine((policy) => policy.tradeDown.stars < policy.hardRequirements.minStars, {
-    // A trade-down at or above the minimum stars buys the buyer nothing: those bids are already
-    // eligible without paying the required discount.
-    message: "tradeDown.stars must be below hardRequirements.minStars",
-    path: ["tradeDown", "stars"],
-  });
+export const policySchema = z.strictObject({
+  version: z.literal(POLICY_VERSION),
+  // The escrow token. Inside the hash, read by nothing during scoring.
+  currency: z.literal("USDC"),
+  maxPrice: usdcAmount.min(1),
+  nights: z.int().min(1),
+  hardRequirements: hardRequirementsSchema,
+  tradeDown: tradeDownSchema,
+  preferences: preferencesSchema,
+});
 
 export type Policy = z.infer<typeof policySchema>;

@@ -13,7 +13,7 @@ the auction dies in `timeoutRefund`. That is the failure this ticket exists to p
 - [x] `canonicalJson` implements RFC 8785 restricted to integers. A fractional number is rejected,
       never rounded.
 - [x] Key order and insignificant whitespace in the input cannot change the output bytes.
-- [x] The USDC decimal count is one exported constant. No file hardcodes 6.
+- [x] The USDC decimal count is an exported constant. Spelling out 6 is allowed.
 - [x] `packages/core/test/policy-hash.test.ts` asserts against the Policy in `docs/spec.md`, not the
       two-field placeholder it carries today.
 - [x] The golden fixture file holds the Policy and its expected hash, and the test reads the
@@ -33,11 +33,11 @@ Implemented on `feat/canonical-json-policy-hash`, pull request #3.
 - `policyHash` is `keccak256(utf8Bytes(canonicalJson(policy)))`.
 - The placeholder `Policy` type is now the schema from `docs/spec.md`, written as a zod schema that
   is strict at every depth, because an unknown key is extra canonical bytes and therefore a
-  different hash. Two cross-field rules are enforced: checkout after checkin, and `tradeDown.stars`
-  below `minStars`.
-- `USDC_DECIMALS` in `packages/core/src/usdc.ts` is the only place the decimal count lives.
-  `usdcMinorUnits` converts through the decimal string rather than a multiplication, because
-  `0.07 * 10 ** 6` is `70000.00000000001`.
+  different hash. One cross-field rule is enforced: checkout after checkin. `tradeDown.stars` is a
+  star rating and nothing more, because `docs/spec.md` constrains it no further.
+- `USDC_DECIMALS` in `packages/core/src/usdc.ts` carries the decimal count, and `usdcMinorUnits`
+  converts through the decimal string rather than a multiplication, because `0.07 * 10 ** 6` is
+  `70000.00000000001`. Spelling out 6 elsewhere is allowed.
 - The golden fixture is `packages/core/test/fixtures/policy-hash.json`. It carries the Policy, its
   canonical bytes and the expected hash
   `0xcf8e8d0c8679bb6c91011ea5d77ef5f4e44efcce1846bec48aa1ddcc2235ea8c`. The test reads that value

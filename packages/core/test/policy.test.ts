@@ -112,13 +112,13 @@ test("rejects a star rating outside one to five", () => {
   assert.equal(policySchema.safeParse(policy).success, false);
 });
 
-// A trade-down to the same or a higher star level buys the buyer nothing and would let a bid pass
-// eligibility twice over.
-test("rejects a trade-down that is not below the minimum stars", () => {
+// A trade-down at or above minStars is redundant, not invalid: docs/spec.md constrains the field
+// no further, so rejecting it would fail an intent parse the spec permits.
+test("accepts a trade-down at or above the minimum stars", () => {
   const policy = demoPolicy() as { tradeDown: Record<string, unknown> };
   policy.tradeDown["stars"] = 4;
 
-  assert.equal(policySchema.safeParse(policy).success, false);
+  assert.equal(policySchema.safeParse(policy).success, true);
 });
 
 test("rejects a required discount outside nought to a hundred percent", () => {

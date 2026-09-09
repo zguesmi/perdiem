@@ -34,9 +34,7 @@ The canonical encoder, the `Policy` schema and the Policy Hash are implemented, 
 fixture the Enclave asserts against is `test/fixtures/policy-hash.json`: the Policy, its canonical
 bytes and its hash. Regenerate it whenever the schema changes, and bump `version` when you do.
 
-`USDC_DECIMALS` is 6 until `docs/scratch/verification/issues/05-arc-usdc-address-and-decimals.md`
-answers what the Arc testnet USDC uses. If the answer is not 6, that constant and the fixture change
-and no scoring rule does.
+`USDC_DECIMALS` is 6, the fixed decimal count of USDC on Arc. Other files may spell out 6.
 
 Bid hashing and the Bids Root are not here yet. They arrive with
 `docs/scratch/build/issues/03-eip712-bid-hashing-and-commitments.md`.
