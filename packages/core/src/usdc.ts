@@ -10,9 +10,16 @@ export const USDC_DECIMALS = 6;
 
 /** Whole USDC to minor units. For fixtures and tests, so no file writes `520000000` by hand. */
 export function usdcMinorUnits(whole: number): number {
-  if (!Number.isSafeInteger(whole)) {
-    throw new Error(`usdcMinorUnits takes a whole number of USDC, not ${whole}`);
+  if (!Number.isSafeInteger(whole) || whole < 0) {
+    throw new Error(`usdcMinorUnits takes a whole, non-negative number of USDC, not ${whole}`);
   }
 
-  return whole * 10 ** USDC_DECIMALS;
+  const minorUnits = whole * 10 ** USDC_DECIMALS;
+
+  // The input can be safe while the result is not, and an unsafe result cannot round-trip a hash.
+  if (!Number.isSafeInteger(minorUnits)) {
+    throw new Error(`${whole} USDC is too large to hold in minor units as a safe integer`);
+  }
+
+  return minorUnits;
 }
