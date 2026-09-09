@@ -18,23 +18,31 @@ written until the row is closed.
 | T6  | How does pnpm 12 allow install scripts?                      | `allowBuilds:` in `pnpm-workspace.yaml`, not `onlyBuiltDependencies`                                            | pnpm wrote the key itself       | 2026-09-08 |
 | T7  | Does `pnpm install` inside `workflow/` install that package? | No. It walks up and installs the root workspace unless `workflow/` has its own `pnpm-workspace.yaml`            | Ran it                          | 2026-09-08 |
 
+## Arc testnet
+
+- USDC native, pays gas. Optional ERC-20 interface, 6 decimals,
+  `0x3600000000000000000000000000000000000000`. No wrapped USDC.
+- Gas unit USDC 18 decimals. Gas accounting only, never a Policy, Bid or Settlement number.
+- EIP-1559 + EWMA. Target ~$0.01/tx. Floor 20 Gwei testnet, ceiling 20,000 Gwei. 0.5 s blocks, 30M
+  gas/block.
+
 ## Open
 
-| #   | Question                                                                                                                  | Answer                                   | Ticket                         |
-| --- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------ |
-| V1  | Does `cre workflow simulate` broadcast a real write to Arc testnet, and with which forwarder address?                     | open                                     | `docs/scratch/verification/01` |
-| V2  | Can the confidential handler read the chain and call confidential HTTP in simulation?                                     | open                                     | `docs/scratch/verification/02` |
-| V3  | Can the confidential handler load an X25519 private key from secrets and decrypt in-enclave?                              | open                                     | `docs/scratch/verification/03` |
-| V4  | How are workflow secrets supplied in simulation, and what is the size limit?                                              | open                                     | `docs/scratch/verification/04` |
-| V5  | What is the USDC address on Arc testnet, and how many decimals? What are the faucet limits?                               | open                                     | `docs/scratch/verification/05` |
-| V6  | Do Privy server wallets sign on chain id 5042002? Do policies accept a custom chain id? Are key quorums on the free tier? | open                                     | `docs/scratch/verification/06` |
-| V7  | Can a Circle Agent Stack wallet be created on Arc testnet, and can it sign a contract call and an EIP-712 bid?            | open, priority                           | `docs/scratch/verification/07` |
-| V8  | Can one workflow run issue two writes to the same contract?                                                               | open                                     | `docs/scratch/verification/08` |
-| V9  | Do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment method called?                    | open                                     | `docs/scratch/verification/09` |
-| V10 | Chainlink Confidential Workflows beta: request sent, response received?                                                   | request sent 2026-09-08, no response yet | `docs/scratch/verification/10` |
-| V11 | Which Hardhat `chainType` does Arc testnet need: `l1` or `generic`?                                                       | open                                     | `docs/scratch/verification/11` |
-| V12 | What is the Arc testnet chain id, its public RPC URL and its explorer base URL?                                           | open                                     | `docs/scratch/verification/12` |
-| V13 | Can the confidential handler reach a relay running on the developer's machine?                                            | open                                     | `docs/scratch/verification/13` |
+| #   | Question                                                                                                                  | Answer                                                          | Ticket                         |
+| --- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------ |
+| V1  | Does `cre workflow simulate` broadcast a real write to Arc testnet, and with which forwarder address?                     | open                                                            | `docs/scratch/verification/01` |
+| V2  | Can the confidential handler read the chain and call confidential HTTP in simulation?                                     | open                                                            | `docs/scratch/verification/02` |
+| V3  | Can the confidential handler load an X25519 private key from secrets and decrypt in-enclave?                              | open                                                            | `docs/scratch/verification/03` |
+| V4  | How are workflow secrets supplied in simulation, and what is the size limit?                                              | open                                                            | `docs/scratch/verification/04` |
+| V5  | What is the USDC address on Arc testnet, and how many decimals? What are the faucet limits?                               | address and decimals in `Arc testnet` above, faucet limits open | `docs/scratch/verification/05` |
+| V6  | Do Privy server wallets sign on chain id 5042002? Do policies accept a custom chain id? Are key quorums on the free tier? | open                                                            | `docs/scratch/verification/06` |
+| V7  | Can a Circle Agent Stack wallet be created on Arc testnet, and can it sign a contract call and an EIP-712 bid?            | open, priority                                                  | `docs/scratch/verification/07` |
+| V8  | Can one workflow run issue two writes to the same contract?                                                               | open                                                            | `docs/scratch/verification/08` |
+| V9  | Do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment method called?                    | open                                                            | `docs/scratch/verification/09` |
+| V10 | Chainlink Confidential Workflows beta: request sent, response received?                                                   | request sent 2026-09-08, no response yet                        | `docs/scratch/verification/10` |
+| V11 | Which Hardhat `chainType` does Arc testnet need: `l1` or `generic`?                                                       | open                                                            | `docs/scratch/verification/11` |
+| V12 | What is the Arc testnet chain id, its public RPC URL and its explorer base URL?                                           | open                                                            | `docs/scratch/verification/12` |
+| V13 | Can the confidential handler reach a relay running on the developer's machine?                                            | open                                                            | `docs/scratch/verification/13` |
 
 ## Evidence
 
