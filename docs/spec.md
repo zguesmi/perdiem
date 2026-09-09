@@ -327,6 +327,12 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
   template. The name belongs to Chainlink and is kept verbatim; everywhere else the word is
   "settlement". Requires `Settling`, a matching Policy Hash, a matching Bids Root, a Payout within
   the Budget, and a winner that either committed or is the zero address. Pays, refunds, finalizes.
+  It reads nothing from `metadata`: simulation passes a placeholder workflow id and workflow owner.
+- `supportsInterface(bytes4 id) → bool` — returns `true` for `0x01ffc9a7` and for the `IReceiver`
+  interface id `0x805f2132`, and `false` for everything else. The forwarder probes it before every
+  settlement. A receiver that answers `true` to `0xffffffff` is skipped: the forwarder calls nothing
+  and emits `ReportProcessed(result: false)`, while the workflow still reads `TxStatus.SUCCESS`. The
+  auction then sits in `Settling` until `timeoutRefund`. A test asserts the `0xffffffff` answer.
 - `submitReceipt(auctionId, receiptHash)` — the winner only, before `deliverDeadline`. Releases its
   Stake.
 - `slash(auctionId)` — anyone, after `deliverDeadline` with no Receipt. The Stake goes to the buyer.

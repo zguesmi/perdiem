@@ -56,6 +56,14 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 
 ## Chainlink CRE
 
+- V1 — `cre workflow simulate` writes to Arc only with `--broadcast`, signing with
+  `CRE_ETH_PRIVATE_KEY`. The forwarder is `0x6e9ee680ef59ef64aa8c7371279c27e496b5edc1`,
+  `MockKeystoneForwarder 1.0.0-dev`, the same address for any signing key. It skips a receiver whose
+  `supportsInterface(0xffffffff)` returns `true`, and `writeReport` reports `TxStatus.SUCCESS`
+  anyway. `arc-testnet` is in the chain-selectors registry, selector `3034092155422581607`.
+  - Ticket:
+    [01 — CRE simulate writes to Arc](scratch/verification/issues/01-cre-simulate-writes-to-arc.md)
+  - Evidence: [01 — CRE simulate writing to Arc testnet](evidence/01-cre-simulate-writes-to-arc.md)
 - V10 — the Confidential Workflows private beta gates deployment, not simulation.
   `cre workflow simulate` ran the confidential template on an account with no deploy access, and the
   secret resolved inside `handlerInTee`. The simulator is not a real TEE and attests nothing.
@@ -66,10 +74,6 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 
 ## Open
 
-- V1 — does `cre workflow simulate` broadcast a real write to Arc testnet, and with which forwarder
-  address?
-  - Ticket:
-    [01 — CRE simulate writes to Arc](scratch/verification/issues/01-cre-simulate-writes-to-arc.md)
 - V2 — can the confidential handler read the chain and call confidential HTTP in simulation?
   - Ticket:
     [02 — Enclave chain read and confidential HTTP](scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md)
