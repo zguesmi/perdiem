@@ -62,6 +62,8 @@ contract SealedAuction {
     uint256 internal _auctionCount;
 
     mapping(bytes32 => Auction) internal _auctions;
+    mapping(bytes32 => bytes32[]) internal _commitments;
+    mapping(bytes32 => mapping(address => bool)) internal _hasCommitted;
 
     event AuctionCreated(
         bytes32 indexed auctionId,
@@ -75,10 +77,14 @@ contract SealedAuction {
         PublicRequirements requirements
     );
 
+    event Committed(bytes32 indexed auctionId, address indexed supplier, bytes32 commitment);
 
     /// @notice Thrown when the three deadlines are not strictly increasing from now.
     error DeadlinesOutOfOrder();
     error NotBuyer();
+    error WrongState();
+    error BiddingClosed();
+    error AlreadyCommitted();
     error TransferFailed();
 
     constructor(IERC20 usdc_, address buyer_) {
@@ -137,6 +143,23 @@ contract SealedAuction {
             budget,
             requirements
         );
+    }
+
+    /// @notice Binds one Bid on chain and pulls the Stake. Once per address, before `bidDeadline`.
+    /// @dev The first commit opens bidding, so no separate transaction moves `Created → Bidding`.
+    function commit(bytes32 auctionId, bytes32 commitment) external {
+        Auction storage auction = _auctions[auctionId];
+        if (auction.state != State.Created && auction.state != State.Bidding) revert WrongState();
+        if (block.timestamp >= auction.bidDeadline) revert BiddingClosed();
+        if (_hasCommitted[auctionId][msg.sender]) revert AlreadyCommitted();
+
+        _hasCommitted[auctionId][msg.sender] = true;
+        _commitments[auctionId].push(commitment);
+        if (auction.state == State.Created) auction.state = State.Bidding;
+
+        _pull(msg.sender, STAKE);
+
+        emit Committed(auctionId, msg.sender, commitment);
     }
 
     function _pull(address from, uint256 amount) internal {

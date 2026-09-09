@@ -16,4 +16,8 @@ contract SealedAuctionHarness is SealedAuction {
     function exposedAuction(bytes32 auctionId) external view returns (Auction memory) {
         return _auctions[auctionId];
     }
+
+    function exposedCommitments(bytes32 auctionId) external view returns (bytes32[] memory) {
+        return _commitments[auctionId];
+    }
 }

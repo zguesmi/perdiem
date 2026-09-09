@@ -95,4 +95,20 @@ abstract contract SealedAuctionFixture is Test {
         address[3] memory suppliers = [SUPPLIER_A, SUPPLIER_B, SUPPLIER_C];
         return suppliers[index];
     }
+
+    /// The commitment supplier `index` places. Their sorted set hashes to `DEMO_BIDS_ROOT`.
+    function commitmentOf(uint256 index) internal pure returns (bytes32) {
+        bytes32[3] memory commitments = [keccak256("A"), keccak256("B"), keccak256("C")];
+        return commitments[index];
+    }
+
+    /// All three suppliers commit, in the order given, so that a test can prove arrival order does
+    /// not reach the Bids Root.
+    function commitInOrder(bytes32 auctionId, uint256 first, uint256 second, uint256 third) internal {
+        uint256[3] memory order = [first, second, third];
+        for (uint256 i = 0; i < 3; i++) {
+            vm.prank(supplier(order[i]));
+            auction.commit(auctionId, commitmentOf(order[i]));
+        }
+    }
 }
