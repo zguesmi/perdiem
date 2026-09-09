@@ -93,6 +93,18 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [04 — Workflow secrets in simulation](scratch/verification/issues/04-workflow-secrets-in-simulation.md)
   - Evidence: [04 — Workflow secrets in simulation](evidence/04-workflow-secrets-in-simulation.md)
+- V8 — one workflow run makes two `writeReport` calls to the same contract, both `TxStatus.SUCCESS`,
+  both under one `workflowExecutionId`, and the second sees the state the first committed:
+  `writeReport` blocks until its transaction is mined, about 1.4 seconds each on Arc testnet. So the
+  claim and the settlement fit one cron tick and the interval stays at 60 seconds. `evm@1.0.0` has
+  one write RPC and no calldata field, so every write lands on `onReport(bytes,bytes)` and
+  `startSettling` has to be a second report with a kind in its body; `report.reportId()` is `0001`
+  for both reports, so the kind cannot live there. A reverting `onReport` still reports
+  `TxStatus.SUCCESS` to the workflow.
+  - Ticket:
+    [08 — Two writes per workflow run](scratch/verification/issues/08-two-writes-per-workflow-run.md)
+  - Evidence:
+    [08 — Two chain writes in one workflow run](evidence/08-two-writes-per-workflow-run.md)
 - V10 — the Confidential Workflows private beta gates deployment, not simulation.
   `cre workflow simulate` ran the confidential template on an account with no deploy access, and the
   secret resolved inside `handlerInTee`. The simulator is not a real TEE and attests nothing.
@@ -130,9 +142,6 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 
 ## Open
 
-- V8 — can one workflow run issue two writes to the same contract?
-  - Ticket:
-    [08 — Two writes per workflow run](scratch/verification/issues/08-two-writes-per-workflow-run.md)
 - V9 — do LiteAPI prebook and book return a stable booking id, and what is the sandbox payment
   method called?
   - Ticket:
