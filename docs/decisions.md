@@ -46,8 +46,6 @@ written until the row is closed.
   Open. `docs/scratch/verification/03`.
 - V4 — how are workflow secrets supplied in simulation, and what is the size limit? Open.
   `docs/scratch/verification/04`.
-- V5 — the USDC address and decimals are in `Arc testnet` above. A funded buyer and three funded
-  suppliers are still open. `docs/scratch/verification/05`.
 - V6 — do Privy server wallets sign on chain id 5042002? Do policies accept a custom chain id? Are
   key quorums on the free tier? Open. `docs/scratch/verification/06`.
 - V7 — can a Circle Agent Stack wallet be created on Arc testnet, and can it sign a contract call

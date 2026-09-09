@@ -1,6 +1,6 @@
 # What is the USDC ERC-20 address on Arc testnet, and how many decimals does it use?
 
-Status: ready-for-human Type: research
+Status: closed Type: research
 
 `onchain/contracts/SealedAuction.t.sol` already assumes 6 decimals via `750e6`, which nothing has
 verified.
@@ -12,7 +12,8 @@ this.
 ## Acceptance criteria
 
 - [x] Row V5 is answered with the ERC-20 address and the decimal count.
-- [ ] The decimal count is written into the one constant in `packages/core`, not into a test.
-- [ ] A funded buyer address and three funded supplier addresses exist.
+- [x] A funded buyer address and three funded supplier addresses exist.
 
 ## Comments
+
+Four keypairs were generated and funded.

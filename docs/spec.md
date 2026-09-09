@@ -100,7 +100,6 @@ regenerated fixture.
 - Every number is an integer: money in USDC minor units, distance in metres, coordinates in
   microdegrees. A fraction has more than one shortest decimal form, and one digit of disagreement
   between two encoders produces two Policy Hashes.
-- The decimal count is one constant in `packages/core`. Nothing hardcodes 6.
 - The requisition service converts what the buyer typed into these integers once, before the buyer
   confirms. Nothing downstream converts anything.
 - A Preference Bonus is a flat number, not a rate: "20 a night" becomes what it is worth on this
