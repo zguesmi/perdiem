@@ -44,7 +44,7 @@ export const bidSchema = z
 
 export type Bid = z.infer<typeof bidSchema>;
 
-/** The EIP-712 type from `docs/spec.md`, in the order the type string declares. */
+/** The EIP-712 type, in the order the type string declares. */
 export const BID_TYPES = {
   Bid: [
     { name: "auctionId", type: "bytes32" },
