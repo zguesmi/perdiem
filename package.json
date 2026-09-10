@@ -18,6 +18,9 @@
     "format:md:check": "prettier --check \"**/*.md\""
   },
   "dependencies": {
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
     "viem": "^2.56.3",
     "zod": "^4.5.4"
   },
