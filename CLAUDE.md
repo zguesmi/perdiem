@@ -9,7 +9,8 @@ Read the live specification @docs/spec.md if needed.
 ## General rules
 
 - Commits and PRs: commit small and often, 400 changed lines per pull request, split into several
-  PRs per ticket if needed. PR description should be concise only relevant info.
+  PRs per ticket if needed. PR titles should always start by a verb. PR description should be
+  concise only relevant info.
 - Docs writing: minimal. Facts as short bullets, no tables unless the data is a real grid, no
   restating what the fact already says. One line per fact. Cut consequences and commentary unless
   asked for them.

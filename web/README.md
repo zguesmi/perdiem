@@ -14,8 +14,8 @@ No design work beyond a clean default. No mobile layout.
 ## Configuration
 
 This package keeps the `tsconfig.json`, `vite.config.ts` and lint setup that `pnpm create vite`
-generated, rather than extending `@perdiem/tsconfig`. Same rule as `onchain/`: where a tool owns its
-configuration, the generated file is left alone.
+generated, rather than extending `tsconfig.base.json`. Same rule as `onchain/`: where a tool owns
+its configuration, the generated file is left alone.
 
 ## Commands
 
