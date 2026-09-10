@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { policyHash } from "../../shared/policy-hash.ts";
+import { hashPolicy } from "../../shared/policy-hash.ts";
 
 import { createRequisitionApp } from "../src/app.ts";
 
@@ -47,5 +47,5 @@ test("hashes the confirmed policy the same way every other package does", async 
   assert.equal(response.status, 200);
 
   const body = (await response.json()) as { policyHash?: string };
-  assert.equal(body.policyHash, policyHash(policy));
+  assert.equal(body.policyHash, hashPolicy(policy));
 });

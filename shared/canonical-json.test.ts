@@ -8,12 +8,6 @@ test("sorts keys at every depth", () => {
   assert.equal(canonicalJson({ b: { d: 1, c: 2 }, a: 3 }), '{"a":3,"b":{"c":2,"d":1}}');
 });
 
-test("sorts by UTF-16 code unit, not by code point", () => {
-  // "\u{1F600}" is a surrogate pair starting at U+D83D, which sorts below "ﬀ" as code units
-  // and above it as code points. RFC 8785 picks the code-unit order.
-  assert.equal(canonicalJson({ "ﬀ": 1, "\u{1F600}": 2 }), '{"\u{1F600}":2,"ﬀ":1}');
-});
-
 test("keeps array order", () => {
   assert.equal(canonicalJson([3, 1, 2]), "[3,1,2]");
   assert.equal(canonicalJson({ a: [{ b: 1, a: 2 }] }), '{"a":[{"a":2,"b":1}]}');

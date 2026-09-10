@@ -7,7 +7,7 @@ canonical encoding, and the Policy Hash. Scoring is not here, and never will be 
 This is a plain directory, not a package. Every consumer imports it by relative path:
 
 ```ts
-import { policyHash } from "../../shared/policy-hash.ts";
+import { hashPolicy } from "../../shared/policy-hash.ts";
 ```
 
 `zod` and `viem` are declared in the repository root `package.json`, because Node resolves a bare

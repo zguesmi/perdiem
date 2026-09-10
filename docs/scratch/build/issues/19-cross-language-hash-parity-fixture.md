@@ -1,4 +1,4 @@
-# One golden fixture that every hash implementation asserts against
+# One reference fixture that every hash implementation asserts against
 
 Status: ready-for-agent Type: task Blocked by: 02, 03
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { goldenPolicy } from "../../shared/golden-policy.ts";
+import { referencePolicy } from "../../shared/reference-policy.ts";
 
 import { settle, type Bid } from "../src/scoring.ts";
 
@@ -10,7 +10,7 @@ import { settle, type Bid } from "../src/scoring.ts";
 //
 // Red until settle is implemented. That is ticket 06.
 
-const policy = goldenPolicy;
+const policy = referencePolicy;
 
 const bids: Bid[] = [
   {

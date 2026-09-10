@@ -5,8 +5,9 @@ Status: resolved Type: task Blocked by: 01
 > Note, added later: `packages/core` no longer exists. The code shipped by this ticket lives in
 > `shared/`, `canonicalJson` no longer implements RFC 8785, and `golden-policy.json` is gone. The
 > `file:` staleness flagged below is fixed, because there is no `file:` dependency any more. See
-> `docs/adr/0003-canonical-encoding.md`. The rest of this ticket is left as the record of what was
-> done at the time.
+> `docs/adr/0003-canonical-encoding.md`. The fixture is now the `referencePolicy` constant in
+> `shared/reference-policy.ts` and the function is `hashPolicy`. The rest of this ticket is left as
+> the record of what was done at the time.
 
 `packages/core` has the red tests already. Make them pass, and add the fixture the enclave asserts
 against, so the buyer and the enclave cannot drift apart.

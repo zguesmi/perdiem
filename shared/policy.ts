@@ -5,7 +5,8 @@ import { z } from "zod";
  * ever reads it.
  *
  * The schema is the one in `docs/spec.md`. A changed field name, unit or number changes every
- * Policy Hash, so a change needs a new `version` and a regenerated `golden-policy.json`.
+ * Policy Hash, so a change needs a new `version` and the literals in
+ * `policy-hash.test.ts` regenerated.
  */
 
 /** Every number is an integer. A fraction has more than one shortest decimal form. */

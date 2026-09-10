@@ -33,6 +33,13 @@ array hole, a bigint or a `Date` cannot reach the encoder from a validated Polic
 Both versions hash the Policy in `docs/spec.md` to the same 32 bytes,
 `0xcf8e8d0c8679bb6c91011ea5d77ef5f4e44efcce1846bec48aa1ddcc2235ea8c`.
 
+We also rejected a package. Three zero-dependency canonical encoders were measured on 2026-09-10:
+`canonicalize@5.0.0`, `fast-json-stable-stringify@2.1.0` and `safe-stable-stringify@2.5.0`. All
+three sort keys the way we do. All three encode a fractional `maxPrice` as `520.5` and drop an
+`undefined` member, both in silence. Those are the two failures this encoder throws on, and they are
+the reason it exists. A package would replace the 8 lines that sort and leave the 14 lines that
+guard, so it buys 8 lines for one runtime dependency inside the enclave bundle.
+
 ## Consequences
 
 `shared/canonical-json.ts` is the only encoder. Anything that hashes a Policy imports it. The
@@ -40,6 +47,10 @@ canonical bytes and the hash for the Policy in `docs/spec.md` are asserted as li
 `shared/policy-hash.test.ts`, so changing the encoder or the Policy fails a test.
 
 `null` is not representable in a Policy. Optional fields are absent or present, never null.
+
+The key ordering rule has no test of its own. `policySchema` is `.strict()` at every level, so every
+key reaching the encoder from a validated Policy is one of its own field names, and all of those are
+ASCII. A test over a non-BMP key asserted an ordering no Policy can produce.
 
 A future Policy that needs a rate rather than a flat number carries it as basis points, not as a
 fraction.
