@@ -11,11 +11,11 @@ The live specification. It states what the demo builds and nothing else.
 
 A corporate travel desk states a booking need in one English sentence. A large language model turns
 it into a Policy: hard requirements, weighted preferences, and a maximum price. The buyer confirms
-once, and the Policy Hash lands on chain before any Bid exists. The buyer locks a Budget in Escrow
-on Arc. The Policy goes into a Chainlink CRE confidential workflow as a secret. Supplier agents each
-submit one Sealed Bid. The Enclave scores them against the private Policy and reports only the
-winner and the Payout. The contract pays the winner, refunds the rest, and holds the winner's Stake
-until a booking Receipt arrives.
+once, and the Policy Hash lands on chain before any Bid exists. The buyer locks a Payout Cap in
+Escrow on Arc. The Policy goes into a Chainlink CRE confidential workflow as a secret. Supplier
+agents each submit one Sealed Bid. The Enclave scores them against the private Policy and reports
+only the winner and the Payout. The contract pays the winner, refunds the rest, and holds the
+winner's Stake until a booking Receipt arrives.
 
 The result that matters: three bids arrive, the cheapest loses, the second cheapest wins. The buyer
 pays more than the cheapest on purpose, for what the private Policy values.
@@ -27,8 +27,8 @@ Tagline: "Commit the policy. Score in the enclave. The chain pays."
 1. Policy Hash on chain before bidding opens, verifiable by block order.
 2. Policy readable only inside `handlerInTee`, never on the workflow nodes.
 3. Sealed, single-shot bids. No supplier sees another's Bid before scoring.
-4. Payout within Budget, only to the reported winner, only against the committed Policy Hash and the
-   on-chain Bid Commitments.
+4. Payout within the Payout Cap, only to the reported winner, only against the committed Policy Hash
+   and the on-chain Bid Commitments.
 5. The winner delivers a real LiteAPI sandbox booking and posts a Receipt. Stake slashed on silence.
 6. Buyer funding goes through a Privy organization wallet with a spend policy and a key quorum.
 7. Supplier agent wallets come from the Circle Agent Stack, one wallet per agent.
@@ -55,7 +55,7 @@ iterative bidding, demo keys in `.env`, LiteAPI sandbox guests only, no mainnet.
    against its schema. One retry at most, then it fails.
 2. The buyer confirms. `requisition/` canonicalizes the Policy and computes the Policy Hash.
 3. `requisition/` uploads the Policy and the enclave private key as workflow secrets, then calls
-   `createAuction`, which pulls the Budget in the same call. State is `Created`.
+   `createAuction`, which pulls the Payout Cap in the same call. State is `Created`.
 4. Privy signs that call from the organization wallet and `requisition/` broadcasts it. Above the
    ceiling, the key quorum approves.
 5. Each agent builds one Bid, signs it with EIP-712, commits `keccak256(abi.encode(bidHash, salt))`
@@ -66,10 +66,10 @@ iterative bidding, demo keys in `.env`, LiteAPI sandbox guests only, no mainnet.
    Sealed Bids, decrypts them, checks each signature and each commitment, filters for Eligible,
    scores, picks a winner, and builds the Bids Root.
 8. Only the Settlement leaves the Enclave. The workflow writes it to `SealedAuction`.
-9. The contract checks the Policy Hash, the Bids Root and the Budget, then pays the winner, refunds
-   the buyer, refunds the losing Stakes, and moves to `Finalized`.
+9. The contract checks the Policy Hash, the Bids Root and the Payout Cap, then pays the winner,
+   refunds the buyer, refunds the losing Stakes, and moves to `Finalized`.
 10. The winner books through LiteAPI and posts the Receipt, which releases its Stake. No Receipt by
-    `deliverDeadline` and anyone may slash the Stake to the buyer.
+    `receiptDeadline` and anyone may slash the Stake to the buyer.
 
 ## Policy
 
@@ -110,13 +110,15 @@ regenerated fixture.
 - Canonical encoding is one function in `packages/core`, with a golden fixture both sides assert
   against. See `docs/adr/0003-canonical-encoding.md`.
 
-Public Requirements, emitted in `AuctionCreated`: city, checkin, checkout, minStars, roomType,
+Public Requirements, emitted in `TermsPublished`: city, checkin, checkout, minStars, roomType,
 numberOfRooms, location, radiusMeters, `tradeDown.stars`. Never emitted: `maxPrice`,
-`tradeDown.requiredDiscountPercentage`, `preferences`.
+`tradeDown.requiredDiscountPercentage`, `preferences`. They have their own event because
+`AuctionCreated` carries only the identifier, the buyer and the deadlines.
 
-The Budget is padded above `maxPrice`, because `transferFrom` is public and an exact Budget would
-publish the ceiling. Demo: Budget 750, maximum price 520, Payout 440, refund 310. A workaround, not
-a fix: the ceiling stays bounded from above by what anyone can see.
+The Payout Cap is padded above `maxPrice`, because `transferFrom` is public and an exact cap would
+publish the ceiling. Demo: Payout Cap 750, maximum price 520, Payout 440, refund 310. A workaround,
+not a fix: the ceiling stays bounded from above by what anyone can see. The name is deliberate: the
+cap bounds the Payout and states nothing about what the buyer is willing to pay.
 
 ## Bid
 
@@ -163,11 +165,14 @@ the supplier address, valid on the magic value `0x1626ba7e`, where `digest` is t
 accepted when it returns the supplier, which keeps `createLocalSigner` working. See
 `docs/scratch/verification/issues/07-circle-agent-stack-wallets.md`.
 
-`auctionId` is a monotonic counter cast to `bytes32`, so the first auction is `0x00…01`. Suppliers
-read it from `AuctionCreated` and never derive it. The EIP-712 domain is fixed per deployment, so a
-signature for auction 1 on one deployment cannot be replayed against auction 1 on another:
-`name "Perdiem"`, `version "1"`, `chainId` the Arc testnet chain id, `verifyingContract` the
-`SealedAuction` address.
+`auctionId` is `keccak256(abi.encode(auction))` over the auction record as it stands at creation, so
+the identifier commits to the buyer, the Policy Hash, the Payout Cap and the three deadlines. Two
+auctions with identical terms in one block would hash alike, and the second reverts with
+`AuctionAlreadyExists`. Suppliers read the identifier from `AuctionCreated` and never derive it.
+
+The EIP-712 domain is fixed per deployment, so a signature for one auction on one deployment cannot
+be replayed against the same auction on another: `name "Perdiem"`, `version "1"`, `chainId` the Arc
+testnet chain id, `verifyingContract` the `SealedAuction` address.
 
 `stars`, `distanceMeters`, `refundable` and `breakfastIncluded` are self-attested and no oracle
 contradicts them. The Stake is the only enforcement. So the claim is "the payout went to the
@@ -180,7 +185,8 @@ The relay must never hold a readable Bid. A readable Bid leaks the salt, and the
 enough that keccak256 brute-forces the commitment in seconds without it.
 
 - **Key**: one X25519 keypair per deployment. The private half is a workflow secret, loaded only
-  inside `handlerInTee`. The public half is a `createAuction` argument, emitted in `AuctionCreated`.
+  inside `handlerInTee`. The public half is a constructor argument, readable as
+  `SealedAuction.enclavePublicKey()`. It is fixed for the deployment, not per auction.
 - **Envelope**: the agent seals `{bid, salt, signature}` to that public key. The salt goes inside
   the ciphertext. Nothing but the ciphertext and the supplier address leaves the agent.
 - **Enclave**: decrypt, check the EIP-712 signature, then check the commitment. Any failure drops
@@ -229,8 +235,8 @@ struct Settlement {
 }
 ```
 
-No Eligible bid means `winner = address(0)` and `payout = 0`, and the contract refunds the Budget
-and every Stake.
+No Eligible bid means `winner = address(0)` and `payout = 0`, and the contract refunds the Payout
+Cap and every Stake.
 
 The Bids Root binds the Settlement to the exact set of on-chain commitments, so no bid can be
 dropped or swapped between the chain and the Enclave. The Enclave reads `commitmentsOf` from the
@@ -279,8 +285,9 @@ because it makes scores positive and readable during the demo.
 
 ### The demo table
 
-One double room, two nights. Budget 750, maximum price 520, `refundable` 50, `breakfastIncluded` 40.
-Whole USDC here for reading; the test carries the same figures in minor units.
+One double room, two nights. Payout Cap 750, maximum price 520, `refundable` 50,
+`breakfastIncluded` 40. Whole USDC here for reading; the test carries the same figures in minor
+units.
 
 | Bid | Stars | Distance | Price | Refundable | Breakfast | Result                                                                                 |
 | --- | ----- | -------- | ----- | ---------- | --------- | -------------------------------------------------------------------------------------- |
@@ -293,7 +300,7 @@ This table is a test in `workflow/`.
 
 ### Every USDC in and out
 
-Nine hundred USDC enters escrow: the 750 Budget and three 50 Stakes. Every terminal path returns
+Nine hundred USDC enters escrow: the 750 Payout Cap and three 50 Stakes. Every terminal path returns
 exactly that, and each row is a contract test.
 
 | Path                                         | Out                                                         |
@@ -306,8 +313,8 @@ exactly that, and each row is a contract test.
 
 ## Contract
 
-`onchain/contracts/SealedAuction.sol`. It plays the Escrow role while it holds the Budget and the
-Stakes.
+`onchain/contracts/SealedAuction.sol`. It plays the Escrow role while it holds the Payout Cap and
+the Stakes.
 
 ```
 Created   → funded at creation, no commit yet
@@ -325,21 +332,22 @@ Timeout   → terminal, everything refunded
 - `Settling → Finalized` on a valid settlement, with or without a winner.
 - Any of `Created`, `Bidding` and `Settling` `→ Timeout` through `timeoutRefund`, past
   `finalizeDeadline`. `Created` is in the list because row five of "Every USDC in and out" is an
-  auction nobody committed to, and its Budget is stuck forever without it.
-- Delivery is not a state. After `Finalized`, `receiptHash`, `stakeReleased` and `stakeSlashed` are
-  fields on the auction.
+  auction nobody committed to, and its Payout Cap is stuck forever without it.
+- Delivery is not a state. After `Finalized`, `stakeReleased` and `stakeSlashed` are fields on the
+  auction. The Receipt itself is a log line, `ReceiptPosted`, because no on-chain rule reads it.
 - `finalizeDeadline` stops a losing bidder from refunding the auction a second after `bidDeadline`,
   before the Enclave ever ran. The gap covers the cron interval, the claim, scoring and the write.
 
-Demo deadlines, all passed to `createAuction`, none of them constants: `bidDeadline` creation + 90
-seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
+The deadlines are contract constants offset from `block.timestamp` at creation, and `createAuction`
+takes none of them: `BID_PERIOD` 2 hours, `FINALIZE_PERIOD` 4 hours, `RECEIPT_PERIOD` 6 hours. A
+buyer cannot open an auction that is undeliverable or unslashable, because a buyer cannot choose.
 
 ### Functions
 
-- `createAuction(policyHash, publicRequirements, enclavePublicKey, bidDeadline, finalizeDeadline, deliverDeadline, budget) → auctionId`
-  — buyer only. Requires `block.timestamp < bidDeadline < finalizeDeadline < deliverDeadline`, so no
-  auction can exist that is undeliverable or unslashable. Pulls the Budget, records the block
-  number, emits `AuctionCreated`.
+- `createAuction(policyHash, publicRequirements, payoutCap) → auctionId` — any address. The caller
+  is the buyer of the auction it opens. Derives the three deadlines from `block.timestamp`, hashes
+  the record for the identifier, pulls the Payout Cap, and emits `AuctionCreated` then
+  `TermsPublished`.
 - `commit(auctionId, commitment)` — any address, once, before `bidDeadline`. Pulls the `STAKE`
   constant, 50 USDC. Emits `Committed`.
 - `onReport(bytes metadata, bytes report)` — the CRE forwarder only, through the Chainlink receiver
@@ -350,41 +358,43 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
     `abi.encode(bytes32 auctionId)`. The settlement payload is `abi.encode(Settlement)`.
   - Kind `1` requires `Bidding` and `block.timestamp >= bidDeadline`, then moves to `Settling`.
   - Kind `2` requires `Settling`, a matching Policy Hash, a matching Bids Root, a Payout within the
-    Budget, and a winner that either committed or is the zero address. Pays, refunds, finalizes.
+    Payout Cap, and a winner that either committed or is the zero address. Pays, refunds, finalizes.
   - It reads nothing from `metadata`: simulation passes a placeholder workflow id and workflow
     owner. The kind cannot live there either, because `reportId` is `0001` for every report in one
     run. Row V8.
-  - `startSettling(auctionId)` is internal, reached only through kind `1`. The `evm@1.0.0`
-    capability has one write RPC, `writeReport`, with no calldata field, so a workflow cannot call
-    any other function on the receiver. Row V8.
+  - `_startSettling(auctionId)` and `_settle(settlement)` are internal, reached only through a
+    report. The `evm@1.0.0` capability has one write RPC, `writeReport`, with no calldata field, so
+    a workflow cannot call any other function on the receiver. Row V8.
 - `supportsInterface(bytes4 id) → bool` — returns `true` for `0x01ffc9a7` and for the `IReceiver`
   interface id `0x805f2132`, and `false` for everything else. The forwarder probes it before every
   settlement. A receiver that answers `true` to `0xffffffff` is skipped: the forwarder calls nothing
   and emits `ReportProcessed(result: false)`, while the workflow still reads `TxStatus.SUCCESS`. The
   auction then sits in `Settling` until `timeoutRefund`. A test asserts the `0xffffffff` answer.
-- `submitReceipt(auctionId, receiptHash)` — the winner only, before `deliverDeadline`. Releases its
-  Stake.
-- `slash(auctionId)` — anyone, after `deliverDeadline` with no Receipt. The Stake goes to the buyer.
+- `submitReceipt(auctionId, receiptHash)` — the winner only, before `receiptDeadline`. Releases its
+  Stake and emits `ReceiptPosted`.
+- `slash(auctionId)` — anyone, after `receiptDeadline` with no Receipt. The Stake goes to the buyer.
 - `timeoutRefund(auctionId)` — anyone, from `Created`, `Bidding` or `Settling`, after
-  `finalizeDeadline` with no settlement. Refunds the Budget and every Stake. A liveness fallback,
-  documented as one.
+  `finalizeDeadline` with no settlement. Refunds the Payout Cap and every Stake. A liveness
+  fallback, documented as one.
 
 Three views, because the workflow holds no state of its own:
 
-- `pendingSettlement() → bytes32` — the lowest `auctionId` in `Bidding` with
-  `block.timestamp >= bidDeadline`, or `bytes32(0)`. The cron reads this.
+- `pendingSettlement() → bytes32` — an `auctionId` in `Bidding` with
+  `block.timestamp >= bidDeadline`, or `bytes32(0)`. The cron reads this. A hashed identifier cannot
+  be enumerated, so this needs a list of open auctions written by `createAuction` and cleared on
+  `Finalized` and `Timeout`.
 - `commitmentsOf(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this set.
-- `auctionOf(auctionId) → Auction` — state, buyer, deadlines, Policy Hash, enclave public key,
-  Budget, winner, Payout, `receiptHash`, `stakeReleased`, `stakeSlashed`.
+- `auctions(auctionId) → Auction` — the mapping is public, so the getter is generated: state, buyer,
+  `createdAt`, deadlines, Policy Hash, Payout Cap, winner, Payout, `stakeReleased`, `stakeSlashed`.
 
 Invariants: USDC out never exceeds USDC in, per auction; no payout unless the Policy Hash and the
 Bids Root both match; the buyer cannot withdraw between `createAuction` and `Finalized`, except
 through `timeoutRefund`; `Finalized` and `Timeout` are terminal.
 
-Tests: the demo table end to end; a wrong Policy Hash rejected; a wrong Bids Root rejected; a claim
+Tests: the happy path end to end; a wrong Policy Hash rejected; a wrong Bids Root rejected; a claim
 report from a non-forwarder rejected; a settlement report before the claim report rejected; an
-unknown report kind rejected; `timeoutRefund` before `finalizeDeadline` rejected; deadlines out of
-order rejected at creation; the no-winner path; the slash path; the timeout path.
+unknown report kind rejected; `timeoutRefund` before `finalizeDeadline` rejected; a duplicate
+auction in one block rejected; the no-winner path; the slash path; the timeout path.
 
 ## CRE workflow
 
@@ -449,25 +459,26 @@ Verified on Arc testnet, row V7:
 - `POST /intent` — one model call with a fixed system prompt, stored at `docs/ai/intent-prompt.md`,
   validated against the Policy schema. One retry, then it fails.
 - `POST /confirm` — canonicalize, hash, upload the workflow secrets, call `createAuction` with the
-  Budget.
+  Payout Cap.
 - Privy: the organization wallet signs with `eth_signTransaction` and the requisition service
   broadcasts the signed RLP to `ARC_RPC_URL`. Privy does not broadcast on Arc: `eth_sendTransaction`
   returns `App is not authorized to transact on chain eip155:5042002`.
 - Funding takes two signed transactions, so the spend policy needs two `ALLOW` rules. Both read the
   calldata, not just the destination address:
   - `approve(spender, value)` on the USDC ERC-20, with `spender` equal to `SealedAuction`.
-  - `createAuction(...)` on `SealedAuction`, with the Budget argument within the signer's ceiling.
+  - `createAuction(...)` on `SealedAuction`, with the `payoutCap` argument within the signer's
+    ceiling.
 - A calldata rule is `field_source: ethereum_calldata` and needs the contract's JSON ABI in the
   condition. A rule on the destination address alone would let any call through, including one that
   approves a different spender.
 - Every rule also pins `chain_id` to 5042002 and uses `method: eth_signTransaction`.
-- The ceiling is 500 USDC and the demo Budget is 750, so the quorum fires in the video every time. A
-  Budget under 500 goes through on the policy alone, which is the path the tests use.
+- The ceiling is 500 USDC and the demo Payout Cap is 750, so the quorum fires in the video every
+  time. A Payout Cap under 500 goes through on the policy alone, which is the path the tests use.
 - The ceiling is a per-signer override policy, not a quorum threshold. A quorum threshold is fixed
-  and cannot depend on the Budget. The wallet carries two signers: a server authorization key capped
-  at the ceiling, and a key quorum of two, travel manager and finance, with no cap. The requisition
-  service picks the signer from the Budget. Unverified: the override-policy path is documented and
-  has not been run.
+  and cannot depend on the Payout Cap. The wallet carries two signers: a server authorization key
+  capped at the ceiling, and a key quorum of two, travel manager and finance, with no cap. The
+  requisition service picks the signer from the Payout Cap. Unverified: the override-policy path is
+  documented and has not been run.
 
 ## Links
 
