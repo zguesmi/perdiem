@@ -8,9 +8,6 @@ export default defineConfig({
       default: {
         version: "0.8.34",
         settings: {
-          // `createAuction` takes the seven arguments `docs/spec.md` pins and emits all of them.
-          // The legacy pipeline runs out of stack slots on that emit.
-          viaIR: true,
           optimizer: {
             enabled: true,
             runs: 200,
@@ -20,7 +17,6 @@ export default defineConfig({
       production: {
         version: "0.8.34",
         settings: {
-          viaIR: true,
           optimizer: {
             enabled: true,
             runs: 200,
