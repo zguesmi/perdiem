@@ -7,30 +7,33 @@ is ticket 05. So this ticket ships the fixture, the regeneration script, the Typ
 of all four hashes, and the Solidity assertions of `bidHash` and the commitment. The Bids Root
 assertion in Solidity is an acceptance criterion of 05, against this fixture.
 
-Four hashes have to agree across three languages, and each one kills an auction silently when it
-does not:
+Three hashes cross a language boundary, and each one kills an auction silently when the two sides
+disagree:
 
-| Hash                               | Produced by                     | Compared by                                     |
-| ---------------------------------- | ------------------------------- | ----------------------------------------------- |
-| Policy Hash                        | requisition service, TypeScript | the contract, against the Enclave's             |
-| `bidHash`, the EIP-712 struct hash | supplier agent, TypeScript      | the Enclave, checking signatures                |
-| Bid Commitment                     | supplier agent, TypeScript      | the contract stores it, the Enclave rechecks it |
-| Bids Root                          | the Enclave, TypeScript         | the contract, recomputing it in Solidity        |
+| Hash                               | Produced by                | Compared by                                     |
+| ---------------------------------- | -------------------------- | ----------------------------------------------- |
+| `bidHash`, the EIP-712 struct hash | supplier agent, TypeScript | the Enclave, checking signatures                |
+| Bid Commitment                     | supplier agent, TypeScript | the contract stores it, the Enclave rechecks it |
+| Bids Root                          | the Enclave, TypeScript    | the contract, recomputing it in Solidity        |
 
-Rather than testing each side against its own expectation, there is one fixture file: a Policy, a
-Bid, a salt, and the four hex strings those inputs must produce. Every side asserts against that
-file and no side computes its own expected value.
+The Policy Hash is not in this list. It is produced in TypeScript and compared in TypeScript: the
+requisition service and the Enclave both call one `canonicalJson` in `shared/`, and the contract
+only compares the bytes32 it was given against the bytes32 it stored. Its canonical bytes and hash
+are asserted as literals in `shared/policy-hash.test.ts`. See `docs/adr/0003-canonical-encoding.md`.
 
-This is the only new test seam this feature needs. It sits above all four implementations, so a
+Rather than testing each side against its own expectation, there is one fixture file: a Bid, a salt,
+and the three hex strings those inputs must produce. Every side asserts against that file and no
+side computes its own expected value.
+
+This is the only new test seam this feature needs. It sits above all three implementations, so a
 divergence names itself: the failing test says which hash and which side.
 
 What has to be true:
 
-- The fixture is in `packages/core` and is exported, so `workflow/` and the supplier agents can
-  import it and the Solidity tests can read the same JSON from disk.
-- The TypeScript test asserts all four.
+- The fixture is in `shared/`, so `workflow/` and the supplier agents import it by relative path and
+  the Solidity tests read the same JSON from disk.
+- The TypeScript test asserts all three.
 - A Solidity test asserts the `bidHash`, the commitment and the Bids Root against the same strings.
-  The Policy Hash has no Solidity side; the contract only compares what it was given.
 - The Bids Root case uses at least three commitments in a deliberately shuffled arrival order, so
   that the ascending-byte sort is exercised, and one case with no commitments, which is
   `bytes32(0)`.
@@ -44,12 +47,11 @@ picking the wrong one passes every test written on one side alone.
 
 ## Acceptance criteria
 
-- [ ] The fixture is in `packages/core`, is exported for TypeScript, and is readable as JSON from
-      disk by the Solidity tests.
-- [ ] It carries a Policy, a Bid, a salt, at least three commitments in a deliberately shuffled
-      arrival order, one empty set, and the four expected hex strings.
-- [ ] The TypeScript test asserts the Policy Hash, `bidHash`, the commitment and the Bids Root
-      against the file.
+- [ ] The fixture is in `shared/`, is importable by TypeScript, and is readable as JSON from disk by
+      the Solidity tests.
+- [ ] It carries a Bid, a salt, at least three commitments in a deliberately shuffled arrival order,
+      one empty set, and the three expected hex strings.
+- [ ] The TypeScript test asserts `bidHash`, the commitment and the Bids Root against the file.
 - [ ] A Solidity test asserts `bidHash` and the commitment against the same strings.
 - [ ] Regenerating is a script, not a hand edit, and the ticket says to run it when `version`
       changes.

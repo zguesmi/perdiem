@@ -7,15 +7,19 @@ Status: ready-for-human Type: task Blocked by:
 `cre init --template=hello-confidential-workflows-ts`. The CLI owns the generated package.json,
 which is why `workflow/` is outside the pnpm workspace.
 
-After generating, check that the `file:../packages/core` dependency survived. The fixture hash test
-is there to fail loudly if it did not.
+After generating, check the generated `tsconfig.json`. It must set `allowImportingTsExtensions`, or
+the typecheck the CLI runs before compiling rejects every `.ts` import path in `shared/`. There is
+no dependency entry to check any more: `workflow/` reaches `shared/` by relative import.
+
+Verified against CLI 1.32.0 on a scratch `hello-world-ts` project: a relative import that leaves the
+CRE project root compiles into the WASM binary once that option is set.
 
 ## Acceptance criteria
 
 - [ ] The template is generated, and `workflow/` stays outside the pnpm workspace with its own
       `pnpm-workspace.yaml`, per decision T7.
-- [ ] The `file:../packages/core` dependency resolves, and the fixture hash test runs from inside
-      `workflow/`.
+- [ ] The generated `tsconfig.json` sets `allowImportingTsExtensions`, the relative import of
+      `shared/` resolves, and the tests run from inside `workflow/`.
 - [ ] `handlerInTee` runs against a placeholder payload and the CRE CLI reports success.
 - [ ] The files the CLI owns are listed in the ticket, so a regeneration does not silently drop
       local edits.

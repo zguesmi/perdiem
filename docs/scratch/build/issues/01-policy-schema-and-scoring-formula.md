@@ -35,10 +35,10 @@ Four things this ticket had left implicit, now decided:
 - **USDC minor units are 6 decimals**, verified on chain in
   `../../verification/issues/05-arc-usdc-address-and-decimals.md`. No rule depends on the count,
   because every comparison in scoring is between two amounts in the same unit.
-- **Canonical encoding is RFC 8785 restricted to integers**, not the looser "sorted keys, no
-  whitespace, UTF-8" prose, which two conformant implementations can satisfy while producing
-  different bytes. `packages/core` ships a golden fixture that both the requisition service and the
-  Enclave assert against.
+- **Canonical encoding is one function over integers**, not the looser "sorted keys, no whitespace,
+  UTF-8" prose, which two conformant implementations can satisfy while producing different bytes.
+  `shared/` ships that one encoder, and the requisition service and the Enclave both call it. See
+  `docs/adr/0003-canonical-encoding.md`.
 - **`version`, `currency` and `nights` stay in the hash and are read by nothing during scoring.**
   Their purpose is written down in `docs/spec.md` so nobody later removes them as dead fields and
   changes every Policy Hash.
