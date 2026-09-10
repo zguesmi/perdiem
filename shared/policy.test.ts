@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { goldenPolicy } from "../src/golden-policy.ts";
-import { policySchema } from "../src/policy.ts";
+import { goldenPolicy } from "./golden-policy.ts";
+import { policySchema } from "./policy.ts";
 
 // The schema is the only check on what one model call returns. Whatever it lets through is hashed,
 // committed on chain, and cannot be corrected afterwards.

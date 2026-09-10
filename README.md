@@ -46,7 +46,6 @@ pnpm --dir workflow typecheck
 One package at a time:
 
 ```sh
-pnpm --filter @perdiem/core test
 pnpm --filter @perdiem/onchain test
 pnpm --filter @perdiem/relay dev
 ```

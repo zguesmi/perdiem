@@ -4,13 +4,12 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc --project tsconfig.build.json",
-    "start": "node dist/index.js",
+    "start": "node dist/requisition/src/index.js",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
-    "@perdiem/core": "workspace:*",
     "hono": "^4.13.7"
   },
   "devDependencies": {

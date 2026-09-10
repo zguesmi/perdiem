@@ -1,7 +1,7 @@
-import type { Policy } from "@perdiem/core";
+import type { Policy } from "../../shared/policy.ts";
 
 /**
- * Scoring lives here and only here. It is never exported from `@perdiem/core`, because a supplier
+ * Scoring lives here and only here. It is never placed in `shared/`, because a supplier
  * agent that could import the rule could brute-force its own price against it. See
  * `docs/adr/0002-scoring-is-not-shared.md`.
  *

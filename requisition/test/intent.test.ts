@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { policyHash } from "@perdiem/core";
+import { policyHash } from "../../shared/policy-hash.ts";
 
 import { createRequisitionApp } from "../src/app.ts";
 

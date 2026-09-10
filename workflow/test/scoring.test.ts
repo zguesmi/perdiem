@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { goldenPolicy, usdcMinorUnits } from "@perdiem/core";
+import { goldenPolicy } from "../../shared/golden-policy.ts";
 
 import { settle, type Bid } from "../src/scoring.ts";
 
@@ -18,7 +18,7 @@ const bids: Bid[] = [
     hotelId: "hotel-a",
     stars: 3,
     distanceMeters: 500,
-    price: usdcMinorUnits(330),
+    price: 330_000_000,
     refundable: true,
     breakfastIncluded: false,
     roomType: "double",
@@ -29,7 +29,7 @@ const bids: Bid[] = [
     hotelId: "hotel-b",
     stars: 4,
     distanceMeters: 700,
-    price: usdcMinorUnits(400),
+    price: 400_000_000,
     refundable: false,
     breakfastIncluded: false,
     roomType: "double",
@@ -40,7 +40,7 @@ const bids: Bid[] = [
     hotelId: "hotel-c",
     stars: 4,
     distanceMeters: 1000,
-    price: usdcMinorUnits(440),
+    price: 440_000_000,
     refundable: true,
     breakfastIncluded: true,
     roomType: "double",
@@ -52,7 +52,7 @@ test("the second cheapest bid wins", () => {
   const settlement = settle(policy, bids);
 
   assert.equal(settlement.winner, "0xc");
-  assert.equal(settlement.payout, usdcMinorUnits(440));
+  assert.equal(settlement.payout, 440_000_000);
 });
 
 test("the cheapest bid is ineligible because the trade-down discount is not deep enough", () => {

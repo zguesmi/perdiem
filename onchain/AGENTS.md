@@ -22,8 +22,8 @@ for toolbox-specific guidance (clients, contract interaction, assertions).
 
 Domain vocabulary is in the root `CONTEXT.md`.
 
-`packages/core` owns canonical JSON, the policy hash, and EIP-712 hashing. Do not reimplement any of
-them in Solidity without a test that asserts both languages produce the same bytes.
+`shared/` owns canonical JSON, the policy hash, and EIP-712 hashing. Do not reimplement any of them
+in Solidity without a test that asserts both languages produce the same bytes.
 
 ## Docs
 

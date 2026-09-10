@@ -39,15 +39,15 @@ iterative bidding, demo keys in `.env`, LiteAPI sandbox guests only, no mainnet.
 
 ## Architecture
 
-| Directory       | What it is                                                                   |
-| --------------- | ---------------------------------------------------------------------------- |
-| `onchain/`      | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
-| `workflow/`     | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
-| `agents/`       | Three supplier agents. One wraps the LiteAPI sandbox                         |
-| `requisition/`  | The buyer's service: intent parsing, policy commit, Privy funding            |
-| `relay/`        | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
-| `web/`          | One page, five panels                                                        |
-| `packages/core` | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
+| Directory      | What it is                                                                   |
+| -------------- | ---------------------------------------------------------------------------- |
+| `onchain/`     | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
+| `workflow/`    | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
+| `agents/`      | Three supplier agents. One wraps the LiteAPI sandbox                         |
+| `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding            |
+| `relay/`       | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
+| `web/`         | One page, five panels                                                        |
+| `shared/`      | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
 
 ### Flow
 
@@ -107,8 +107,8 @@ regenerated fixture.
   trip. Cost of that: a bonus no longer scales with the bid price.
 - `version`, `currency` and `nights` are inside the hash and are read by nothing during scoring.
   They make a schema change a different hash, and they let a revealed Policy explain its numbers.
-- Canonical encoding is one function in `packages/core`, with a golden fixture both sides assert
-  against. See `docs/adr/0003-canonical-encoding.md`.
+- Canonical encoding is one function in `shared/`. The buyer and the Enclave call that one function,
+  so their bytes agree by construction. See `docs/adr/0003-canonical-encoding.md`.
 
 Public Requirements, emitted in `TermsPublished`: city, checkin, checkout, minStars, roomType,
 numberOfRooms, location, radiusMeters, `tradeDown.stars`. Never emitted: `maxPrice`,

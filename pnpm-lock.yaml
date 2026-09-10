@@ -108,10 +108,20 @@ settings:
 importers:
 
   .:
+    dependencies:
+      viem:
+        specifier: ^2.56.3
+        version: 2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@4.5.4)
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
     devDependencies:
       '@circle-fin/cli':
         specifier: ^1.0.0
         version: 1.0.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
+      '@types/node':
+        specifier: ^22.20.1
+        version: 22.20.1
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -121,12 +131,14 @@ importers:
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
+      tsx:
+        specifier: ^4.23.13
+        version: 4.23.13
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
 
   agents:
-    dependencies:
-      '@perdiem/core':
-        specifier: workspace:*
-        version: link:../packages/core
     devDependencies:
       '@types/node':
         specifier: ^22.20.1
@@ -166,25 +178,6 @@ importers:
         specifier: ^2.56.3
         version: 2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@3.25.76)
 
-  packages/core:
-    dependencies:
-      viem:
-        specifier: ^2.56.3
-        version: 2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@4.5.4)
-      zod:
-        specifier: ^4.5.4
-        version: 4.5.4
-    devDependencies:
-      '@types/node':
-        specifier: ^22.20.1
-        version: 22.20.1
-      tsx:
-        specifier: ^4.23.13
-        version: 4.23.13
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-
   relay:
     dependencies:
       '@hono/node-server':
@@ -209,9 +202,6 @@ importers:
       '@hono/node-server':
         specifier: ^2.1.1
         version: 2.1.1(hono@4.13.7)
-      '@perdiem/core':
-        specifier: workspace:*
-        version: link:../packages/core
       hono:
         specifier: ^4.13.7
         version: 4.13.7
@@ -2720,7 +2710,7 @@ snapshots:
 
   '@scure/bip32@1.7.0':
     dependencies:
-      '@noble/curves': 1.9.1
+      '@noble/curves': 1.9.2
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 

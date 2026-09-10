@@ -11,17 +11,24 @@
     "prepare": "husky",
     "circle": "./node_modules/.bin/circle",
     "build": "pnpm --recursive --if-present build",
-    "test": "pnpm --recursive --if-present test",
-    "typecheck": "pnpm --recursive --if-present typecheck",
+    "test": "tsx --test 'shared/*.test.ts' && pnpm --recursive --if-present test",
+    "typecheck": "tsc --noEmit && pnpm --recursive --if-present typecheck",
     "lint": "pnpm --recursive --if-present lint",
     "format:md": "prettier --write \"**/*.md\"",
     "format:md:check": "prettier --check \"**/*.md\""
   },
+  "dependencies": {
+    "viem": "^2.56.3",
+    "zod": "^4.5.4"
+  },
   "devDependencies": {
     "@circle-fin/cli": "^1.0.0",
+    "@types/node": "^22.20.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.0",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "typescript": "~6.0.3"
   },
   "lint-staged": {
     "*.md": "prettier --write"

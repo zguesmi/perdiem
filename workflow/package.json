@@ -8,9 +8,6 @@
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@perdiem/core": "file:../packages/core"
-  },
   "devDependencies": {
     "@types/node": "^22.20.1",
     "tsx": "^4.23.13",
