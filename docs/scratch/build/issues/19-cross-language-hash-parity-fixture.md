@@ -1,6 +1,6 @@
 # One golden fixture that every hash implementation asserts against
 
-Status: ready-for-agent Type: task Blocked by: 02, 03
+Status: done Type: task Blocked by: 02, 03
 
 A Solidity assertion of the Bids Root needs a Solidity function that computes it, and that function
 is ticket 05. So this ticket ships the fixture, the regeneration script, the TypeScript assertions
@@ -47,15 +47,15 @@ picking the wrong one passes every test written on one side alone.
 
 ## Acceptance criteria
 
-- [ ] The fixture is in `shared/`, is importable by TypeScript, and is readable as JSON from disk by
+- [x] The fixture is in `shared/`, is importable by TypeScript, and is readable as JSON from disk by
       the Solidity tests.
-- [ ] It carries a Bid, a salt, at least three commitments in a deliberately shuffled arrival order,
+- [x] It carries a Bid, a salt, at least three commitments in a deliberately shuffled arrival order,
       one empty set, and the three expected hex strings.
-- [ ] The TypeScript test asserts `bidHash`, the commitment and the Bids Root against the file.
-- [ ] A Solidity test asserts `bidHash` and the commitment against the same strings.
-- [ ] Regenerating is a script, not a hand edit, and the ticket says to run it when `version`
+- [x] The TypeScript test asserts `bidHash`, the commitment and the Bids Root against the file.
+- [x] A Solidity test asserts `bidHash` and the commitment against the same strings.
+- [x] Regenerating is a script, not a hand edit, and the ticket says to run it when `version`
       changes.
-- [ ] No side computes its own expected value.
+- [x] No side computes its own expected value.
 
 ## Comments
 
@@ -64,3 +64,17 @@ picking the wrong one passes every test written on one side alone.
 The bids root drops the sort: `keccak256(abi.encodePacked(commitments))` over the array in arrival
 order. The fixture case is a shuffled arrival order, and the two orders must produce two different
 roots.
+
+`shared/fixtures/bid-hashes.json` holds the inputs and all three hashes.
+`shared/regenerate-bid-fixture.ts` writes it, and `pnpm fixtures` runs it.
+
+The Solidity assertions run as a `node:test` file, `onchain/test/bid-hashes.ts`, which reads the
+JSON from disk and calls Solidity through viem. A `.t.sol` file would have to parse the nested bid
+struct with `vm.parseJson`, which needs the struct fields in alphabetical order and gives a worse
+failure message. The hashing itself is Solidity, in `onchain/test/BidHashes.sol`.
+
+The Bids Root assertion is here rather than in ticket 05, because it is the assertion that gates a
+settlement and it cost thirty lines in the same file.
+
+`onchain/test/SealedAuction.t.sol` still carries two Bids Root literals of its own, computed off
+chain. They cover a different commitment set and were left alone.

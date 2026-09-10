@@ -1,0 +1,26 @@
+{
+  "bid": {
+    "auctionId": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "supplier": "0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A",
+    "hotelId": "lp1a2b3",
+    "hotelName": "Awesome Hotel",
+    "stars": 4,
+    "distanceMeters": 1000,
+    "price": 440000000,
+    "refundable": true,
+    "breakfastIncluded": true,
+    "roomType": "double",
+    "numberOfRooms": 1
+  },
+  "salt": "0x5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+  "verifyingContract": "0x000000000000000000000000000000000000dEaD",
+  "bidHash": "0xe9f4ce872acb7c65d51625d0998a1ec1f47e799616fead0dfb5da46bc79569be",
+  "commitment": "0x6ef549e266631ee920eae1307f804524069c4aa97eb0768cf59387bec688fa8d",
+  "commitments": [
+    "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+    "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "0xb2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+  ],
+  "bidsRoot": "0x808525323fb40857e50e30dbda2b4c2428b517230ec59d28c24979685530eb01",
+  "emptyBidsRoot": "0x0000000000000000000000000000000000000000000000000000000000000000"
+}

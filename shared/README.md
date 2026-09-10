@@ -1,7 +1,7 @@
 # shared
 
 Everything the buyer, the suppliers and the enclave have to agree on: the Policy schema, the
-canonical encoding, the Policy Hash, the three bid hashes and the sealed bid envelope. Scoring is
+canonical encoding, the Policy Hash, the three bid hashes, and the sealed bid envelope. Scoring is
 not here, and never will be — see `docs/adr/0002-scoring-is-not-shared.md`.
 
 - `policy.ts`, `canonical-json.ts`, `policy-hash.ts` — the Policy and its commitment.
@@ -9,6 +9,16 @@ not here, and never will be — see `docs/adr/0002-scoring-is-not-shared.md`.
 - `sealed-bid.ts` — sealing a bid to the enclave key and opening it inside the enclave. The scheme
   is in `docs/adr/0005-sealed-bid-envelope-scheme.md`.
 - `chain.ts` — the Arc chain id, which the EIP-712 domain reads.
+
+## The bid hash fixture
+
+`fixtures/bid-hashes.json` is the one file every hash implementation asserts against. TypeScript
+asserts all three hashes in `bid-hashes.test.ts`; Solidity asserts the struct hash, the commitment
+and the bids root in `onchain/test/bid-hashes.ts`. No side computes its own expected value, so a
+divergence names itself instead of dropping honest bids inside the enclave.
+
+Regenerate it with `pnpm fixtures` after any change to the bid struct or to `golden-bid.ts`, and
+read the diff: a changed hash here is a changed hash on chain.
 
 This is a plain directory, not a package. Every consumer imports it by relative path:
 
@@ -39,4 +49,5 @@ Tests and typecheck run from the repository root, because this directory has no 
 ```sh
 pnpm test        # runs shared/*.test.ts, then every workspace member
 pnpm typecheck   # tsc --noEmit over shared/, then every workspace member
+pnpm fixtures    # regenerates fixtures/bid-hashes.json
 ```

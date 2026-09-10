@@ -11,6 +11,7 @@
     "prepare": "husky",
     "circle": "./node_modules/.bin/circle",
     "build": "pnpm --recursive --if-present build",
+    "fixtures": "tsx shared/regenerate-bid-fixture.ts",
     "test": "tsx --test 'shared/*.test.ts' && pnpm --recursive --if-present test",
     "typecheck": "tsc --noEmit && pnpm --recursive --if-present typecheck",
     "lint": "pnpm --recursive --if-present lint",
