@@ -1,30 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
+import { goldenPolicy } from "@perdiem/core";
+
 import { settle, type Bid } from "../src/scoring.ts";
 
 // The demo table, straight from the specification. Three bids arrive, the cheapest one loses, and
 // the second cheapest wins because the buyer's private preferences are worth more than the
 // difference in price. If this test ever goes green for a different winner, the demo is dead.
 //
-// Red until settle is implemented. The Policy shape is blocked on
-// docs/scratch/build/01-policy-schema-and-scoring-formula.md.
+// Red until settle is implemented.
+//
+// Ticket 06 still owes this file two conversions: the Bid fixtures below carry whole USDC and
+// distanceKm, while the Policy and the Bid type both moved to USDC minor units and metres.
 
-const policy = {
-  maxPrice: 520,
-  nights: 2,
-  hardRequirements: {
-    city: "Paris",
-    checkin: "2026-10-12",
-    checkout: "2026-10-14",
-    minStars: 4,
-    roomType: "double",
-    numberOfRooms: 1,
-    radiusKm: 2,
-  },
-  tradeDown: { stars: 3, requiredDiscountPercentage: 30 },
-  preferences: { refundable: 50, breakfastIncluded: 40 },
-};
+const policy = goldenPolicy;
 
 const bids: Bid[] = [
   {

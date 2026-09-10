@@ -33,4 +33,4 @@ The server listens on port 8788. Set `REQUISITION_PORT` to move it.
 ## Status
 
 Both routes answer `501`. The tests are red, and the Policy shape they assume is blocked on
-`docs/scratch/build/01-policy-schema-and-scoring-formula.md`.
+`docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md`.

@@ -1,12 +1,15 @@
-import type { Policy } from "./policy.ts";
+import { keccak256, toBytes } from "viem";
+
+import { canonicalJson } from "./canonical-json.ts";
 
 /**
- * The commitment the buyer places on chain before any bid exists.
+ * The commitment the buyer places on chain before any Bid exists.
  *
  * `policyHash = keccak256(utf8Bytes(canonicalJson(policy)))`
+ *
+ * The argument is `unknown` rather than `Policy` so a candidate that has not passed
+ * `policySchema` can still be hashed. Validation is the caller's job; this function only hashes.
  */
-export function policyHash(_policy: Policy): `0x${string}` {
-  throw new Error(
-    "policyHash is not implemented yet. See docs/scratch/build/01-policy-schema-and-scoring-formula.md",
-  );
+export function policyHash(policy: unknown): `0x${string}` {
+  return keccak256(toBytes(canonicalJson(policy)));
 }

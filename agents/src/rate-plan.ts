@@ -24,6 +24,6 @@ export const DEMO_RATE_PLANS: Record<"a" | "b" | "c", RatePlan> = {
 /** Applies a rate plan to a base rate. Integer arithmetic; no floating point reaches a bid. */
 export function priceFromRatePlan(_basePrice: number, _plan: RatePlan): number {
   throw new Error(
-    "priceFromRatePlan is not implemented yet. See docs/scratch/build/01-policy-schema-and-scoring-formula.md",
+    "priceFromRatePlan is not implemented yet. See docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md",
   );
 }

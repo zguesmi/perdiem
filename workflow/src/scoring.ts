@@ -37,6 +37,6 @@ export interface Bid {
  */
 export function settle(_policy: Policy, _bids: Bid[]): Settlement {
   throw new Error(
-    "settle is not implemented yet. See docs/scratch/build/01-policy-schema-and-scoring-formula.md",
+    "settle is not implemented yet. See docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md",
   );
 }
