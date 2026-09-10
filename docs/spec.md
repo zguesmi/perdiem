@@ -323,7 +323,9 @@ Timeout   → terminal, everything refunded
   workflow never ran" from "the workflow ran and its settlement was rejected". It costs one extra
   write and it says which service to debug during the demo.
 - `Settling → Finalized` on a valid settlement, with or without a winner.
-- Either state `→ Timeout` through `timeoutRefund`, past `finalizeDeadline`.
+- Any of `Created`, `Bidding` and `Settling` `→ Timeout` through `timeoutRefund`, past
+  `finalizeDeadline`. `Created` is in the list because row five of "Every USDC in and out" is an
+  auction nobody committed to, and its Budget is stuck forever without it.
 - Delivery is not a state. After `Finalized`, `receiptHash`, `stakeReleased` and `stakeSlashed` are
   fields on the auction.
 - `finalizeDeadline` stops a losing bidder from refunding the auction a second after `bidDeadline`,
@@ -363,8 +365,9 @@ seconds, `finalizeDeadline` + 180 seconds, `deliverDeadline` + 600 seconds.
 - `submitReceipt(auctionId, receiptHash)` — the winner only, before `deliverDeadline`. Releases its
   Stake.
 - `slash(auctionId)` — anyone, after `deliverDeadline` with no Receipt. The Stake goes to the buyer.
-- `timeoutRefund(auctionId)` — anyone, from `Bidding` or `Settling`, after `finalizeDeadline` with
-  no settlement. Refunds the Budget and every Stake. A liveness fallback, documented as one.
+- `timeoutRefund(auctionId)` — anyone, from `Created`, `Bidding` or `Settling`, after
+  `finalizeDeadline` with no settlement. Refunds the Budget and every Stake. A liveness fallback,
+  documented as one.
 
 Three views, because the workflow holds no state of its own:
 

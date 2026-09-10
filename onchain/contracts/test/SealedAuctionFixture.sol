@@ -31,6 +31,14 @@ abstract contract SealedAuctionFixture is Test {
     bytes32 internal constant POLICY_HASH = keccak256("the policy");
     bytes32 internal constant ENCLAVE_PUBLIC_KEY = keccak256("the enclave x25519 public key");
 
+    /// The demo Payout: the winning Bid asked 440, and the price is paid first price.
+    uint256 internal constant PAYOUT = 440e6;
+
+    /// The three demo commitments, sorted ascending as unsigned 32-byte big-endian and hashed with
+    /// `abi.encodePacked`. Computed off chain with viem, so a mistake in the Solidity sort cannot
+    /// agree with itself. The cross-language fixture is ticket 19.
+    bytes32 internal constant DEMO_BIDS_ROOT = 0x4bab02b90a0348eb8ab4956b0e013ef1c3d7a4d77ad3c9253857dd8d0e561d1f;
+
     function setUp() public virtual {
         usdc = new MockUSDC();
         auction = new SealedAuctionHarness(usdc, BUYER);
@@ -110,5 +118,40 @@ abstract contract SealedAuctionFixture is Test {
             vm.prank(supplier(order[i]));
             auction.commit(auctionId, commitmentOf(order[i]));
         }
+    }
+
+    /// An auction with all three commitments in and `bidDeadline` reached.
+    function biddingClosedAuction() internal returns (bytes32 auctionId) {
+        auctionId = createDemoAuction();
+        commitInOrder(auctionId, 0, 1, 2);
+        vm.warp(auction.exposedAuction(auctionId).bidDeadline);
+    }
+
+    /// The same auction, claimed by the workflow and waiting for a settlement.
+    function claimedAuction() internal returns (bytes32 auctionId) {
+        auctionId = biddingClosedAuction();
+        auction.exposedStartSettling(auctionId);
+    }
+
+    function winningSettlement(bytes32 auctionId) internal pure returns (SealedAuction.Settlement memory) {
+        return settlementOf(auctionId, SUPPLIER_C, PAYOUT);
+    }
+
+    function noWinnerSettlement(bytes32 auctionId) internal pure returns (SealedAuction.Settlement memory) {
+        return settlementOf(auctionId, address(0), 0);
+    }
+
+    function settlementOf(bytes32 auctionId, address winner, uint256 payout)
+        internal
+        pure
+        returns (SealedAuction.Settlement memory)
+    {
+        return SealedAuction.Settlement({
+            auctionId: auctionId,
+            winner: winner,
+            payout: payout,
+            policyHash: POLICY_HASH,
+            bidsRoot: DEMO_BIDS_ROOT
+        });
     }
 }
