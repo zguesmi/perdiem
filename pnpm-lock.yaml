@@ -128,9 +128,6 @@ importers:
         specifier: workspace:*
         version: link:../packages/core
     devDependencies:
-      '@perdiem/tsconfig':
-        specifier: workspace:*
-        version: link:../packages/tsconfig
       '@types/node':
         specifier: ^22.20.1
         version: 22.20.1
@@ -178,9 +175,6 @@ importers:
         specifier: ^4.5.4
         version: 4.5.4
     devDependencies:
-      '@perdiem/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
       '@types/node':
         specifier: ^22.20.1
         version: 22.20.1
@@ -191,8 +185,6 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
-  packages/tsconfig: {}
-
   relay:
     dependencies:
       '@hono/node-server':
@@ -202,9 +194,6 @@ importers:
         specifier: ^4.13.7
         version: 4.13.7
     devDependencies:
-      '@perdiem/tsconfig':
-        specifier: workspace:*
-        version: link:../packages/tsconfig
       '@types/node':
         specifier: ^22.20.1
         version: 22.20.1
@@ -227,9 +216,6 @@ importers:
         specifier: ^4.13.7
         version: 4.13.7
     devDependencies:
-      '@perdiem/tsconfig':
-        specifier: workspace:*
-        version: link:../packages/tsconfig
       '@types/node':
         specifier: ^22.20.1
         version: 22.20.1
