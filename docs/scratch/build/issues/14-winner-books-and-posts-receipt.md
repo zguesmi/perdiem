@@ -13,9 +13,14 @@ Sandbox test guest data only. No real personal data anywhere in this repository.
 
 - [ ] The winning agent learns it won from the chain, not from local scoring.
 - [ ] It prebooks and books against the LiteAPI sandbox with the sandbox payment method.
-- [ ] `submitReceipt` posts `keccak256(bookingId)` before `deliverDeadline` and releases the Stake.
-- [ ] Silence past `deliverDeadline` lets any address slash the Stake to the buyer. One test states
+- [ ] `submitReceipt` posts `keccak256(bookingId)` before `receiptDeadline` and releases the Stake.
+- [ ] Silence past `receiptDeadline` lets any address slash the Stake to the buyer. One test states
       it.
 - [ ] Sandbox test guest data only. No real personal data anywhere in the repository.
 
 ## Comments
+
+## Dev review
+
+`deliverDeadline` is `receiptDeadline`, named after the call that meets it. `submitReceipt` emits
+`ReceiptPosted` and stores no receipt hash, because no on-chain rule reads it.

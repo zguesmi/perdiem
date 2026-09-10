@@ -31,14 +31,14 @@ What has to be true:
 - The TypeScript test asserts all four.
 - A Solidity test asserts the `bidHash`, the commitment and the Bids Root against the same strings.
   The Policy Hash has no Solidity side; the contract only compares what it was given.
-- The Bids Root case uses at least three commitments in a deliberately unsorted arrival order, so
+- The Bids Root case uses at least three commitments in a deliberately shuffled arrival order, so
   that the ascending-byte sort is exercised, and one case with no commitments, which is
   `bytes32(0)`.
 - Regenerating the fixture is a script, not a hand edit, and the script is what runs when `version`
   changes.
 
 The rule stated in `docs/spec.md` is exact on purpose:
-`bidsRoot = keccak256(abi.encodePacked(sorted))` over the 32-byte commitments ascending as unsigned
+`bidsRoot = keccak256(abi.encodePacked(commitments))` over the 32-byte commitments in arrival
 big-endian, and `bytes32(0)` for the empty set. `abi.encodePacked` and `abi.encode` differ here, and
 picking the wrong one passes every test written on one side alone.
 
@@ -46,7 +46,7 @@ picking the wrong one passes every test written on one side alone.
 
 - [ ] The fixture is in `packages/core`, is exported for TypeScript, and is readable as JSON from
       disk by the Solidity tests.
-- [ ] It carries a Policy, a Bid, a salt, at least three commitments in a deliberately unsorted
+- [ ] It carries a Policy, a Bid, a salt, at least three commitments in a deliberately shuffled
       arrival order, one empty set, and the four expected hex strings.
 - [ ] The TypeScript test asserts the Policy Hash, `bidHash`, the commitment and the Bids Root
       against the file.
@@ -56,3 +56,9 @@ picking the wrong one passes every test written on one side alone.
 - [ ] No side computes its own expected value.
 
 ## Comments
+
+## Dev review
+
+The bids root drops the sort: `keccak256(abi.encodePacked(commitments))` over the array in arrival
+order. The fixture case is a shuffled arrival order, and the two orders must produce two different
+roots.
