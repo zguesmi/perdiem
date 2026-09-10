@@ -4,7 +4,7 @@ pragma solidity ^0.8.34;
 import {SealedAuction} from "./SealedAuction.sol";
 import {SealedAuctionFixture} from "./test/SealedAuctionFixture.sol";
 
-/// Opening an auction: the buyer, the deadlines, the Budget and the identifier.
+/// Opening an auction and committing a Bid: the `Created` and `Bidding` half of the state machine.
 contract SealedAuctionCreationTest is SealedAuctionFixture {
     function test_createAuction_acceptsIncreasingDeadlines() public {
         bytes32 auctionId = createDemoAuction();
@@ -104,5 +104,65 @@ contract SealedAuctionCreationTest is SealedAuctionFixture {
 
         assertEq(createDemoAuction(), bytes32(uint256(1)));
         assertEq(createDemoAuction(), bytes32(uint256(2)));
+    }
+
+    function test_commit_movesCreatedToBiddingWithNoExtraTransaction() public {
+        bytes32 auctionId = createDemoAuction();
+
+        vm.prank(SUPPLIER_A);
+        auction.commit(auctionId, keccak256("A"));
+
+        assertEq(uint8(auction.exposedAuction(auctionId).state), uint8(SealedAuction.State.Bidding));
+    }
+
+    function test_commit_pullsTheStake() public {
+        bytes32 auctionId = createDemoAuction();
+
+        vm.prank(SUPPLIER_A);
+        auction.commit(auctionId, keccak256("A"));
+
+        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING - STAKE);
+        assertEq(usdc.balanceOf(address(auction)), BUDGET + STAKE);
+    }
+
+    /// `commitmentsOf` in ticket 20 has to be one read, so the commitments are an array per auction,
+    /// in arrival order.
+    function test_commit_storesCommitmentsAsAnArrayInArrivalOrder() public {
+        bytes32 auctionId = createDemoAuction();
+
+        vm.prank(SUPPLIER_C);
+        auction.commit(auctionId, keccak256("C"));
+        vm.prank(SUPPLIER_A);
+        auction.commit(auctionId, keccak256("A"));
+
+        bytes32[] memory commitments = auction.exposedCommitments(auctionId);
+        assertEq(commitments.length, 2);
+        assertEq(commitments[0], keccak256("C"));
+        assertEq(commitments[1], keccak256("A"));
+    }
+
+    function test_commit_rejectsASecondCommitFromTheSameAddress() public {
+        bytes32 auctionId = createDemoAuction();
+
+        vm.startPrank(SUPPLIER_A);
+        auction.commit(auctionId, keccak256("A"));
+        vm.expectRevert(SealedAuction.AlreadyCommitted.selector);
+        auction.commit(auctionId, keccak256("A again"));
+        vm.stopPrank();
+    }
+
+    function test_commit_rejectsACommitOnOrAfterTheBidDeadline() public {
+        bytes32 auctionId = createDemoAuction();
+        vm.warp(auction.exposedAuction(auctionId).bidDeadline);
+
+        vm.prank(SUPPLIER_A);
+        vm.expectRevert(SealedAuction.BiddingClosed.selector);
+        auction.commit(auctionId, keccak256("A"));
+    }
+
+    function test_commit_rejectsAnUnknownAuction() public {
+        vm.prank(SUPPLIER_A);
+        vm.expectRevert(SealedAuction.WrongState.selector);
+        auction.commit(bytes32(uint256(99)), keccak256("A"));
     }
 }
