@@ -8,10 +8,15 @@ had a function until now.
 
 Three views on `SealedAuction`, all specified in `docs/spec.md` under Functions:
 
-- `pendingSettlement() → bytes32` — the lowest `auctionId` in `Bidding` with
+- `pendingSettlement() → bytes32` — an `auctionId` in `Bidding` with
   `block.timestamp >= bidDeadline`, or `bytes32(0)` when there is none.
-- `commitmentsOf(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this set.
-- `auctionOf(auctionId) → Auction` — one call for the page and one for the workflow.
+- `commitmentsOf(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this array.
+  Shipped with ticket 04.
+- `auctions(auctionId) → Auction` — the public mapping's generated getter. Shipped with ticket 04.
+
+`auctionId` is the keccak256 of the auction record, so there is no counter to scan and no order to
+walk. `pendingSettlement` needs a list of open auction ids, written by `createAuction` and cleared
+on `Finalized` and `Timeout`. That list is this ticket's real work.
 
 What has to be true:
 
@@ -21,17 +26,21 @@ What has to be true:
 - It returns `bytes32(0)` before `bidDeadline`, even with commitments already in.
 - `commitmentsOf` returns the empty array for an unknown auction rather than reverting, because the
   Enclave's no-commitment path is a legitimate one that ends in a refund.
-- The scan is bounded. One buyer and a handful of auctions in the demo, so a loop from the lowest
-  unsettled id is fine, but it needs a written bound rather than an unbounded loop over all history.
+- The scan is bounded. It walks the open list, which shrinks on every terminal transition, and it
+  needs a written bound rather than an unbounded loop.
 
 ## Acceptance criteria
 
 - [ ] `pendingSettlement()` returns `bytes32(0)` when the only candidates are `Created`, `Settling`,
       `Finalized` or `Timeout`.
 - [ ] It returns `bytes32(0)` before `bidDeadline`, even with commitments already in.
-- [ ] It returns the lowest eligible `auctionId` when several qualify.
-- [ ] `commitmentsOf` returns the empty array for an unknown auction instead of reverting.
-- [ ] `auctionOf` returns every field the page and the workflow read, as listed in `docs/spec.md`.
+- [ ] It returns an eligible `auctionId` when several qualify, and every one of them in turn as each
+      is settled.
+- [x] `commitmentsOf` returns the empty array for an unknown auction instead of reverting.
+      Ticket 04.
+- [x] `auctions` returns every field the page and the workflow read, as listed in `docs/spec.md`.
+      Ticket 04.
+- [ ] The open list drops an auction on `Finalized` and on `Timeout`, and one test drives both.
 - [ ] The scan has a written bound, and one test drives more auctions than that bound.
 
 ## Comments

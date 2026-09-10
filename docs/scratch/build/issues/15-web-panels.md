@@ -18,6 +18,6 @@ The enclave panel tails the simulation log and must never show the preferences.
 - [ ] Bids show commitment hashes only until `Finalized`, then the full bids and their scores, so
       the audience sees why the cheapest lost.
 - [ ] The enclave panel never shows the preferences or the maximum price.
-- [ ] The page reads `auctionOf` and `commitmentsOf` and holds no auction state of its own.
+- [ ] The page reads `auctions` and `commitmentsOf` and holds no auction state of its own.
 
 ## Comments

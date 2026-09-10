@@ -10,9 +10,10 @@ the Stake, `_startSettling` claims the auction for the workflow, the settlement 
 `submitReceipt` releases the winner's Stake, `slash` pays it to the buyer, `timeoutRefund` is the
 escape hatch.
 
-`_startSettling` is internal. A workflow reaches it only through a kind `1` report to `onReport`,
-which is ticket 05. This ticket owns the transition and its guards; ticket 05 owns the dispatch and
-the forwarder check.
+`_startSettling` is internal. A workflow reaches it only through an action `1` report to `onReport`.
+The dispatch and the forwarder check were ticket 05's, and moved here during the dev review: the
+tests need the real entry rather than a harness. Ticket 05 keeps `supportsInterface`, the receiver
+template and the fixture assertions.
 
 The invariants to test: money out never exceeds money in; no payout unless the Policy Hash and the
 Bids Root both match; the buyer cannot withdraw between creation and settlement except through
@@ -57,7 +58,7 @@ Two things the ticket did not decide, decided here:
 The Solidity Bids Root asserts against a literal computed off chain with viem. That is not the
 cross-language parity test, which stays with ticket 19.
 
-## Review
+## Dev review
 
 Changed after review of the pull request:
 
