@@ -21,7 +21,11 @@ evidence in it. Check `git status` after adding, not before.
 - [ ] The fake handler runner is deleted, not left beside the real path.
 - [ ] The log greps clean for the Policy, the maximum price, the preference numbers, the enclave
       private key and any decrypted Bid.
-- [ ] The run claims the auction with a kind `1` report and writes a kind `2` settlement the
+- [ ] The run claims the auction with an action `1` report and writes an action `2` settlement the
       contract accepts, both in one execution.
 
 ## Comments
+
+## Dev review
+
+The report `kind` is an `action`. The run claims with action `1` and settles with action `2`.

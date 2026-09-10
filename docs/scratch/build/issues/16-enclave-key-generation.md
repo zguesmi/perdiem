@@ -23,3 +23,7 @@ exists, say so plainly in the README rather than claiming a property the code do
 - [ ] No sentence in the README or on the page claims secrecy from the buyer.
 
 ## Comments
+
+## Dev review
+
+Not reviewed yet.
