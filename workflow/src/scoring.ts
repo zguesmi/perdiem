@@ -23,7 +23,7 @@ export interface Bid {
   supplier: string;
   hotelId: string;
   stars: number;
-  distanceKm: number;
+  distanceMeters: number;
   price: number;
   refundable: boolean;
   breakfastIncluded: boolean;

@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-
-import { goldenPolicy } from "@perdiem/core";
+import { goldenPolicy, usdcMinorUnits } from "@perdiem/core";
 
 import { settle, type Bid } from "../src/scoring.ts";
 
@@ -9,10 +8,7 @@ import { settle, type Bid } from "../src/scoring.ts";
 // the second cheapest wins because the buyer's private preferences are worth more than the
 // difference in price. If this test ever goes green for a different winner, the demo is dead.
 //
-// Red until settle is implemented.
-//
-// Ticket 06 still owes this file two conversions: the Bid fixtures below carry whole USDC and
-// distanceKm, while the Policy and the Bid type both moved to USDC minor units and metres.
+// Red until settle is implemented. That is ticket 06.
 
 const policy = goldenPolicy;
 
@@ -21,8 +17,8 @@ const bids: Bid[] = [
     supplier: "0xa",
     hotelId: "hotel-a",
     stars: 3,
-    distanceKm: 0.5,
-    price: 330,
+    distanceMeters: 500,
+    price: usdcMinorUnits(330),
     refundable: true,
     breakfastIncluded: false,
     roomType: "double",
@@ -32,8 +28,8 @@ const bids: Bid[] = [
     supplier: "0xb",
     hotelId: "hotel-b",
     stars: 4,
-    distanceKm: 0.7,
-    price: 400,
+    distanceMeters: 700,
+    price: usdcMinorUnits(400),
     refundable: false,
     breakfastIncluded: false,
     roomType: "double",
@@ -43,8 +39,8 @@ const bids: Bid[] = [
     supplier: "0xc",
     hotelId: "hotel-c",
     stars: 4,
-    distanceKm: 1.0,
-    price: 440,
+    distanceMeters: 1000,
+    price: usdcMinorUnits(440),
     refundable: true,
     breakfastIncluded: true,
     roomType: "double",
@@ -56,7 +52,7 @@ test("the second cheapest bid wins", () => {
   const settlement = settle(policy, bids);
 
   assert.equal(settlement.winner, "0xc");
-  assert.equal(settlement.payout, 440);
+  assert.equal(settlement.payout, usdcMinorUnits(440));
 });
 
 test("the cheapest bid is ineligible because the trade-down discount is not deep enough", () => {
@@ -66,10 +62,22 @@ test("the cheapest bid is ineligible because the trade-down discount is not deep
   assert.notEqual(settlement.winner, "0xa");
 });
 
-test("no eligible bid means no winner and no payout", () => {
-  const overpriced = bids.map((bid) => ({ ...bid, price: 999 }));
+test("a bid over the maximum price is ineligible", () => {
+  const overpriced = bids.map((bid) => ({ ...bid, price: policy.maxPrice + 1 }));
 
   const settlement = settle(policy, overpriced);
+
+  assert.equal(settlement.winner, null);
+  assert.equal(settlement.payout, 0);
+});
+
+test("a bid outside the radius is ineligible", () => {
+  const tooFar = bids.map((bid) => ({
+    ...bid,
+    distanceMeters: policy.hardRequirements.radiusMeters + 1,
+  }));
+
+  const settlement = settle(policy, tooFar);
 
   assert.equal(settlement.winner, null);
   assert.equal(settlement.payout, 0);

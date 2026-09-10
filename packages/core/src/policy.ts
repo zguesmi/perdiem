@@ -18,7 +18,23 @@ const positiveInteger = integer.min(1);
 const stars = integer.min(1).max(5);
 
 /** ISO 8601 calendar date. A timestamp would carry a timezone the buyer never stated. */
-const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
+const calendarDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD")
+  // The shape check alone accepts 2026-02-30. That date reaches no hotel, the Policy Hash is
+  // already on chain by then, and the auction dies in timeoutRefund.
+  .refine((date) => new Date(`${date}T00:00:00Z`).toISOString().startsWith(date), {
+    message: "no such date in the calendar",
+  });
+
+/** Whole days between two calendar dates. Both are UTC midnight, so no hour is ever partial. */
+function nightsBetween(checkin: string, checkout: string): number {
+  const millisecondsPerDay = 86_400_000;
+  const from = Date.parse(`${checkin}T00:00:00Z`);
+  const to = Date.parse(`${checkout}T00:00:00Z`);
+
+  return (to - from) / millisecondsPerDay;
+}
 
 /** Microdegrees, so the coordinate stays an integer. */
 const locationSchema = z
@@ -77,13 +93,17 @@ export const policySchema = z
     preferences: preferencesSchema,
   })
   .strict()
+  // The two rules a field type cannot carry. `tradeDown.stars` gets no rule of its own, because
+  // docs/spec.md constrains it no further than a star rating.
   .refine(
     (policy) => policy.hardRequirements.checkout > policy.hardRequirements.checkin,
     "checkout must fall after checkin",
   )
   .refine(
-    (policy) => policy.tradeDown.stars < policy.hardRequirements.minStars,
-    "the trade-down star level must sit below minStars, or the rule does nothing",
+    (policy) =>
+      policy.nights ===
+      nightsBetween(policy.hardRequirements.checkin, policy.hardRequirements.checkout),
+    "nights must equal the number of nights between checkin and checkout",
   );
 
 export type Policy = z.infer<typeof policySchema>;

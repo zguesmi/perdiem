@@ -87,3 +87,20 @@ test("encodes a bare value, not only an object", () => {
 test("folds negative zero to zero", () => {
   assert.equal(canonicalJson(-0), "0");
 });
+
+test("rejects an array hole rather than emitting bytes no parser accepts", () => {
+  const sparse = [1, , 3];
+
+  assert.throws(() => canonicalJson(sparse), CanonicalJsonError);
+});
+
+test("names the field that carried a bad key", () => {
+  assert.throws(() => canonicalJson({ outer: { "bad\ud800": 1 } }), {
+    message: /outer\.bad/,
+  });
+});
+
+test("tells a non-finite number it is not finite, not that it needs converting", () => {
+  assert.throws(() => canonicalJson({ score: Number.NaN }), { message: /not a finite number/ });
+  assert.throws(() => canonicalJson({ score: Infinity }), { message: /not a finite number/ });
+});

@@ -23,7 +23,7 @@ Run from the repository root, after `pnpm install`.
 ```sh
 pnpm --filter @perdiem/core test              # tsx --test over test/**/*.test.ts
 pnpm --filter @perdiem/core typecheck         # tsc --noEmit
-pnpm --filter @perdiem/core build             # emits dist/, only workflow/ needs it
+pnpm --filter @perdiem/core build             # emits dist/ JavaScript, not the fixture JSON
 pnpm --filter @perdiem/core generate:fixture  # rewrites src/golden-policy.json
 ```
 
@@ -32,8 +32,9 @@ Nothing here is served or started; this package is a library.
 ## The golden fixture
 
 `src/golden-policy.json` holds the Policy from `docs/spec.md`, its canonical bytes and its Policy
-Hash. The requisition service and the enclave both assert against that file, so a divergence between
-the two encoders fails a test instead of an auction.
+Hash. `test/policy-hash.test.ts` reads the expected values from it. Once the requisition service and
+the enclave assert against the same file, a divergence between the two encoders fails a test instead
+of an auction.
 
 The file is generated. Change the schema or `goldenPolicy`, bump `version`, then run
 `generate:fixture`. Never edit the JSON by hand.

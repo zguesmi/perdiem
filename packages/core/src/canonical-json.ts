@@ -25,7 +25,19 @@ function encode(value: unknown, path: string[]): string {
   }
 
   if (Array.isArray(value)) {
-    const elements = value.map((element, index) => encode(element, [...path, String(index)]));
+    const elements: string[] = [];
+
+    // An index loop, not `map`. `map` skips a hole and leaves one in its result, and `join` then
+    // renders it as nothing, so `[1,,3]` would leave here as bytes no JSON parser accepts.
+    for (let index = 0; index < value.length; index += 1) {
+      const elementPath = [...path, String(index)];
+
+      if (!(index in value)) {
+        throw new CanonicalJsonError("an array hole is not representable", elementPath);
+      }
+
+      elements.push(encode(value[index], elementPath));
+    }
 
     return `[${elements.join(",")}]`;
   }
@@ -35,7 +47,11 @@ function encode(value: unknown, path: string[]): string {
     // comparator does. Code-point order differs, and the two orders hash to different bytes.
     const members = Object.keys(value)
       .sort()
-      .map((key) => `${encodeString(key, path)}:${encode(value[key], [...path, key])}`);
+      .map((key) => {
+        const keyPath = [...path, key];
+
+        return `${encodeString(key, keyPath)}:${encode(value[key], keyPath)}`;
+      });
 
     return `{${members.join(",")}}`;
   }
@@ -55,6 +71,11 @@ function encodeString(value: string, path: string[]): string {
 }
 
 function encodeNumber(value: number, path: string[]): string {
+  // Before the integer message, which would tell the caller to convert a NaN into minor units.
+  if (!Number.isFinite(value)) {
+    throw new CanonicalJsonError(`${value} is not a finite number`, path);
+  }
+
   // RFC 8785 formats numbers with ECMAScript `Number::toString`, which is exact for integers and
   // merely well defined for fractions. Well defined is not enough for a hand-written encoder, and
   // the enclave runtime is where a hand-written one is most likely to appear.
@@ -92,10 +113,6 @@ function describeUnsupported(value: unknown): string {
 
   if (value === undefined) {
     return "undefined is not representable, and dropping the key would change the hash in silence";
-  }
-
-  if (typeof value === "number") {
-    return `${value} is not a finite number`;
   }
 
   if (typeof value === "bigint") {
