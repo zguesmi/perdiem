@@ -111,7 +111,7 @@ importers:
     devDependencies:
       '@circle-fin/cli':
         specifier: ^1.0.0
-        version: 1.0.0(bufferutil@4.1.0)(typescript@6.0.3)
+        version: 1.0.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -142,6 +142,10 @@ importers:
         version: 6.0.3
 
   onchain:
+    dependencies:
+      '@openzeppelin/contracts':
+        specifier: ^5.6.1
+        version: 5.6.1
     devDependencies:
       '@nomicfoundation/hardhat-ignition':
         specifier: ^3.1.8
@@ -169,7 +173,7 @@ importers:
     dependencies:
       viem:
         specifier: ^2.56.3
-        version: 2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@4.5.4)
+        version: 2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@4.5.4)
       zod:
         specifier: ^4.5.4
         version: 4.5.4
@@ -795,6 +799,9 @@ packages:
   '@open-wallet-standard/core@1.2.4':
     resolution: {integrity: sha512-NikPf+TvFl9OB0vBs9VdGsrc6GVfM4w04KYJ0SgQCZBcIOGM0hR5MU1x+WIYQfNIqv9XPIfHxDZBRr2C3ZtKWw==}
     hasBin: true
+
+  '@openzeppelin/contracts@5.6.1':
+    resolution: {integrity: sha512-Ly6SlsVJ3mj+b18W3R8gNufB7dTICT105fJhodGAGgyC2oqnBAhqSiNDJ8V8DLY05cCz81GLI0CU5vNYA1EC/w==}
 
   '@oxc-project/types@0.148.0':
     resolution: {integrity: sha512-Nm4s/jB+4FpFsPhWGEC4h7rzksesmtnMXomo6rCMcg/b8zLQuOziRgkCS1fxDCXOlJB/6Q8oABOZ/OP6RIPj9A==}
@@ -2064,18 +2071,18 @@ snapshots:
 
   '@babel/runtime@7.29.7': {}
 
-  '@circle-fin/cli@1.0.0(bufferutil@4.1.0)(typescript@6.0.3)':
+  '@circle-fin/cli@1.0.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)':
     dependencies:
-      '@circle-fin/x402-batching': 3.0.4(@x402/core@2.11.0)(@x402/evm@2.11.0(bufferutil@4.1.0)(typescript@6.0.3))(viem@2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@3.25.67))
-      '@coral-xyz/anchor': 0.31.1(bufferutil@4.1.0)(typescript@6.0.3)
+      '@circle-fin/x402-batching': 3.0.4(@x402/core@2.11.0)(@x402/evm@2.11.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6))(viem@2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@3.25.67))
+      '@coral-xyz/anchor': 0.31.1(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       '@ethersproject/address': 5.8.0
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/units': 5.8.0
       '@noble/curves': 1.4.2
       '@noble/hashes': 1.7.1
-      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)
+      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       '@x402/core': 2.11.0
-      '@x402/evm': 2.11.0(bufferutil@4.1.0)(typescript@6.0.3)
+      '@x402/evm': 2.11.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       abitype: 1.1.0(typescript@6.0.3)(zod@3.25.67)
       bn.js: 5.2.3
       bs58: 6.0.0
@@ -2086,7 +2093,7 @@ snapshots:
       qrcode: 1.5.4
       rpc-websockets: 9.3.8
       semver: 7.7.4
-      viem: 2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@3.25.67)
+      viem: 2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@3.25.67)
       zod: 3.25.67
     optionalDependencies:
       '@open-wallet-standard/core': 1.2.4
@@ -2096,24 +2103,24 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@circle-fin/x402-batching@3.0.4(@x402/core@2.11.0)(@x402/evm@2.11.0(bufferutil@4.1.0)(typescript@6.0.3))(viem@2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@3.25.67))':
+  '@circle-fin/x402-batching@3.0.4(@x402/core@2.11.0)(@x402/evm@2.11.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6))(viem@2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@3.25.67))':
     dependencies:
       '@x402/core': 2.11.0
-      viem: 2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@3.25.67)
+      viem: 2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@3.25.67)
     optionalDependencies:
-      '@x402/evm': 2.11.0(bufferutil@4.1.0)(typescript@6.0.3)
+      '@x402/evm': 2.11.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
 
   '@colors/colors@1.5.0':
     optional: true
 
   '@coral-xyz/anchor-errors@0.31.1': {}
 
-  '@coral-xyz/anchor@0.31.1(bufferutil@4.1.0)(typescript@6.0.3)':
+  '@coral-xyz/anchor@0.31.1(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@coral-xyz/anchor-errors': 0.31.1
-      '@coral-xyz/borsh': 0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3))
+      '@coral-xyz/borsh': 0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6))
       '@noble/hashes': 1.8.0
-      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)
+      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       bn.js: 5.2.5
       bs58: 4.0.1
       buffer-layout: 1.2.2
@@ -2129,9 +2136,9 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3))':
+  '@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6))':
     dependencies:
-      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)
+      '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       bn.js: 5.2.5
       buffer-layout: 1.2.2
 
@@ -2605,6 +2612,8 @@ snapshots:
       '@open-wallet-standard/core-linux-x64-gnu': 1.2.4
     optional: true
 
+  '@openzeppelin/contracts@5.6.1': {}
+
   '@oxc-project/types@0.148.0': {}
 
   '@oxlint/binding-android-arm-eabi@1.81.0':
@@ -2764,7 +2773,7 @@ snapshots:
       commander: 14.0.3
       typescript: 6.0.3
 
-  '@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3)':
+  '@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@noble/curves': 1.9.1
@@ -2777,7 +2786,7 @@ snapshots:
       bs58: 4.0.1
       buffer: 6.0.3
       fast-stable-stringify: 1.0.0
-      jayson: 4.3.0(bufferutil@4.1.0)
+      jayson: 4.3.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       node-fetch: 2.7.0
       rpc-websockets: 9.3.8
       superstruct: 2.0.2
@@ -2842,10 +2851,10 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  '@x402/evm@2.11.0(bufferutil@4.1.0)(typescript@6.0.3)':
+  '@x402/evm@2.11.0(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)':
     dependencies:
       '@x402/core': 2.11.0
-      viem: 2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@3.25.76)
+      viem: 2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@3.25.76)
       zod: 3.25.76
     transitivePeerDependencies:
       - bufferutil
@@ -3153,23 +3162,19 @@ snapshots:
 
   is-safe-filename@0.1.1: {}
 
-  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.1.0)):
+  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
     dependencies:
-      ws: 7.5.13(bufferutil@4.1.0)
+      ws: 7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6)
 
-  isows@1.0.7(ws@8.18.2(bufferutil@4.1.0)):
+  isows@1.0.7(ws@8.18.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
     dependencies:
-      ws: 8.18.2(bufferutil@4.1.0)
+      ws: 8.18.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
 
   isows@1.0.7(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
     dependencies:
       ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
 
-  isows@1.0.7(ws@8.21.0(bufferutil@4.1.0)):
-    dependencies:
-      ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-
-  jayson@4.3.0(bufferutil@4.1.0):
+  jayson@4.3.0(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
       '@types/connect': 3.4.38
       '@types/node': 12.20.55
@@ -3178,11 +3183,11 @@ snapshots:
       delay: 5.0.0
       es6-promisify: 5.0.0
       eyes: 0.1.8
-      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.1.0))
+      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6))
       json-stringify-safe: 5.0.1
       stream-json: 1.9.1
       uuid: 8.3.2
-      ws: 7.5.13(bufferutil@4.1.0)
+      ws: 7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -3620,16 +3625,16 @@ snapshots:
 
   uuid@8.3.2: {}
 
-  viem@2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@3.25.67):
+  viem@2.31.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@3.25.67):
     dependencies:
       '@noble/curves': 1.9.2
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
       abitype: 1.0.8(typescript@6.0.3)(zod@3.25.67)
-      isows: 1.0.7(ws@8.18.2(bufferutil@4.1.0))
+      isows: 1.0.7(ws@8.18.2(bufferutil@4.1.0)(utf-8-validate@6.0.6))
       ox: 0.8.1(typescript@6.0.3)(zod@3.25.67)
-      ws: 8.18.2(bufferutil@4.1.0)
+      ws: 8.18.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     optionalDependencies:
       typescript: 6.0.3
     transitivePeerDependencies:
@@ -3654,31 +3659,14 @@ snapshots:
       - utf-8-validate
       - zod
 
-  viem@2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@3.25.76):
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
-      isows: 1.0.7(ws@8.21.0(bufferutil@4.1.0))
-      ox: 0.14.44(typescript@6.0.3)(zod@3.25.76)
-      ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-    optionalDependencies:
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-
-  viem@2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(zod@4.5.4):
+  viem@2.56.3(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)(zod@4.5.4):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
       abitype: 1.2.3(typescript@6.0.3)(zod@4.5.4)
-      isows: 1.0.7(ws@8.21.0(bufferutil@4.1.0))
+      isows: 1.0.7(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))
       ox: 0.14.44(typescript@6.0.3)(zod@4.5.4)
       ws: 8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     optionalDependencies:
@@ -3717,13 +3705,15 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
 
-  ws@7.5.13(bufferutil@4.1.0):
+  ws@7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     optionalDependencies:
       bufferutil: 4.1.0
+      utf-8-validate: 6.0.6
 
-  ws@8.18.2(bufferutil@4.1.0):
+  ws@8.18.2(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     optionalDependencies:
       bufferutil: 4.1.0
+      utf-8-validate: 6.0.6
 
   ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     optionalDependencies:

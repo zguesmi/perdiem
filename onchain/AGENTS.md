@@ -3,9 +3,8 @@
 ## Project layout
 
 ```
-contracts/        Solidity source files (*.sol) and unit tests (*.t.sol)
-contracts/test/   Solidity test scaffolding: mocks, fixtures, harnesses. Never imported by a source
-test/             TypeScript integration tests and Solidity unit tests (*.sol)
+contracts/        Solidity source files (*.sol).
+test/             Solidity unit tests (*.t.sol), their mocks, and TypeScript integration tests
 ignition/         Hardhat Ignition deployment modules
 scripts/          Standalone scripts run with `hardhat run`
 hardhat.config.ts
@@ -21,9 +20,7 @@ for toolbox-specific guidance (clients, contract interaction, assertions).
 
 ## Working in this repository
 
-Domain vocabulary is in the root `CONTEXT.md`. Contract naming follows it: Budget, Payout, Stake,
-Bid, Bid Commitment, Bids Root, Settlement. Escrow is the custody role this contract plays, not a
-separate contract.
+Domain vocabulary is in the root `CONTEXT.md`.
 
 `packages/core` owns canonical JSON, the policy hash, and EIP-712 hashing. Do not reimplement any of
 them in Solidity without a test that asserts both languages produce the same bytes.

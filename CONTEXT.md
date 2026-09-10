@@ -8,8 +8,8 @@ winner against a policy nobody else can read. The chain pays.
 
 ### Actors
 
-**Buyer**: The corporate travel desk that owns the Policy and the Budget. One per auction. _Avoid_:
-Desk, customer, client
+**Buyer**: The corporate travel desk that owns the Policy and the Payout Cap. One per auction.
+_Avoid_: Desk, customer, client
 
 **Supplier**: A party that submits one Bid and stakes USDC behind it. _Avoid_: Seller, vendor, hotel
 
@@ -49,8 +49,10 @@ the Bids Root. _Avoid_: Report, result, outcome
 
 ### Money
 
-**Budget**: The USDC the buyer locks when the auction is created. Deliberately padded above the
-maximum price, so the ceiling cannot be read off the chain. _Avoid_: Escrow amount, deposit, funds
+**Payout Cap**: The USDC the buyer locks when the auction is created. It bounds the Payout and
+nothing else. Deliberately padded above the maximum price, so the ceiling cannot be read off the
+chain, and named so that nobody reads it as the price the buyer will pay. _Avoid_: Budget, escrow
+amount, deposit, funds
 
 **Payout**: The USDC the winner receives. First price: exactly what the winning Bid asked for.
 _Avoid_: Amount, award, price paid
@@ -58,8 +60,8 @@ _Avoid_: Amount, award, price paid
 **Stake**: The USDC a supplier locks when committing a Bid. Refunded on losing, released on a
 Receipt, and paid to the buyer if the winner never delivers. _Avoid_: Bond, deposit, collateral
 
-**Escrow**: The custody role the `SealedAuction` contract plays while it holds the Budget and the
-Stakes. Not a separate contract.
+**Escrow**: The custody role the `SealedAuction` contract plays while it holds the Payout Cap and
+the Stakes. Not a separate contract.
 
 ### Scoring rules
 

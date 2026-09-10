@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
-import {IERC20} from "./IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title SealedAuction
-/// @notice One confidential booking auction. The contract plays the Escrow role: it holds the
-///         buyer's Budget and every supplier's Stake, and it pays only against a settlement whose
-///         Policy Hash and Bids Root match what was committed before bidding auction.
+/**
+ * @title SealedAuction
+ * @notice Confidential booking auctions. The contract plays the Escrow role: it holds each buyer's
+ * payout cap and every supplier's stake, and it pays only against a settlement whose policy hash and
+ * bids root match what was committed before bidding opened.
+ */
 contract SealedAuction {
+    using SafeERC20 for IERC20;
+
     enum State {
         None,
         Created,
@@ -17,8 +22,10 @@ contract SealedAuction {
         Timeout
     }
 
-    /// The subset of the Policy that is public. Emitted, never stored: suppliers read it from the
-    /// log, and no on-chain rule depends on it.
+    /**
+     * The subset of the policy that is public. Emitted, never stored: suppliers read it from the
+     * log, and no on-chain rule depends on it.
+     */
     struct PublicRequirements {
         string city;
         string checkin;
@@ -33,7 +40,13 @@ contract SealedAuction {
         uint8 tradeDownStars;
     }
 
-    /// What the Enclave reports. The only thing that leaves it.
+    /**
+     * What the enclave reports. The only thing that leaves it.
+     *
+     * `policyHash` and `bidsRoot` are the enclave's claim about what it scored. The contract holds
+     * both values already and rejects the settlement when either disagrees, so an enclave that
+     * loaded the wrong policy secret, or scored a subset of the commitments, cannot pay anyone.
+     */
     struct Settlement {
         bytes32 auctionId;
         address winner;
@@ -42,195 +55,368 @@ contract SealedAuction {
         bytes32 bidsRoot;
     }
 
+    /**
+     * The auction record. Its keccak256 is the `auctionId`, so every field below is fixed at
+     * creation time and the identifier commits to all of them. `winner`, `payout`, `stakeReleased`
+     * and `stakeSlashed` are zero when the hash is taken and are written afterwards.
+     */
     struct Auction {
         State state;
         address buyer;
+        uint64 createdAt;
         uint64 bidDeadline;
         uint64 finalizeDeadline;
-        uint64 deliverDeadline;
-        uint64 createdBlock;
+        uint64 receiptDeadline;
         bytes32 policyHash;
-        bytes32 enclavePublicKey;
-        uint256 budget;
+        uint256 payoutCap;
         address winner;
         uint256 payout;
-        bytes32 receiptHash;
         bool stakeReleased;
         bool stakeSlashed;
     }
 
-    /// @notice USDC a supplier locks when committing a Bid. Six decimals, verified on chain in row
-    ///         V5 of `docs/decisions.md`.
-    uint256 public constant STAKE = 50e6;
+    /// USDC a supplier locks when committing a bid.
+    uint256 public constant SUPPLIER_STAKE = 50e6;
+
+    /// Commitments per auction. Settlement and every refund walk the array, so it stays bounded.
+    uint256 public constant MAX_BIDS = 5;
+
+    /// How long after creation a supplier may commit and seal a bid.
+    uint64 public constant BID_PERIOD = 2 hours;
+
+    /// How long after creation a settlement may land before anyone can refund the auction.
+    uint64 public constant FINALIZE_PERIOD = 4 hours;
+
+    /// How long after creation the winner may post a booking receipt.
+    uint64 public constant RECEIPT_PERIOD = 6 hours;
+
+    /// A claim report, which moves an auction from `Bidding` to `Settling`.
+    uint8 private constant ACTION_CLAIM = 1;
+
+    /// A settlement report, which finalizes an auction.
+    uint8 private constant ACTION_SETTLE = 2;
 
     IERC20 public immutable usdc;
 
-    /// @notice The single buyer. One buyer per deployment is a stated non-goal of the demo.
-    address public immutable buyer;
+    /// The only address `onReport` accepts a report from.
+    address public immutable forwarder;
 
-    uint256 internal _auctionCount;
+    /// The X25519 public half suppliers seal their bids to. One key per deployment.
+    bytes32 public immutable enclavePublicKey;
 
-    mapping(bytes32 => Auction) internal _auctions;
+    mapping(bytes32 => Auction) public auctions;
+
+    /// The workflow and the relay read all three through the getters below.
     mapping(bytes32 => bytes32[]) internal _commitments;
-    mapping(bytes32 => mapping(address => bool)) internal _hasCommitted;
     mapping(bytes32 => address[]) internal _committers;
+    mapping(bytes32 => mapping(address => bool)) internal _hasCommitted;
 
     event AuctionCreated(
         bytes32 indexed auctionId,
         address indexed buyer,
-        bytes32 policyHash,
-        bytes32 enclavePublicKey,
+        uint64 createdAt,
         uint64 bidDeadline,
         uint64 finalizeDeadline,
-        uint64 deliverDeadline,
-        uint256 budget,
-        PublicRequirements requirements
+        uint64 receiptDeadline
     );
-
+    event TermsPublished(bytes32 indexed auctionId, uint256 payoutCap, PublicRequirements requirements);
     event Committed(bytes32 indexed auctionId, address indexed supplier, bytes32 commitment);
     event AuctionClaimed(bytes32 indexed auctionId);
     event AuctionFinalized(bytes32 indexed auctionId, address indexed winner, uint256 payout);
     event AuctionTimedOut(bytes32 indexed auctionId);
+    event ReceiptPosted(bytes32 indexed auctionId, address indexed winner, bytes32 receiptHash);
+    event StakeSlashed(bytes32 indexed auctionId, address indexed winner, address indexed buyer);
 
-    /// @notice Thrown when the three deadlines are not strictly increasing from now.
-    error DeadlinesOutOfOrder();
-    error NotBuyer();
-    error WrongState();
+    error AuctionAlreadyExists();
+    error BadState();
     error BiddingClosed();
     error AlreadyCommitted();
+    error BidLimitReached();
+    error NotForwarder();
+    error UnknownReportAction();
     error BiddingNotClosed();
     error TooEarly();
     error PolicyHashMismatch();
     error BidsRootMismatch();
-    error PayoutAboveBudget();
+    error PayoutAboveCap();
     error PayoutWithoutWinner();
     error WinnerWithoutPayout();
     error WinnerNeverCommitted();
-    error TransferFailed();
+    error NotWinner();
+    error DeliveryClosed();
+    error StakeAlreadySettled();
 
-    constructor(IERC20 usdc_, address buyer_) {
-        usdc = usdc_;
-        buyer = buyer_;
+    modifier onlyForwarder() {
+        if (msg.sender != forwarder) {
+            revert NotForwarder();
+        }
+        _;
     }
 
-    /// @notice Opens an auction and pulls the Budget from the buyer in the same call.
-    /// @param policyHash       keccak256 of the canonically encoded Policy, committed before any Bid
-    ///                         exists.
-    /// @param requirements     The Public Requirements, emitted for suppliers to bid against.
-    /// @param enclavePublicKey The X25519 public half suppliers seal their Bids to.
-    /// @param bidDeadline      Last moment a supplier may commit and seal a bid.
-    /// @param finalizeDeadline Last moment the settlement may land before anyone can refund.
-    /// @param deliverDeadline  Last moment the winner may post a booking receipt.
-    /// @param budget           USDC the buyer locks. Padded above the policy's maximum price, so the
-    ///                         ceiling is not readable from the chain.
-    /// @return auctionId       Identifier of the auction that was auction.
-    function createAuction(
-        bytes32 policyHash,
-        PublicRequirements calldata requirements,
-        bytes32 enclavePublicKey,
-        uint64 bidDeadline,
-        uint64 finalizeDeadline,
-        uint64 deliverDeadline,
-        uint256 budget
-    ) external returns (bytes32 auctionId) {
-        if (msg.sender != buyer) revert NotBuyer();
-        if (!(block.timestamp < bidDeadline && bidDeadline < finalizeDeadline && finalizeDeadline < deliverDeadline)) {
-            revert DeadlinesOutOfOrder();
+    constructor(IERC20 usdc_, address forwarder_, bytes32 enclavePublicKey_) {
+        usdc = usdc_;
+        forwarder = forwarder_;
+        enclavePublicKey = enclavePublicKey_;
+    }
+
+    /**
+     * @notice Opens an auction and pulls the payout cap from the caller in the same call.
+     * @param policyHash keccak256 of the canonically encoded policy, committed before any bid
+     * exists.
+     * @param requirements The public requirements, emitted for suppliers to bid against.
+     * @param payoutCap USDC the buyer locks. It bounds the payout and nothing else, and it sits
+     * above the policy's maximum price so that the ceiling is not readable from the chain.
+     * @return auctionId keccak256 of the auction record, so the identifier commits to the policy
+     * hash, the buyer, the cap and the deadlines.
+     */
+    function createAuction(bytes32 policyHash, PublicRequirements calldata requirements, uint256 payoutCap)
+        external
+        returns (bytes32 auctionId)
+    {
+        uint64 createdAt = uint64(block.timestamp);
+        Auction memory opened = Auction({
+            state: State.Created,
+            buyer: msg.sender,
+            createdAt: createdAt,
+            bidDeadline: createdAt + BID_PERIOD,
+            finalizeDeadline: createdAt + FINALIZE_PERIOD,
+            receiptDeadline: createdAt + RECEIPT_PERIOD,
+            policyHash: policyHash,
+            payoutCap: payoutCap,
+            winner: address(0),
+            payout: 0,
+            stakeReleased: false,
+            stakeSlashed: false
+        });
+
+        auctionId = keccak256(abi.encode(opened));
+        if (auctions[auctionId].state != State.None) {
+            revert AuctionAlreadyExists();
         }
+        auctions[auctionId] = opened;
 
-        auctionId = bytes32(++_auctionCount);
-
-        Auction storage auction = _auctions[auctionId];
-        auction.state = State.Created;
-        auction.buyer = msg.sender;
-        auction.bidDeadline = bidDeadline;
-        auction.finalizeDeadline = finalizeDeadline;
-        auction.deliverDeadline = deliverDeadline;
-        auction.createdBlock = uint64(block.number);
-        auction.policyHash = policyHash;
-        auction.enclavePublicKey = enclavePublicKey;
-        auction.budget = budget;
-
-        _pull(msg.sender, budget);
+        usdc.safeTransferFrom(msg.sender, address(this), payoutCap);
 
         emit AuctionCreated(
-            auctionId,
-            msg.sender,
-            policyHash,
-            enclavePublicKey,
-            bidDeadline,
-            finalizeDeadline,
-            deliverDeadline,
-            budget,
-            requirements
+            auctionId, msg.sender, createdAt, opened.bidDeadline, opened.finalizeDeadline, opened.receiptDeadline
         );
+        emit TermsPublished(auctionId, payoutCap, requirements);
     }
 
-    /// @notice Binds one Bid on chain and pulls the Stake. Once per address, before `bidDeadline`.
-    /// @dev The first commit opens bidding, so no separate transaction moves `Created → Bidding`.
+    /**
+     * @notice Binds one bid on chain and pulls the stake. Once per address, before `bidDeadline`.
+     * @dev The first commit opens bidding, so no separate transaction moves `Created` to `Bidding`.
+     */
     function commit(bytes32 auctionId, bytes32 commitment) external {
-        Auction storage auction = _auctions[auctionId];
-        if (auction.state != State.Created && auction.state != State.Bidding) revert WrongState();
-        if (block.timestamp >= auction.bidDeadline) revert BiddingClosed();
-        if (_hasCommitted[auctionId][msg.sender]) revert AlreadyCommitted();
+        Auction storage auction = auctions[auctionId];
+        if (auction.state != State.Created && auction.state != State.Bidding) {
+            revert BadState();
+        }
+        if (block.timestamp >= auction.bidDeadline) {
+            revert BiddingClosed();
+        }
+        if (_hasCommitted[auctionId][msg.sender]) {
+            revert AlreadyCommitted();
+        }
+        if (_commitments[auctionId].length == MAX_BIDS) {
+            revert BidLimitReached();
+        }
 
         _hasCommitted[auctionId][msg.sender] = true;
         _commitments[auctionId].push(commitment);
         _committers[auctionId].push(msg.sender);
-        if (auction.state == State.Created) auction.state = State.Bidding;
+        if (auction.state == State.Created) {
+            auction.state = State.Bidding;
+        }
 
-        _pull(msg.sender, STAKE);
+        usdc.safeTransferFrom(msg.sender, address(this), SUPPLIER_STAKE);
 
         emit Committed(auctionId, msg.sender, commitment);
     }
 
-    /// @notice Refunds the Budget and every Stake once `finalizeDeadline` has passed with no
-    ///         settlement. Anyone may call it. A liveness fallback, and only that.
-    /// @dev `Created` is refundable too. Without it the Budget of an auction nobody bid on is stuck
-    ///      forever, and row five of "Every USDC in and out" in `docs/spec.md` never returns.
-    function timeoutRefund(bytes32 auctionId) external {
-        Auction storage auction = _auctions[auctionId];
-        if (auction.state != State.Created && auction.state != State.Bidding && auction.state != State.Settling) {
-            revert WrongState();
+    /**
+     * @notice The only entry a workflow has. Takes a report from the forwarder and dispatches on its
+     * action: `1` claims an auction, `2` settles one.
+     * @dev Nothing is read from `metadata`. `report` is `abi.encode(uint8 action, bytes payload)`;
+     * the claim payload is `abi.encode(bytes32 auctionId)` and the settlement payload is
+     * `abi.encode(Settlement)`.
+     */
+    function onReport(bytes calldata, bytes calldata report) external onlyForwarder {
+        (uint8 action, bytes memory payload) = abi.decode(report, (uint8, bytes));
+        if (action == ACTION_CLAIM) {
+            _startSettling(abi.decode(payload, (bytes32)));
+        } else if (action == ACTION_SETTLE) {
+            _settle(abi.decode(payload, (Settlement)));
+        } else {
+            revert UnknownReportAction();
         }
-        if (block.timestamp < auction.finalizeDeadline) revert TooEarly();
+    }
+
+    /**
+     * @notice Releases the winner's stake against a booking receipt, the keccak256 of the booking
+     * id. The winner only, before `receiptDeadline`.
+     */
+    function submitReceipt(bytes32 auctionId, bytes32 receiptHash) external {
+        Auction storage auction = auctions[auctionId];
+        if (auction.state != State.Finalized) {
+            revert BadState();
+        }
+        if (msg.sender != auction.winner || auction.winner == address(0)) {
+            revert NotWinner();
+        }
+        if (block.timestamp >= auction.receiptDeadline) {
+            revert DeliveryClosed();
+        }
+        if (auction.stakeReleased || auction.stakeSlashed) {
+            revert StakeAlreadySettled();
+        }
+
+        auction.stakeReleased = true;
+
+        usdc.safeTransfer(auction.winner, SUPPLIER_STAKE);
+
+        emit ReceiptPosted(auctionId, auction.winner, receiptHash);
+    }
+
+    /**
+     * @notice Pays the winner's stake to the buyer once `receiptDeadline` has passed with no
+     * receipt. Anyone may call it.
+     */
+    function slash(bytes32 auctionId) external {
+        Auction storage auction = auctions[auctionId];
+        if (auction.state != State.Finalized) {
+            revert BadState();
+        }
+        if (auction.winner == address(0)) {
+            revert NotWinner();
+        }
+        if (block.timestamp < auction.receiptDeadline) {
+            revert TooEarly();
+        }
+        if (auction.stakeReleased || auction.stakeSlashed) {
+            revert StakeAlreadySettled();
+        }
+
+        auction.stakeSlashed = true;
+
+        usdc.safeTransfer(auction.buyer, SUPPLIER_STAKE);
+
+        emit StakeSlashed(auctionId, auction.winner, auction.buyer);
+    }
+
+    /**
+     * @notice Refunds the locked USDC and every stake once `finalizeDeadline` has passed with no
+     * settlement. Anyone may call it. A liveness fallback, and only that.
+     * @dev Any live state refunds, `Created` included. Without it the USDC of an auction nobody bid
+     * on is stuck forever.
+     */
+    function timeoutRefund(bytes32 auctionId) external {
+        Auction storage auction = auctions[auctionId];
+        if (auction.state == State.None || auction.state == State.Finalized || auction.state == State.Timeout) {
+            revert BadState();
+        }
+        if (block.timestamp < auction.finalizeDeadline) {
+            revert TooEarly();
+        }
 
         auction.state = State.Timeout;
 
-        _push(auction.buyer, auction.budget);
+        usdc.safeTransfer(auction.buyer, auction.payoutCap);
         _refundStakes(auctionId, address(0));
 
         emit AuctionTimedOut(auctionId);
     }
 
-    /// @notice Claims the auction for the workflow, so that the demo can tell "the workflow never
-    ///         ran" from "the workflow ran and its settlement was rejected".
-    /// @dev Internal: a workflow reaches it only through a kind `1` report to `onReport`.
+    /**
+     * @notice Every bid commitment placed on an auction, in arrival order.
+     * @dev The mapping is internal because a generated array getter reads one element and reports
+     * no length, and the workflow needs the whole array to rebuild the bids root.
+     */
+    function commitments(bytes32 auctionId) external view returns (bytes32[] memory) {
+        return _commitments[auctionId];
+    }
+
+    /// @notice Every supplier that committed to an auction, in the same order as `commitments`.
+    function committers(bytes32 auctionId) external view returns (address[] memory) {
+        return _committers[auctionId];
+    }
+
+    /// @notice Whether one supplier already committed to an auction.
+    function hasCommitted(bytes32 auctionId, address supplier) external view returns (bool) {
+        return _hasCommitted[auctionId][supplier];
+    }
+
+    /**
+     * @notice The bid commitment one supplier placed, or `bytes32(0)` when it never committed.
+     * @dev A linear walk over at most `MAX_BIDS` entries, so no second mapping is stored.
+     */
+    function commitmentOf(bytes32 auctionId, address supplier) external view returns (bytes32) {
+        address[] storage stakers = _committers[auctionId];
+        for (uint256 i = 0; i < stakers.length; i++) {
+            if (stakers[i] == supplier) {
+                return _commitments[auctionId][i];
+            }
+        }
+        return bytes32(0);
+    }
+
+    /**
+     * @notice The bids root the enclave builds, recomputed here. One byte of difference rejects a
+     * correct settlement, so the construction is exact: every commitment for the auction, in
+     * arrival order, hashed with `abi.encodePacked`.
+     */
+    function bidsRoot(bytes32 auctionId) public view returns (bytes32) {
+        bytes32[] storage stored = _commitments[auctionId];
+        if (stored.length == 0) {
+            return bytes32(0);
+        }
+        return keccak256(abi.encodePacked(stored));
+    }
+
+    /**
+     * @notice Claims the auction for the workflow, so that a stalled run can be told from a run
+     * whose settlement was rejected.
+     */
     function _startSettling(bytes32 auctionId) internal {
-        Auction storage auction = _auctions[auctionId];
-        if (auction.state != State.Bidding) revert WrongState();
-        if (block.timestamp < auction.bidDeadline) revert BiddingNotClosed();
+        Auction storage auction = auctions[auctionId];
+        if (auction.state != State.Bidding) {
+            revert BadState();
+        }
+        if (block.timestamp < auction.bidDeadline) {
+            revert BiddingNotClosed();
+        }
 
         auction.state = State.Settling;
 
         emit AuctionClaimed(auctionId);
     }
 
-    /// @notice Pays the winner, refunds the buyer and refunds the losing Stakes.
-    /// @dev Internal: a workflow reaches it only through a kind `2` report to `onReport`.
-    function _settle(Settlement calldata settlement) internal {
-        Auction storage auction = _auctions[settlement.auctionId];
-        if (auction.state != State.Settling) revert WrongState();
-        if (settlement.policyHash != auction.policyHash) revert PolicyHashMismatch();
-        if (settlement.bidsRoot != _bidsRoot(settlement.auctionId)) revert BidsRootMismatch();
-        if (settlement.payout > auction.budget) revert PayoutAboveBudget();
+    /// @notice Pays the winner, refunds the buyer and refunds the losing stakes.
+    function _settle(Settlement memory settlement) internal {
+        Auction storage auction = auctions[settlement.auctionId];
+        if (auction.state != State.Settling) {
+            revert BadState();
+        }
+        if (settlement.policyHash != auction.policyHash) {
+            revert PolicyHashMismatch();
+        }
+        if (settlement.bidsRoot != bidsRoot(settlement.auctionId)) {
+            revert BidsRootMismatch();
+        }
+        if (settlement.payout > auction.payoutCap) {
+            revert PayoutAboveCap();
+        }
         if (settlement.winner == address(0)) {
-            if (settlement.payout != 0) revert PayoutWithoutWinner();
+            if (settlement.payout != 0) {
+                revert PayoutWithoutWinner();
+            }
         } else if (!_hasCommitted[settlement.auctionId][settlement.winner]) {
             revert WinnerNeverCommitted();
         } else if (settlement.payout == 0) {
-            // `payout` is the winning Bid's price. A named winner paid nothing would have its Stake
-            // held against a delivery nobody bought.
+            // The payout is the winning bid's price, and no bid asks zero. A settlement that names
+            // a winner and pays it nothing is therefore a bug upstream, and accepting it would keep
+            // that supplier's stake locked until it delivers a booking nobody paid for, or until
+            // the receipt deadline passes and the stake is slashed.
             revert WinnerWithoutPayout();
         }
 
@@ -238,53 +424,22 @@ contract SealedAuction {
         auction.winner = settlement.winner;
         auction.payout = settlement.payout;
 
-        _push(settlement.winner, settlement.payout);
-        _push(auction.buyer, auction.budget - settlement.payout);
+        if (settlement.winner != address(0)) {
+            usdc.safeTransfer(settlement.winner, settlement.payout);
+        }
+        usdc.safeTransfer(auction.buyer, auction.payoutCap - settlement.payout);
         _refundStakes(settlement.auctionId, settlement.winner);
 
         emit AuctionFinalized(settlement.auctionId, settlement.winner, settlement.payout);
     }
 
-    /// The Bids Root the Enclave builds, recomputed here. One byte of difference rejects a correct
-    /// settlement, so the construction is exact: every commitment for the auction, sorted ascending
-    /// as unsigned 32-byte big-endian, hashed with `abi.encodePacked`.
-    function _bidsRoot(bytes32 auctionId) internal view returns (bytes32) {
-        bytes32[] storage stored = _commitments[auctionId];
-        uint256 length = stored.length;
-        if (length == 0) return bytes32(0);
-
-        bytes32[] memory sorted = new bytes32[](length);
-        for (uint256 i = 0; i < length; i++) {
-            sorted[i] = stored[i];
-        }
-        // Insertion sort. `commit` is once per address, so the demo sorts three items.
-        for (uint256 i = 1; i < length; i++) {
-            bytes32 value = sorted[i];
-            uint256 j = i;
-            while (j > 0 && uint256(sorted[j - 1]) > uint256(value)) {
-                sorted[j] = sorted[j - 1];
-                j--;
-            }
-            sorted[j] = value;
-        }
-
-        return keccak256(abi.encodePacked(sorted));
-    }
-
-    /// The winner's Stake stays in the escrow until a Receipt releases it or a slash pays it out.
+    /// The winner's stake stays in the escrow until a receipt releases it or a slash pays it out.
     function _refundStakes(bytes32 auctionId, address winner) internal {
-        address[] storage committers = _committers[auctionId];
-        for (uint256 i = 0; i < committers.length; i++) {
-            if (committers[i] != winner) _push(committers[i], STAKE);
+        address[] storage stakers = _committers[auctionId];
+        for (uint256 i = 0; i < stakers.length; i++) {
+            if (stakers[i] != winner) {
+                usdc.safeTransfer(stakers[i], SUPPLIER_STAKE);
+            }
         }
-    }
-
-    function _pull(address from, uint256 amount) internal {
-        if (!usdc.transferFrom(from, address(this), amount)) revert TransferFailed();
-    }
-
-    function _push(address to, uint256 amount) internal {
-        if (amount == 0) return;
-        if (!usdc.transfer(to, amount)) revert TransferFailed();
     }
 }
