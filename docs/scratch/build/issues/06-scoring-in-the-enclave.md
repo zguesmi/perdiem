@@ -24,7 +24,7 @@ not a decrypted bid. Grep the logs before committing any evidence.
       alone.
 - [ ] Ties break on lower price, then on lower supplier address. One test each.
 - [ ] No eligible bid returns no winner and a payout of zero.
-- [ ] The rule is not exported from `packages/core`, per `docs/adr/0002-scoring-is-not-shared.md`.
+- [ ] The rule does not live in `shared/`, per `docs/adr/0002-scoring-is-not-shared.md`.
 - [ ] The test output greps clean for the Policy, the maximum price, the preference numbers and any
       decrypted bid.
 

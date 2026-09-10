@@ -22,7 +22,7 @@ Inside `onchain/`, Hardhat's own commands work directly, and let you pick one ki
 npx hardhat compile
 npx hardhat test
 npx hardhat test solidity   # contracts/*.t.sol
-npx hardhat test nodejs     # test/*.ts, which need @perdiem/core
+npx hardhat test nodejs     # test/*.ts
 ```
 
 ## What is here

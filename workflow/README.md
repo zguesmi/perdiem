@@ -18,12 +18,12 @@ private key and every decrypted bid stay inside it, and none of them are ever lo
 
 ## Why this package is outside the pnpm workspace
 
-`cre init --template=hello-confidential-workflows-ts` generates and regenerates this package's
-`package.json`. A workspace member it does not know about is a member it will overwrite. So this
-package installs on its own and reaches the shared code through a `file:` dependency:
+`cre init` generates and regenerates this package's `package.json`. A workspace member it does not
+know about is a member it will overwrite. So this package installs on its own, and it reaches the
+shared code through a relative import rather than a dependency entry the CLI could drop:
 
-```json
-"dependencies": { "@perdiem/core": "file:../packages/core" }
+```ts
+import type { Policy } from "../../shared/policy.ts";
 ```
 
 It also carries its own `pnpm-workspace.yaml`, which stops pnpm walking up to the repository root.
@@ -34,9 +34,10 @@ pnpm --dir workflow install
 pnpm --dir workflow test
 ```
 
-If the CRE CLI ever drops that line, the hashing tests fail loudly rather than the demo failing
-quietly at settlement. Adding this package to the workspace is worth revisiting once the CLI's
-behaviour is verified.
+One requirement survives the CLI regenerating `tsconfig.json`: it must set
+`allowImportingTsExtensions`. Without it the typecheck the CLI runs before compiling rejects every
+`.ts` import path in `shared/`, with
+`An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled`.
 
 ## Commands
 
@@ -48,9 +49,8 @@ pnpm --dir workflow test        # tsx --test over test/**/*.test.ts
 pnpm --dir workflow typecheck   # tsc --noEmit
 ```
 
-There is no build script, and no `cre` command yet: the CRE CLI is not installed and Confidential
-Workflows is in private beta. Once it is generated, the simulation run that produces the evidence in
-`docs/evidence/` is:
+There is no build script yet, because the CRE scaffolding is not generated. Once it is, the
+simulation run that produces the evidence in `docs/evidence/` is:
 
 ```sh
 cre workflow simulate
@@ -58,8 +58,8 @@ cre workflow simulate
 
 ## Status
 
-The CRE scaffolding is not generated yet: the CLI is not installed, and Confidential Workflows is in
-private beta. What is here is the scoring rule, stubbed, and the demo table as a red test.
+The CRE scaffolding is not generated yet, and Confidential Workflows is in private beta. What is
+here is the scoring rule, stubbed, and the demo table as a red test.
 
 Evidence rule: a fake runner may execute the handler while it is being built. Only
 `cre workflow simulate` produces the logs in `docs/evidence/`.

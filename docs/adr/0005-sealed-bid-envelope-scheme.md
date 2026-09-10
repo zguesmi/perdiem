@@ -63,8 +63,8 @@ The cost: one more key type in the demo, and a public key that has to travel in 
 
 ## Consequences
 
-- Sealing and opening are one function each in `packages/core`, with a golden fixture both sides
-  assert against, like the canonical encoder.
+- Sealing and opening are one function each in `shared/`, with a reference fixture both sides assert
+  against, like the canonical encoder.
 - `auctionId` inside `info` means an agent cannot seal one bid and post it to two auctions.
 - The enclave cannot generate its own keypair: it has no randomness, and a Vault DON secret must
   exist before the run that reads it. `requisition/` generates the pair, so the buyer can decrypt
