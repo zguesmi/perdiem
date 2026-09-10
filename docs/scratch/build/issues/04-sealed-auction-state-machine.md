@@ -24,7 +24,7 @@ escrow in the demo, a 750 Payout Cap and three 50 Stakes. Each of the five termi
 exactly that. Asserting the invariant as a sentence is not the same as asserting it as five numbers.
 
 `pendingSettlement` is ticket 20, not this one, but the storage this ticket chooses decides whether
-they are cheap. `commitmentsOf` needs the commitments as an array, so a mapping alone is not enough.
+they are cheap. The workflow needs the commitments as an array, so a mapping alone is not enough.
 
 Blocked on the USDC decimals, because every figure in the tests depends on them.
 
@@ -40,7 +40,7 @@ Blocked on the USDC decimals, because every figure in the tests depends on them.
 - [x] `timeoutRefund` before `finalizeDeadline` reverts.
 - [x] The deadlines are contract constants, so no caller can order them wrong. Two auctions with
       identical terms in one block revert instead.
-- [x] Commitments are stored per auction as an array, so `commitmentsOf` in ticket 20 is one read.
+- [x] Commitments are stored per auction as an array, so reading them is one call.
 
 ## Comments
 
@@ -95,7 +95,9 @@ Second round:
 - `MAX_BIDS` caps an auction at 5 commitments. Settlement and every refund walk the array, so an
   unbounded array is an auction nobody can finalize.
 - `commitments`, `committers` and `hasCommitted` are public, because the relay and the workflow read
-  them. `commitmentsOf` stays: the generated getter reads one element and reports no length.
+  them through hand-written getters, so all three mappings are internal. A generated array getter
+  takes an index, returns one element and reports no length. `commitments` and `committers` return
+  the arrays, `commitmentOf` returns one supplier's commitment, `hasCommitted` answers yes or no.
 - The bids root drops the sort. The array carries the arrival order and both sides hash it as it
   stands.
 - `onlyForwarder` is a modifier.

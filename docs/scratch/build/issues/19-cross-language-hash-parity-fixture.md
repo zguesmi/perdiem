@@ -56,3 +56,9 @@ picking the wrong one passes every test written on one side alone.
 - [ ] No side computes its own expected value.
 
 ## Comments
+
+## Dev review
+
+The bids root drops the sort: `keccak256(abi.encodePacked(commitments))` over the array in arrival
+order. The fixture case is a shuffled arrival order, and the two orders must produce two different
+roots.

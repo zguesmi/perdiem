@@ -65,3 +65,12 @@ simulation, per row V1.
       workflow produced rather than one the test built.
 
 ## Comments
+
+## Dev review
+
+`onReport`, the `onlyForwarder` modifier and the action dispatch moved from this ticket into ticket
+04, because the tests there needed the real entry rather than a harness. What is left:
+`supportsInterface`, the Chainlink receiver template, and the assertions against ticket 19's
+fixture.
+
+The report `kind` is an `action`. The bids root is hashed in arrival order, with no sort.

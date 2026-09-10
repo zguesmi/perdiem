@@ -10,8 +10,8 @@ Three views on `SealedAuction`, all specified in `docs/spec.md` under Functions:
 
 - `pendingSettlement() → bytes32` — an `auctionId` in `Bidding` with
   `block.timestamp >= bidDeadline`, or `bytes32(0)` when there is none.
-- `commitmentsOf(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this array.
-  Shipped with ticket 04.
+- `commitments(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this array.
+  Shipped with ticket 04, alongside `committers`, `commitmentOf` and `hasCommitted`.
 - `auctions(auctionId) → Auction` — the public mapping's generated getter. Shipped with ticket 04.
 
 `auctionId` is the keccak256 of the auction record, so there is no counter to scan and no order to
@@ -24,7 +24,7 @@ What has to be true:
   `Settling`, `Finalized` or `Timeout`. A workflow that claims a `Settling` auction a second time
   wastes a write and looks, in the demo, exactly like a bug in the settlement.
 - It returns `bytes32(0)` before `bidDeadline`, even with commitments already in.
-- `commitmentsOf` returns the empty array for an unknown auction rather than reverting, because the
+- `commitments` returns the empty array for an unknown auction rather than reverting, because the
   Enclave's no-commitment path is a legitimate one that ends in a refund.
 - The scan is bounded. It walks the open list, which shrinks on every terminal transition, and it
   needs a written bound rather than an unbounded loop.
@@ -36,11 +36,18 @@ What has to be true:
 - [ ] It returns `bytes32(0)` before `bidDeadline`, even with commitments already in.
 - [ ] It returns an eligible `auctionId` when several qualify, and every one of them in turn as each
       is settled.
-- [x] `commitmentsOf` returns the empty array for an unknown auction instead of reverting.
-      Ticket 04.
+- [x] `commitments` returns the empty array for an unknown auction instead of reverting. Ticket 04.
 - [x] `auctions` returns every field the page and the workflow read, as listed in `docs/spec.md`.
       Ticket 04.
 - [ ] The open list drops an auction on `Finalized` and on `Timeout`, and one test drives both.
 - [ ] The scan has a written bound, and one test drives more auctions than that bound.
 
 ## Comments
+
+## Dev review
+
+`commitments`, `committers`, `commitmentOf`, `hasCommitted` and the `auctions` getter shipped with
+ticket 04.
+
+`auctionId` is the keccak256 of the auction record, so there is no counter to scan.
+`pendingSettlement` needs a list of open auction ids, and that list is what is left of this ticket.

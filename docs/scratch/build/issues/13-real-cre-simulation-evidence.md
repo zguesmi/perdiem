@@ -25,3 +25,7 @@ evidence in it. Check `git status` after adding, not before.
       contract accepts, both in one execution.
 
 ## Comments
+
+## Dev review
+
+The report `kind` is an `action`. The run claims with action `1` and settles with action `2`.

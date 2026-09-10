@@ -36,3 +36,9 @@ RLP to `ARC_RPC_URL`. See `docs/evidence/06-privy-server-wallets-on-arc.md`.
 Funding is two signed transactions, not one. `createAuction` pulls the Payout Cap with
 `transferFrom`, so an `approve` on the USDC ERC-20 has to be signed first. A policy that allows only
 transfers to `SealedAuction` blocks that `approve` and the funding flow fails.
+
+## Dev review
+
+The Budget is the Payout Cap. The spend policy rule reads the `payoutCap` argument of
+`createAuction`, and `createAuction` takes three arguments now: `policyHash`, `requirements`,
+`payoutCap`.

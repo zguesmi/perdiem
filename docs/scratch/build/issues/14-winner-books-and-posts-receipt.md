@@ -19,3 +19,8 @@ Sandbox test guest data only. No real personal data anywhere in this repository.
 - [ ] Sandbox test guest data only. No real personal data anywhere in the repository.
 
 ## Comments
+
+## Dev review
+
+`deliverDeadline` is `receiptDeadline`, named after the call that meets it. `submitReceipt` emits
+`ReceiptPosted` and stores no receipt hash, because no on-chain rule reads it.
