@@ -1,8 +1,12 @@
 # shared
 
 Everything the buyer, the suppliers and the enclave have to agree on: the Policy schema, the
-canonical encoding, and the Policy Hash. Scoring is not here, and never will be — see
-`docs/adr/0002-scoring-is-not-shared.md`.
+canonical encoding, the Policy Hash and the three bid hashes. Scoring is not here, and never will be
+— see `docs/adr/0002-scoring-is-not-shared.md`.
+
+- `policy.ts`, `canonical-json.ts`, `policy-hash.ts` — the Policy and its commitment.
+- `bid.ts` — the EIP-712 bid struct hash, the signing digest, the bid commitment and the bids root.
+- `chain.ts` — the Arc chain id, which the EIP-712 domain reads.
 
 This is a plain directory, not a package. Every consumer imports it by relative path:
 
