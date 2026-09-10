@@ -87,4 +87,21 @@ Changed after review of the pull request:
   first, then one group per function in declaration order.
 - The conventions this review produced are in `.claude/rules/solidity.md`.
 
-46 Solidity tests pass.
+Second round:
+
+- `STAKE` is `SUPPLIER_STAKE`. `WrongState` is `BadState`. The report `kind` is an `action`, and
+  `UnknownReportKind` is `UnknownReportAction`.
+- `MAX_BIDS` caps an auction at 5 commitments. Settlement and every refund walk the array, so an
+  unbounded array is an auction nobody can finalize.
+- `commitments`, `committers` and `hasCommitted` are public, because the relay and the workflow read
+  them. `commitmentsOf` stays: the generated getter reads one element and reports no length.
+- The bids root drops the sort. The array carries the arrival order and both sides hash it as it
+  stands.
+- `onlyForwarder` is a modifier.
+- `timeoutRefund` rejects the terminal states instead of listing the live ones. `State.None` is
+  rejected with them, so an unknown auction fails with `BadState` rather than an ERC-20 error.
+- The settlement keeps `policyHash` and `bidsRoot`. Both are the enclave's claim about what it
+  scored, and the contract rejects the settlement when either disagrees with what it already holds.
+- `onchain/test/README.md` is deleted.
+
+51 Solidity tests pass.

@@ -8,25 +8,26 @@ import {MockUSDC} from "./MockUSDC.sol";
 
 /**
  * The whole `SealedAuction` state machine: escrow, the auction lifecycle, the settlement the
- * forwarder delivers, and what happens to the winner's Stake afterwards.
+ * forwarder delivers, and what happens to the winner's stake afterwards.
  *
- * The happy path runs first. Every later group covers one function, in the order the functions are
+ * The lifecycle runs first. Every later group covers one function, in the order the functions are
  * declared in the contract, and each group opens with the case that succeeds.
  */
 contract SealedAuctionTest is Test {
     MockUSDC internal usdc;
     SealedAuction internal auction;
 
-    address internal constant BUYER = address(0xB0);
     address internal constant SUPPLIER_A = address(0xA1);
     address internal constant SUPPLIER_B = address(0xA2);
     address internal constant SUPPLIER_C = address(0xA3);
+    address internal constant BUYER = address(0xB0);
     address internal constant FORWARDER = address(0xF0);
     address internal constant STRANGER = address(0x5E);
 
     uint256 internal constant PAYOUT_CAP = 750e6;
-    uint256 internal constant STAKE = 50e6;
+    uint256 internal constant SUPPLIER_STAKE = 50e6;
     uint256 internal constant PAYOUT = 440e6;
+    uint256 internal constant MAX_BIDS = 5;
 
     /// @dev Ample: each supplier commits at most once per auction across the whole suite.
     uint256 internal constant SUPPLIER_FUNDING = 500e6;
@@ -35,19 +36,21 @@ contract SealedAuctionTest is Test {
     uint64 internal constant FINALIZE_PERIOD = 4 hours;
     uint64 internal constant RECEIPT_PERIOD = 6 hours;
 
-    uint8 internal constant REPORT_CLAIM = 1;
-    uint8 internal constant REPORT_SETTLEMENT = 2;
+    uint8 internal constant ACTION_CLAIM = 1;
+    uint8 internal constant ACTION_SETTLE = 2;
 
     bytes32 internal constant POLICY_HASH = keccak256("the policy");
     bytes32 internal constant ENCLAVE_PUBLIC_KEY = keccak256("the enclave x25519 public key");
     bytes32 internal constant RECEIPT_HASH = keccak256("the booking id");
 
     /**
-     * The three commitments below, sorted ascending as unsigned 32-byte big-endian and hashed with
-     * `abi.encodePacked`. Computed off chain with viem, so a mistake in the Solidity sort cannot
-     * agree with itself.
+     * The three commitments below in arrival order, hashed with `abi.encodePacked`. Computed off
+     * chain with viem, so a mistake in the Solidity encoding cannot agree with itself.
      */
-    bytes32 internal constant BIDS_ROOT = 0x4bab02b90a0348eb8ab4956b0e013ef1c3d7a4d77ad3c9253857dd8d0e561d1f;
+    bytes32 internal constant BIDS_ROOT = 0xffdbd9c1b65b61303d9298cfb6afcb3114a6ec8400b2280b102f32a581913b7f;
+
+    /// The same three commitments in the order C, A, B.
+    bytes32 internal constant SHUFFLED_BIDS_ROOT = 0x4bab02b90a0348eb8ab4956b0e013ef1c3d7a4d77ad3c9253857dd8d0e561d1f;
 
     /// The moment the auction under test was opened. Every deadline is an offset from it.
     uint64 internal openedAt;
@@ -60,7 +63,7 @@ contract SealedAuctionTest is Test {
         vm.prank(BUYER);
         usdc.approve(address(auction), type(uint256).max);
 
-        for (uint256 i = 0; i < 3; i++) {
+        for (uint256 i = 0; i < 6; i++) {
             usdc.mint(supplier(i), SUPPLIER_FUNDING);
             vm.prank(supplier(i));
             usdc.approve(address(auction), type(uint256).max);
@@ -69,16 +72,16 @@ contract SealedAuctionTest is Test {
 
     /**
      * One auction from end to end: the buyer locks the cap, three suppliers commit, the forwarder
-     * claims and settles, and the winner posts a Receipt. 750 plus three Stakes go in; 440 to the
-     * winner, 310 to the buyer and every Stake back come out.
+     * claims and settles, and the winner posts a receipt. 750 plus three stakes go in; 440 to the
+     * winner, 310 to the buyer and every stake back come out.
      */
-    function test_happyPath_openBidClaimSettleDeliver() public {
+    function test_auctionLifecycle_paysTheWinnerAndReleasesItsStake() public {
         bytes32 auctionId = openAuction();
         assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP, "the escrow holds the cap");
 
         commitInOrder(auctionId, 0, 1, 2);
         assertEq(uint8(stateOf(auctionId)), uint8(SealedAuction.State.Bidding));
-        assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP + 3 * STAKE, "the escrow holds three Stakes");
+        assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP + 3 * SUPPLIER_STAKE, "the escrow holds three stakes");
 
         vm.warp(openedAt + BID_PERIOD);
         claim(auctionId);
@@ -90,10 +93,10 @@ contract SealedAuctionTest is Test {
         vm.prank(SUPPLIER_C);
         auction.submitReceipt(auctionId, RECEIPT_HASH);
 
-        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING + PAYOUT, "the winner is paid and its Stake is back");
+        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING + PAYOUT, "the winner is paid and its stake is back");
         assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP - PAYOUT, "the buyer keeps what the winner did not ask for");
-        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a losing Stake is refunded");
-        assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a losing Stake is refunded");
+        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a losing stake is refunded");
+        assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a losing stake is refunded");
         assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
         assertTrue(stakeReleasedOn(auctionId));
         assertFalse(stakeSlashedOn(auctionId));
@@ -140,7 +143,7 @@ contract SealedAuctionTest is Test {
         bytes32 second = openAuctionWith(keccak256("a different policy"));
 
         assertTrue(first != bytes32(0), "an auction that was opened has an id");
-        assertTrue(first != second, "a different Policy Hash is a different auction");
+        assertTrue(first != second, "a different policy hash is a different auction");
     }
 
     /// Identical terms in the same block would hash to one identifier and overwrite each other.
@@ -160,6 +163,7 @@ contract SealedAuctionTest is Test {
         auction.commit(auctionId, commitmentOf(0));
 
         assertEq(uint8(stateOf(auctionId)), uint8(SealedAuction.State.Bidding));
+        assertTrue(auction.hasCommitted(auctionId, SUPPLIER_A));
     }
 
     function test_commit_pullsTheStake() public {
@@ -168,11 +172,12 @@ contract SealedAuctionTest is Test {
         vm.prank(SUPPLIER_A);
         auction.commit(auctionId, commitmentOf(0));
 
-        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING - STAKE);
-        assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP + STAKE);
+        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING - SUPPLIER_STAKE);
+        assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP + SUPPLIER_STAKE);
+        assertEq(auction.SUPPLIER_STAKE(), SUPPLIER_STAKE);
     }
 
-    function test_commit_storesCommitmentsInArrivalOrder() public {
+    function test_commit_storesCommitmentsAndCommittersInArrivalOrder() public {
         bytes32 auctionId = openAuction();
 
         vm.prank(SUPPLIER_C);
@@ -180,10 +185,10 @@ contract SealedAuctionTest is Test {
         vm.prank(SUPPLIER_A);
         auction.commit(auctionId, commitmentOf(0));
 
-        bytes32[] memory commitments = auction.commitmentsOf(auctionId);
-        assertEq(commitments.length, 2);
-        assertEq(commitments[0], commitmentOf(2));
-        assertEq(commitments[1], commitmentOf(0));
+        assertEq(auction.commitments(auctionId, 0), commitmentOf(2));
+        assertEq(auction.commitments(auctionId, 1), commitmentOf(0));
+        assertEq(auction.committers(auctionId, 0), SUPPLIER_C);
+        assertEq(auction.committers(auctionId, 1), SUPPLIER_A);
     }
 
     function test_commit_rejectsASecondCommitFromTheSameAddress() public {
@@ -194,6 +199,21 @@ contract SealedAuctionTest is Test {
         vm.expectRevert(SealedAuction.AlreadyCommitted.selector);
         auction.commit(auctionId, keccak256("A again"));
         vm.stopPrank();
+    }
+
+    /// Settlement and every refund walk the commitments, so an unbounded array is a stuck auction.
+    function test_commit_rejectsMoreThanMaxBids() public {
+        bytes32 auctionId = openAuction();
+        for (uint256 i = 0; i < MAX_BIDS; i++) {
+            vm.prank(supplier(i));
+            auction.commit(auctionId, keccak256(abi.encode(i)));
+        }
+
+        vm.prank(supplier(MAX_BIDS));
+        vm.expectRevert(SealedAuction.BidLimitReached.selector);
+        auction.commit(auctionId, keccak256("one too many"));
+
+        assertEq(auction.MAX_BIDS(), MAX_BIDS);
     }
 
     function test_commit_rejectsACommitOnOrAfterTheBidDeadline() public {
@@ -207,7 +227,7 @@ contract SealedAuctionTest is Test {
 
     function test_commit_rejectsAnUnknownAuction() public {
         vm.prank(SUPPLIER_A);
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         auction.commit(keccak256("no such auction"), commitmentOf(0));
     }
 
@@ -219,21 +239,21 @@ contract SealedAuctionTest is Test {
         assertEq(uint8(stateOf(auctionId)), uint8(SealedAuction.State.Settling));
     }
 
-    /// 440 to the winner, 310 back to the buyer, the losing Stakes refunded, the winner's held.
+    /// 440 to the winner, 310 back to the buyer, the losing stakes refunded, the winner's held.
     function test_onReport_settlementPaysTheWinnerAndRefundsTheRest() public {
         bytes32 auctionId = claimedAuction();
 
         settle(winningSettlement(auctionId));
 
-        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING - STAKE + PAYOUT, "the winner is paid");
+        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING - SUPPLIER_STAKE + PAYOUT, "the winner is paid");
         assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP - PAYOUT, "the buyer keeps the rest");
-        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a losing Stake is refunded");
-        assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a losing Stake is refunded");
-        assertEq(usdc.balanceOf(address(auction)), STAKE, "the escrow holds the winner's Stake");
+        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a losing stake is refunded");
+        assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a losing stake is refunded");
+        assertEq(usdc.balanceOf(address(auction)), SUPPLIER_STAKE, "the escrow holds the winner's stake");
         assertEq(uint8(stateOf(auctionId)), uint8(SealedAuction.State.Finalized));
     }
 
-    /// No Eligible bid: the cap and every Stake go back.
+    /// No eligible bid: the cap and every stake go back.
     function test_onReport_settlementWithNoWinnerRefundsEverything() public {
         bytes32 auctionId = claimedAuction();
 
@@ -248,14 +268,14 @@ contract SealedAuctionTest is Test {
 
         vm.prank(STRANGER);
         vm.expectRevert(SealedAuction.NotForwarder.selector);
-        auction.onReport("", abi.encode(REPORT_CLAIM, abi.encode(auctionId)));
+        auction.onReport("", abi.encode(ACTION_CLAIM, abi.encode(auctionId)));
     }
 
-    function test_onReport_rejectsAnUnknownKind() public {
+    function test_onReport_rejectsAnUnknownAction() public {
         bytes32 auctionId = biddingClosedAuction();
 
         vm.prank(FORWARDER);
-        vm.expectRevert(SealedAuction.UnknownReportKind.selector);
+        vm.expectRevert(SealedAuction.UnknownReportAction.selector);
         auction.onReport("", abi.encode(uint8(3), abi.encode(auctionId)));
     }
 
@@ -271,7 +291,7 @@ contract SealedAuctionTest is Test {
         bytes32 auctionId = openAuction();
         vm.warp(openedAt + BID_PERIOD);
 
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         claim(auctionId);
     }
 
@@ -279,14 +299,14 @@ contract SealedAuctionTest is Test {
     function test_onReport_rejectsASecondClaim() public {
         bytes32 auctionId = claimedAuction();
 
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         claim(auctionId);
     }
 
     function test_onReport_rejectsASettlementBeforeTheClaim() public {
         bytes32 auctionId = biddingClosedAuction();
 
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         settle(winningSettlement(auctionId));
     }
 
@@ -348,7 +368,7 @@ contract SealedAuctionTest is Test {
         vm.prank(SUPPLIER_C);
         auction.submitReceipt(auctionId, RECEIPT_HASH);
 
-        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING + PAYOUT, "the Stake is back");
+        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING + PAYOUT, "the stake is back");
         assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
         assertTrue(stakeReleasedOn(auctionId));
     }
@@ -384,11 +404,11 @@ contract SealedAuctionTest is Test {
         bytes32 auctionId = claimedAuction();
 
         vm.prank(SUPPLIER_C);
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         auction.submitReceipt(auctionId, RECEIPT_HASH);
     }
 
-    /// The winner never delivers, so its Stake goes to the buyer.
+    /// The winner never delivers, so its stake goes to the buyer.
     function test_slash_paysTheWinnerStakeToTheBuyer() public {
         bytes32 auctionId = finalizedAuction();
         vm.warp(openedAt + RECEIPT_PERIOD);
@@ -396,8 +416,10 @@ contract SealedAuctionTest is Test {
         vm.prank(STRANGER);
         auction.slash(auctionId);
 
-        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING - STAKE + PAYOUT, "the winner loses its Stake");
-        assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP - PAYOUT + STAKE, "the buyer gets the Stake");
+        assertEq(
+            usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING - SUPPLIER_STAKE + PAYOUT, "the winner loses its stake"
+        );
+        assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP - PAYOUT + SUPPLIER_STAKE, "the buyer gets the stake");
         assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING);
         assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING);
         assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
@@ -431,7 +453,7 @@ contract SealedAuctionTest is Test {
         auction.slash(auctionId);
     }
 
-    /// An auction with no winner refunded every Stake at settlement, so there is nothing to slash.
+    /// An auction with no winner refunded every stake at settlement, so there is nothing to slash.
     function test_slash_rejectsAnAuctionWithNoWinner() public {
         bytes32 auctionId = claimedAuction();
         settle(noWinnerSettlement(auctionId));
@@ -474,7 +496,7 @@ contract SealedAuctionTest is Test {
 
     /**
      * Without the wait a losing bidder refunds the auction a second after `bidDeadline`, before the
-     * Enclave has run. The buyer has no earlier way out either.
+     * enclave has run. The buyer has no earlier way out either.
      */
     function test_timeoutRefund_rejectsARefundBeforeTheFinalizeDeadline() public {
         bytes32 auctionId = claimedAuction();
@@ -484,28 +506,44 @@ contract SealedAuctionTest is Test {
         auction.timeoutRefund(auctionId);
 
         assertEq(usdc.balanceOf(BUYER), 0, "the cap is still locked");
-        assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP + 3 * STAKE, "the escrow still holds everything");
+        assertEq(
+            usdc.balanceOf(address(auction)),
+            PAYOUT_CAP + 3 * SUPPLIER_STAKE,
+            "the escrow still holds everything"
+        );
     }
 
-    function test_finalizedIsTerminal() public {
+    function test_timeoutRefund_rejectsAnUnknownAuction() public {
+        vm.expectRevert(SealedAuction.BadState.selector);
+        auction.timeoutRefund(keccak256("no such auction"));
+    }
+
+    function test_timeoutRefund_rejectsAFinalizedAuction() public {
         bytes32 auctionId = finalizedAuction();
+        vm.warp(openedAt + FINALIZE_PERIOD);
 
-        assertTerminal(auctionId);
+        vm.expectRevert(SealedAuction.BadState.selector);
+        auction.timeoutRefund(auctionId);
     }
 
-    function test_timeoutIsTerminal() public {
+    function test_timeoutRefund_rejectsASecondRefund() public {
         bytes32 auctionId = biddingClosedAuction();
         vm.warp(openedAt + FINALIZE_PERIOD);
         auction.timeoutRefund(auctionId);
 
-        assertTerminal(auctionId);
-        vm.warp(openedAt + RECEIPT_PERIOD);
-        vm.prank(SUPPLIER_C);
-        vm.expectRevert(SealedAuction.WrongState.selector);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
+        vm.expectRevert(SealedAuction.BadState.selector);
+        auction.timeoutRefund(auctionId);
+    }
 
-        vm.expectRevert(SealedAuction.WrongState.selector);
-        auction.slash(auctionId);
+    function test_commitmentsOf_returnsEveryCommitmentInArrivalOrder() public {
+        bytes32 auctionId = openAuction();
+        commitInOrder(auctionId, 2, 0, 1);
+
+        bytes32[] memory stored = auction.commitmentsOf(auctionId);
+        assertEq(stored.length, 3);
+        assertEq(stored[0], commitmentOf(2));
+        assertEq(stored[1], commitmentOf(0));
+        assertEq(stored[2], commitmentOf(1));
     }
 
     function test_commitmentsOf_isEmptyForAnUnknownAuction() public view {
@@ -518,8 +556,8 @@ contract SealedAuctionTest is Test {
         assertEq(auction.bidsRoot(auctionId), bytes32(0));
     }
 
-    /// The root is over the sorted set, so the order the commitments arrived in cannot change it.
-    function test_bidsRoot_sortsAscendingWhateverTheArrivalOrder() public {
+    /// The root is over the array as stored, so the arrival order is part of it.
+    function test_bidsRoot_followsArrivalOrder() public {
         bytes32 ascending = openAuction();
         commitInOrder(ascending, 0, 1, 2);
 
@@ -528,10 +566,32 @@ contract SealedAuctionTest is Test {
         commitInOrder(shuffled, 2, 0, 1);
 
         assertEq(auction.bidsRoot(ascending), BIDS_ROOT);
-        assertEq(auction.bidsRoot(shuffled), BIDS_ROOT);
+        assertEq(auction.bidsRoot(shuffled), SHUFFLED_BIDS_ROOT);
     }
 
-    /// @notice The Public Requirements under test: one double room near Gare du Nord.
+    function test_finalized_rejectsEveryFurtherStateChange() public {
+        bytes32 auctionId = finalizedAuction();
+
+        assertTerminal(auctionId);
+    }
+
+    function test_timeout_rejectsEveryFurtherStateChange() public {
+        bytes32 auctionId = biddingClosedAuction();
+        vm.warp(openedAt + FINALIZE_PERIOD);
+        auction.timeoutRefund(auctionId);
+
+        assertTerminal(auctionId);
+
+        vm.warp(openedAt + RECEIPT_PERIOD);
+        vm.prank(SUPPLIER_C);
+        vm.expectRevert(SealedAuction.BadState.selector);
+        auction.submitReceipt(auctionId, RECEIPT_HASH);
+
+        vm.expectRevert(SealedAuction.BadState.selector);
+        auction.slash(auctionId);
+    }
+
+    /// @notice The public requirements under test: one double room near Gare du Nord.
     function requirements() internal pure returns (SealedAuction.PublicRequirements memory) {
         return SealedAuction.PublicRequirements({
             city: "Paris",
@@ -579,15 +639,15 @@ contract SealedAuctionTest is Test {
 
     function claim(bytes32 auctionId) internal {
         vm.prank(FORWARDER);
-        auction.onReport("", abi.encode(REPORT_CLAIM, abi.encode(auctionId)));
+        auction.onReport("", abi.encode(ACTION_CLAIM, abi.encode(auctionId)));
     }
 
     function settle(SealedAuction.Settlement memory settlement) internal {
         vm.prank(FORWARDER);
-        auction.onReport("", abi.encode(REPORT_SETTLEMENT, abi.encode(settlement)));
+        auction.onReport("", abi.encode(ACTION_SETTLE, abi.encode(settlement)));
     }
 
-    /// All three suppliers commit, in the order given, so a test can prove arrival order is lost.
+    /// The first three suppliers commit, in the order given.
     function commitInOrder(bytes32 auctionId, uint256 first, uint256 second, uint256 third) internal {
         uint256[3] memory order = [first, second, third];
         for (uint256 i = 0; i < 3; i++) {
@@ -619,14 +679,15 @@ contract SealedAuctionTest is Test {
     }
 
     function supplier(uint256 index) internal pure returns (address) {
-        address[3] memory suppliers = [SUPPLIER_A, SUPPLIER_B, SUPPLIER_C];
+        address[6] memory suppliers =
+            [SUPPLIER_A, SUPPLIER_B, SUPPLIER_C, address(0xA4), address(0xA5), address(0xA6)];
         return suppliers[index];
     }
 
-    /// The commitment supplier `index` places. Their sorted set hashes to `BIDS_ROOT`.
+    /// The commitment supplier `index` places. Their arrival order hashes to `BIDS_ROOT`.
     function commitmentOf(uint256 index) internal pure returns (bytes32) {
-        bytes32[3] memory commitments = [keccak256("A"), keccak256("B"), keccak256("C")];
-        return commitments[index];
+        bytes32[3] memory placed = [keccak256("A"), keccak256("B"), keccak256("C")];
+        return placed[index];
     }
 
     function stateOf(bytes32 auctionId) internal view returns (SealedAuction.State state) {
@@ -646,26 +707,27 @@ contract SealedAuctionTest is Test {
         (,,,,,,,,, uint256 payout,,) = auction.auctions(auctionId);
 
         assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP, "the buyer gets the cap back");
-        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a Stake is refunded");
-        assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a Stake is refunded");
-        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING, "a Stake is refunded");
+        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a stake is refunded");
+        assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a stake is refunded");
+        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING, "a stake is refunded");
         assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
         assertEq(payout, 0);
     }
 
+    /// No state-changing call reaches a terminal auction.
     function assertTerminal(bytes32 auctionId) internal {
         vm.prank(SUPPLIER_A);
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         auction.commit(auctionId, keccak256("late"));
 
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         claim(auctionId);
 
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         settle(winningSettlement(auctionId));
 
         vm.warp(openedAt + FINALIZE_PERIOD);
-        vm.expectRevert(SealedAuction.WrongState.selector);
+        vm.expectRevert(SealedAuction.BadState.selector);
         auction.timeoutRefund(auctionId);
     }
 }
