@@ -134,8 +134,7 @@ cap bounds the Payout and states nothing about what the buyer is willing to pay.
   "refundable": true,
   "breakfastIncluded": true,
   "roomType": "double",
-  "numberOfRooms": 1,
-  "salt": "0x…32 bytes"
+  "numberOfRooms": 1
 }
 ```
 
@@ -151,9 +150,15 @@ Three hashes, and getting them the wrong way round is how honest bids get droppe
 - The signature is over `keccak256(0x1901 ‖ domainSeparator ‖ bidHash)`.
 - The Bid Commitment is `keccak256(abi.encode(bidHash, salt))`.
 
-The salt stays out of the struct hash, so the signature is checkable without it and the commitment
-cannot be brute-forced with it. `hotelName` is signed and never scored; the page names the winner
-from it.
+The salt is not a field of the Bid. It travels beside the Bid inside the Sealed Bid envelope, as
+`{bid, salt, signature}`. Three reasons, and the third is why it is a type rule and not a
+convention:
+
+- The signature is checkable without the salt, so the Enclave verifies before it needs the secret.
+- The commitment cannot be brute-forced by whoever holds the salt.
+- A field the type does not have cannot reach `hashStruct` by accident.
+
+`hotelName` is signed and never scored; the page names the winner from it.
 
 A supplier is a contract account, so the signature check is ERC-1271, not `ecrecover`. Circle agent
 wallets are ERC-4337 smart contract accounts: `circle wallet sign typed-data` returns a 65-byte
