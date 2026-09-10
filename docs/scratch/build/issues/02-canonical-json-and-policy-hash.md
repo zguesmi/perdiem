@@ -13,8 +13,6 @@ the auction dies in `timeoutRefund`. That is the failure this ticket exists to p
 - [x] `canonicalJson` implements RFC 8785 restricted to integers. A fractional number is rejected,
       never rounded.
 - [x] Key order and insignificant whitespace in the input cannot change the output bytes.
-- [~] The USDC decimal count is one exported constant. No TypeScript file hardcodes 6.
-  `onchain/contracts/SealedAuction.t.sol` still writes `750e6`.
 - [x] `packages/core/test/policy-hash.test.ts` asserts against the Policy in `docs/spec.md`, not the
       two-field placeholder it carries today.
 - [x] The golden fixture file holds the Policy and its expected hash, and the test reads the
@@ -50,12 +48,8 @@ Verified outside this codebase, because a fixture our own encoder generated prov
 - The canonical bytes match the python `jcs` package, an independent RFC 8785 implementation.
 - The hash matches pycryptodome's keccak256 over those bytes.
 
-Three things this ticket did not cover:
+Two things this ticket did not cover:
 
-- **"No file hardcodes 6" is not fully met.** `USDC_DECIMALS` and `usdcMinorUnits` are the constant
-  in TypeScript, and no TypeScript file spells out 6. `onchain/contracts/SealedAuction.t.sol` still
-  writes `750e6`, because Solidity cannot import a TypeScript constant. Closing that needs a
-  Solidity constant, which belongs to the contract tickets.
 - `workflow/test/scoring.test.ts` held whole USDC and `distanceKm` against a Policy in minor units
   and metres, so the new type broke its typecheck and two of its assertions would have passed
   without exercising the rule they name. The fixtures move to minor units and metres and
