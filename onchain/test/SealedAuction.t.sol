@@ -160,7 +160,7 @@ contract SealedAuctionTest is Test {
         bytes32 auctionId = openAuction();
 
         vm.prank(SUPPLIER_A);
-        auction.commit(auctionId, commitmentOf(0));
+        auction.commit(auctionId, placedBy(0));
 
         assertEq(uint8(stateOf(auctionId)), uint8(SealedAuction.State.Bidding));
         assertTrue(auction.hasCommitted(auctionId, SUPPLIER_A));
@@ -170,7 +170,7 @@ contract SealedAuctionTest is Test {
         bytes32 auctionId = openAuction();
 
         vm.prank(SUPPLIER_A);
-        auction.commit(auctionId, commitmentOf(0));
+        auction.commit(auctionId, placedBy(0));
 
         assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING - SUPPLIER_STAKE);
         assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP + SUPPLIER_STAKE);
@@ -181,21 +181,21 @@ contract SealedAuctionTest is Test {
         bytes32 auctionId = openAuction();
 
         vm.prank(SUPPLIER_C);
-        auction.commit(auctionId, commitmentOf(2));
+        auction.commit(auctionId, placedBy(2));
         vm.prank(SUPPLIER_A);
-        auction.commit(auctionId, commitmentOf(0));
+        auction.commit(auctionId, placedBy(0));
 
-        assertEq(auction.commitments(auctionId, 0), commitmentOf(2));
-        assertEq(auction.commitments(auctionId, 1), commitmentOf(0));
-        assertEq(auction.committers(auctionId, 0), SUPPLIER_C);
-        assertEq(auction.committers(auctionId, 1), SUPPLIER_A);
+        assertEq(auction.commitments(auctionId)[0], placedBy(2));
+        assertEq(auction.commitments(auctionId)[1], placedBy(0));
+        assertEq(auction.committers(auctionId)[0], SUPPLIER_C);
+        assertEq(auction.committers(auctionId)[1], SUPPLIER_A);
     }
 
     function test_commit_rejectsASecondCommitFromTheSameAddress() public {
         bytes32 auctionId = openAuction();
 
         vm.startPrank(SUPPLIER_A);
-        auction.commit(auctionId, commitmentOf(0));
+        auction.commit(auctionId, placedBy(0));
         vm.expectRevert(SealedAuction.AlreadyCommitted.selector);
         auction.commit(auctionId, keccak256("A again"));
         vm.stopPrank();
@@ -222,13 +222,13 @@ contract SealedAuctionTest is Test {
 
         vm.prank(SUPPLIER_A);
         vm.expectRevert(SealedAuction.BiddingClosed.selector);
-        auction.commit(auctionId, commitmentOf(0));
+        auction.commit(auctionId, placedBy(0));
     }
 
     function test_commit_rejectsAnUnknownAuction() public {
         vm.prank(SUPPLIER_A);
         vm.expectRevert(SealedAuction.BadState.selector);
-        auction.commit(keccak256("no such auction"), commitmentOf(0));
+        auction.commit(keccak256("no such auction"), placedBy(0));
     }
 
     function test_onReport_claimMovesBiddingToSettling() public {
@@ -535,19 +535,48 @@ contract SealedAuctionTest is Test {
         auction.timeoutRefund(auctionId);
     }
 
-    function test_commitmentsOf_returnsEveryCommitmentInArrivalOrder() public {
+    function test_commitments_returnsEveryCommitmentInArrivalOrder() public {
         bytes32 auctionId = openAuction();
         commitInOrder(auctionId, 2, 0, 1);
 
-        bytes32[] memory stored = auction.commitmentsOf(auctionId);
+        bytes32[] memory stored = auction.commitments(auctionId);
         assertEq(stored.length, 3);
-        assertEq(stored[0], commitmentOf(2));
-        assertEq(stored[1], commitmentOf(0));
-        assertEq(stored[2], commitmentOf(1));
+        assertEq(stored[0], placedBy(2));
+        assertEq(stored[1], placedBy(0));
+        assertEq(stored[2], placedBy(1));
     }
 
-    function test_commitmentsOf_isEmptyForAnUnknownAuction() public view {
-        assertEq(auction.commitmentsOf(keccak256("no such auction")).length, 0);
+    function test_commitments_isEmptyForAnUnknownAuction() public view {
+        assertEq(auction.commitments(keccak256("no such auction")).length, 0);
+    }
+
+    function test_committers_returnsEverySupplierInArrivalOrder() public {
+        bytes32 auctionId = openAuction();
+        commitInOrder(auctionId, 2, 0, 1);
+
+        address[] memory stakers = auction.committers(auctionId);
+        assertEq(stakers.length, 3);
+        assertEq(stakers[0], SUPPLIER_C);
+        assertEq(stakers[1], SUPPLIER_A);
+        assertEq(stakers[2], SUPPLIER_B);
+    }
+
+    function test_commitmentOf_returnsWhatTheSupplierPlaced() public {
+        bytes32 auctionId = openAuction();
+        commitInOrder(auctionId, 2, 0, 1);
+
+        assertEq(auction.commitmentOf(auctionId, SUPPLIER_A), placedBy(0));
+        assertEq(auction.commitmentOf(auctionId, SUPPLIER_B), placedBy(1));
+        assertEq(auction.commitmentOf(auctionId, SUPPLIER_C), placedBy(2));
+    }
+
+    /// A supplier that never committed reads as zero, so no caller has to catch a revert.
+    function test_commitmentOf_isZeroForASupplierThatNeverCommitted() public {
+        bytes32 auctionId = openAuction();
+        commitInOrder(auctionId, 0, 1, 2);
+
+        assertEq(auction.commitmentOf(auctionId, STRANGER), bytes32(0));
+        assertEq(auction.commitmentOf(keccak256("no such auction"), SUPPLIER_A), bytes32(0));
     }
 
     function test_bidsRoot_isZeroWithNoCommitments() public {
@@ -652,7 +681,7 @@ contract SealedAuctionTest is Test {
         uint256[3] memory order = [first, second, third];
         for (uint256 i = 0; i < 3; i++) {
             vm.prank(supplier(order[i]));
-            auction.commit(auctionId, commitmentOf(order[i]));
+            auction.commit(auctionId, placedBy(order[i]));
         }
     }
 
@@ -685,7 +714,7 @@ contract SealedAuctionTest is Test {
     }
 
     /// The commitment supplier `index` places. Their arrival order hashes to `BIDS_ROOT`.
-    function commitmentOf(uint256 index) internal pure returns (bytes32) {
+    function placedBy(uint256 index) internal pure returns (bytes32) {
         bytes32[3] memory placed = [keccak256("A"), keccak256("B"), keccak256("C")];
         return placed[index];
     }

@@ -106,10 +106,10 @@ contract SealedAuction {
 
     mapping(bytes32 => Auction) public auctions;
 
-    /// Read by the workflow and the relay, so all three are public.
-    mapping(bytes32 => bytes32[]) public commitments;
-    mapping(bytes32 => mapping(address => bool)) public hasCommitted;
-    mapping(bytes32 => address[]) public committers;
+    /// The workflow and the relay read all three through the getters below.
+    mapping(bytes32 => bytes32[]) internal _commitments;
+    mapping(bytes32 => address[]) internal _committers;
+    mapping(bytes32 => mapping(address => bool)) internal _hasCommitted;
 
     event AuctionCreated(
         bytes32 indexed auctionId,
@@ -215,16 +215,16 @@ contract SealedAuction {
         if (block.timestamp >= auction.bidDeadline) {
             revert BiddingClosed();
         }
-        if (hasCommitted[auctionId][msg.sender]) {
+        if (_hasCommitted[auctionId][msg.sender]) {
             revert AlreadyCommitted();
         }
-        if (commitments[auctionId].length == MAX_BIDS) {
+        if (_commitments[auctionId].length == MAX_BIDS) {
             revert BidLimitReached();
         }
 
-        hasCommitted[auctionId][msg.sender] = true;
-        commitments[auctionId].push(commitment);
-        committers[auctionId].push(msg.sender);
+        _hasCommitted[auctionId][msg.sender] = true;
+        _commitments[auctionId].push(commitment);
+        _committers[auctionId].push(msg.sender);
         if (auction.state == State.Created) {
             auction.state = State.Bidding;
         }
@@ -329,11 +329,35 @@ contract SealedAuction {
 
     /**
      * @notice Every bid commitment placed on an auction, in arrival order.
-     * @dev The generated getter reads one element and reports no length, and the workflow needs the
-     * whole array to rebuild the bids root.
+     * @dev The mapping is internal because a generated array getter reads one element and reports
+     * no length, and the workflow needs the whole array to rebuild the bids root.
      */
-    function commitmentsOf(bytes32 auctionId) external view returns (bytes32[] memory) {
-        return commitments[auctionId];
+    function commitments(bytes32 auctionId) external view returns (bytes32[] memory) {
+        return _commitments[auctionId];
+    }
+
+    /// @notice Every supplier that committed to an auction, in the same order as `commitments`.
+    function committers(bytes32 auctionId) external view returns (address[] memory) {
+        return _committers[auctionId];
+    }
+
+    /// @notice Whether one supplier already committed to an auction.
+    function hasCommitted(bytes32 auctionId, address supplier) external view returns (bool) {
+        return _hasCommitted[auctionId][supplier];
+    }
+
+    /**
+     * @notice The bid commitment one supplier placed, or `bytes32(0)` when it never committed.
+     * @dev A linear walk over at most `MAX_BIDS` entries, so no second mapping is stored.
+     */
+    function commitmentOf(bytes32 auctionId, address supplier) external view returns (bytes32) {
+        address[] storage stakers = _committers[auctionId];
+        for (uint256 i = 0; i < stakers.length; i++) {
+            if (stakers[i] == supplier) {
+                return _commitments[auctionId][i];
+            }
+        }
+        return bytes32(0);
     }
 
     /**
@@ -342,7 +366,7 @@ contract SealedAuction {
      * arrival order, hashed with `abi.encodePacked`.
      */
     function bidsRoot(bytes32 auctionId) public view returns (bytes32) {
-        bytes32[] storage stored = commitments[auctionId];
+        bytes32[] storage stored = _commitments[auctionId];
         if (stored.length == 0) {
             return bytes32(0);
         }
@@ -386,7 +410,7 @@ contract SealedAuction {
             if (settlement.payout != 0) {
                 revert PayoutWithoutWinner();
             }
-        } else if (!hasCommitted[settlement.auctionId][settlement.winner]) {
+        } else if (!_hasCommitted[settlement.auctionId][settlement.winner]) {
             revert WinnerNeverCommitted();
         } else if (settlement.payout == 0) {
             // The payout is the winning bid's price, and no bid asks zero. A settlement that names
@@ -411,7 +435,7 @@ contract SealedAuction {
 
     /// The winner's stake stays in the escrow until a receipt releases it or a slash pays it out.
     function _refundStakes(bytes32 auctionId, address winner) internal {
-        address[] storage stakers = committers[auctionId];
+        address[] storage stakers = _committers[auctionId];
         for (uint256 i = 0; i < stakers.length; i++) {
             if (stakers[i] != winner) {
                 usdc.safeTransfer(stakers[i], SUPPLIER_STAKE);

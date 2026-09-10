@@ -239,9 +239,9 @@ No Eligible bid means `winner = address(0)` and `payout = 0`, and the contract r
 Cap and every Stake.
 
 The Bids Root binds the Settlement to the exact set of on-chain commitments, so no bid can be
-dropped or swapped between the chain and the Enclave. The Enclave reads `commitmentsOf` from the
-chain itself and hashes the array as it stands. It does this with `EVMClient.callContract`, which is
-typed for `Runtime` and takes the `TeeRuntime` through a cast. Verified in simulation only: row V2.
+dropped or swapped between the chain and the Enclave. The Enclave reads `commitments` from the chain
+itself and hashes the array as it stands. It does this with `EVMClient.callContract`, which is typed
+for `Runtime` and takes the `TeeRuntime` through a cast. Verified in simulation only: row V2.
 
 The construction is exact, because the contract recomputes it and one byte of difference rejects a
 correct settlement:
@@ -384,9 +384,15 @@ Three views, because the workflow holds no state of its own:
   `block.timestamp >= bidDeadline`, or `bytes32(0)`. The cron reads this. A hashed identifier cannot
   be enumerated, so this needs a list of open auctions written by `createAuction` and cleared on
   `Finalized` and `Timeout`.
-- `commitmentsOf(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this array.
-  The `commitments`, `committers` and `hasCommitted` mappings are public as well, because the relay
-  and the workflow read them, but the generated getters report no array length.
+- `commitments(auctionId) → bytes32[]` — arrival order. The Bids Root is built from this array.
+- `committers(auctionId) → address[]` — the suppliers, in the same order.
+- `commitmentOf(auctionId, supplier) → bytes32` — one supplier's commitment, `bytes32(0)` when it
+  never committed.
+- `hasCommitted(auctionId, supplier) → bool` — the same question as a yes or no.
+
+All four mappings are internal and these are hand-written getters. A generated array getter takes an
+index, returns one element and reports no length, so a caller cannot read a whole array with it.
+
 - `auctions(auctionId) → Auction` — the mapping is public, so the getter is generated: state, buyer,
   `createdAt`, deadlines, Policy Hash, Payout Cap, winner, Payout, `stakeReleased`, `stakeSlashed`.
 
