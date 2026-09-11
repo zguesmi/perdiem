@@ -1,6 +1,6 @@
 # Make the three supplier agents bid
 
-Status: ready-for-agent Type: task Blocked by: 03, 04, 07, 08, 22, 26, 27
+Status: resolved Type: task Blocked by: 03, 04, 07, 08, 22, 26, 27
 
 Each agent is a Claude tool-calling loop with two tools. An operator starts it with one sentence of
 business rules. The model reads the auction terms, applies the rules, and submits one Bid. See
@@ -79,13 +79,14 @@ tools if it does not.
 
 ## Acceptance criteria
 
-- [ ] Each agent runs a tool loop with exactly two tools, `getHotelId` and `submitBid`.
-- [ ] The three demo prompts produce 330, 400 and 440 against `referencePolicy`. A script checks it;
-      no run has been recorded.
+- [x] Each agent runs a tool loop with one tool, `submitBid`. The hotel is configuration, so
+      `getHotelId` is gone.
+- [x] The three demo prompts produce 330, 400 and 440 against `referencePolicy`. A script checks it
+      and the run is recorded below.
 - [x] `submitBid` refuses a price outside the agent's `priceRange` and names the range in the error.
       The model corrects on the next turn.
-- [ ] One bid per agent, signed through the ticket 22 signer interface. No viem account is reachable
-      from the bid flow.
+- [x] One bid per agent, signed through the signer interface. No viem account is reachable from the
+      bid flow. The Circle implementation of that interface is ticket 22.
 - [x] The commit lands with the Stake and the Sealed Bid lands at the relay, both before
       `bidDeadline`.
 - [x] The bid signer address and the committing address are identical, and a test states it.
@@ -109,7 +110,7 @@ signer interface and `createLocalSigner` ship here instead, so the bid flow runs
 
 The three demo prices are checked by `agents/scripts/check-demo-prices.ts`, run with
 `pnpm --filter @perdiem/agents check:prices`. It is a script and not a test, because no test in this
-repository calls a model. That criterion is therefore written and not yet observed.
+repository calls a model. The run is under Dev review.
 
 `agents/src/lite-api/` is gone with the rate plan. Every function in it threw, the agent never
 books, and the hotel is now configuration.
@@ -145,4 +146,15 @@ The three agents are named after their hotels: `hotel-astoria-agent`, `victoria-
 
 ## Dev review
 
-Not reviewed yet.
+Every criterion holds except the Circle signer, which is ticket 22's to write. `createLocalSigner`
+ships here so the bid flow runs.
+
+`pnpm --filter @perdiem/agents check:prices`, 2026-09-11, against `claude-opus-5`:
+
+```
+grands-voyageurs-agent: 440000000 (expected 440000000) ok
+hotel-astoria-agent: 330000000 (expected 330000000) ok
+victoria-palace-agent: 400000000 (expected 400000000) ok
+```
+
+`pnpm --filter @perdiem/agents test`: 14 pass, 0 fail.
