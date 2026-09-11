@@ -1,6 +1,6 @@
 # Accept the settlement from the CRE forwarder
 
-Status: done Type: task Blocked by: 04, ../verification/issues/01-cre-simulate-writes-to-arc.md
+Status: resolved Type: task Blocked by: 04, ../verification/issues/01-cre-simulate-writes-to-arc.md
 
 `onReport`, the forwarder check and the action dispatch shipped with ticket 04, because the tests
 there needed the real entry rather than a harness. What is left here: `supportsInterface`, the

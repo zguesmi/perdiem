@@ -1,6 +1,6 @@
 # Give each supplier agent a Circle Agent Stack wallet
 
-Status: done Type: task Blocked by: none (can start immediately; see
+Status: resolved Type: task Blocked by: none (can start immediately; see
 ../verification/issues/07-circle-agent-stack-wallets.md before the Circle client)
 
 Two signer implementations behind one interface, as `docs/spec.md` states under "Supplier agents".
