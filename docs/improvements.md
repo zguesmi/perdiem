@@ -10,6 +10,13 @@ that auction, and only before `bidDeadline`. It should also drop every sealed bi
 once that auction reaches `Finalized` or `Timeout`. Today a stranger can fill the store, and a
 finished auction's ciphertext sits there until the process restarts.
 
+## The watcher does not survive a restart
+
+`watchContractEvent` starts at the current block, and the set of auctions already bid on lives in
+memory. A restarted agent misses every auction opened while it was down, and could re-bid one it
+already committed to if the chain replayed the log. A record on disk and a start block would fix
+both.
+
 ## The relay has no authentication
 
 Any caller can list every sealed bid for an auction. No price leaks, because only the enclave holds

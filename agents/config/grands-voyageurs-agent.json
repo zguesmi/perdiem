@@ -1,7 +1,7 @@
 {
   "name": "grands-voyageurs-agent",
   "relayUrl": "http://localhost:8787",
-  "rpcUrl": "https://rpc.testnet.arc.network",
+  "rpcUrl": "wss://rpc.testnet.arc.io",
   "sealedAuction": "0x0000000000000000000000000000000000000000",
   "hotel": { "hotelId": "lp1beec", "hotelName": "Hôtel Des Grands Voyageurs", "stars": 4 },
   "priceRange": { "min": 420000000, "max": 480000000 },

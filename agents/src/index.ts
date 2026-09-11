@@ -14,7 +14,7 @@ import { watchAuctions } from "./watcher.ts";
 export { loadAgentConfig, type AgentConfig } from "./config.ts";
 export { createLocalSigner, type Signer } from "./signer.ts";
 export { submitBid, createTools, type AuctionTerms, type BidRunContext } from "./tools.ts";
-export { auctionsInRange, watchAuctions } from "./watcher.ts";
+export { auctionTerms, watchAuctions } from "./watcher.ts";
 
 /** Secrets only. Nothing here reaches a committed file. */
 const environment = z.object({
@@ -107,7 +107,7 @@ async function main(): Promise<void> {
   await watchAuctions(
     client,
     config.sealedAuction,
-    { fromBlock: await client.getBlockNumber(), signal: stopping.signal },
+    { signal: stopping.signal },
     (auction) => {
       console.log(`${config.name}: bidding on ${auction.auctionId}`);
       void bidOn(supplier, auction).catch((error: Error) => {

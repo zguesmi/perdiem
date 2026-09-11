@@ -41,8 +41,9 @@ flowchart TD
   main["main()"] --> load["loadAgentConfig, read prompts/NAME.txt"]
   load --> print["print the hotel and the rules"]
   print --> reads["readContract: usdc, enclavePublicKey, SUPPLIER_STAKE"]
-  reads --> watch["watchAuctions: poll getLogs every 3 seconds, forever"]
-  watch -->|"a new auctionId"| bid["bidOn, not awaited"]
+  reads --> watch["watchAuctions: watchContractEvent on TermsPublished"]
+  watch -->|"a new auctionId"| terms["read auctions(auctionId) for bidDeadline"]
+  terms --> bid["bidOn, not awaited"]
   watch --> watch
 
   bid --> run["runBidder: systemPrompt, then toolRunner"]
@@ -63,9 +64,25 @@ Every box below `submit` is Node, in that order. The model sees the first box an
 
 The watcher never awaits a bid. One auction that takes twelve model turns must not hide the next
 one, and one auction that fails must not stop the agent bidding on anything else. An auction fires
-once: a rescan of the same block is ignored. A failed read of the chain is logged and retried on the
-next tick, because a watcher that exits on a dropped connection is a supplier that silently stops
-bidding.
+once per process: a subscription can replay a log after a reconnection, and bidding twice costs a
+second stake and reverts on chain.
+
+## How it listens
+
+`viem`'s `watchContractEvent` does the transport work.
+
+- Over `wss://`, it opens an `eth_subscribe` subscription and the chain pushes. This is the default
+  in the three configurations, and `wss://rpc.testnet.arc.io` answers `eth_subscribe` for both
+  `logs` and `newHeads`.
+- Over `https://`, it tries `eth_newFilter`, which Arc's public endpoint answers with
+  `The method "eth_newFilter" does not exist / is not available.`, and falls back to polling
+  `eth_getLogs`.
+
+Both were measured against Arc testnet on 2026-09-11. Neither path is worth hand-rolling, and the
+fallback is what makes an HTTP endpoint usable at all.
+
+`TermsPublished` carries every public requirement. The bid deadline is not on it, so it is read from
+`auctions(auctionId)`.
 
 ## The price range
 

@@ -11,6 +11,11 @@ export const agentConfigSchema = z
   .object({
     name: z.string().min(1),
     relayUrl: z.url(),
+    /**
+     * `wss://` is the default, because viem then watches `TermsPublished` with `eth_subscribe`.
+     * An `https://` URL works and falls back to polling `eth_getLogs`: Arc's public endpoint
+     * answers `eth_newFilter` with "does not exist / is not available".
+     */
     rpcUrl: z.url(),
     sealedAuction: addressSchema,
     /**

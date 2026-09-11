@@ -1,8 +1,8 @@
-import { createWalletClient, http, type Abi, type WalletClient } from "viem";
+import { createWalletClient, type Abi, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { BID_TYPES, bidDomain, bidMessage, type Bid } from "../../shared/bid.ts";
-import { arc, createArcClient } from "./chain.ts";
+import { arc, arcTransport, createArcClient } from "./chain.ts";
 
 /**
  * Everything an agent needs from its wallet, and nothing else. Three members: who it is, how it
@@ -38,7 +38,7 @@ export function createLocalSigner(options: {
   const wallet: WalletClient = createWalletClient({
     account,
     chain,
-    transport: http(options.rpcUrl),
+    transport: arcTransport(options.rpcUrl),
   });
   const reader = createArcClient(options.rpcUrl);
 

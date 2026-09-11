@@ -1,17 +1,5 @@
-/** The slice of `SealedAuction` an agent touches: two events it reads, one call it writes. */
+/** The slice of `SealedAuction` an agent touches: one event it listens to, the reads and the write. */
 export const sealedAuctionAbi = [
-  {
-    type: "event",
-    name: "AuctionCreated",
-    inputs: [
-      { name: "auctionId", type: "bytes32", indexed: true },
-      { name: "buyer", type: "address", indexed: true },
-      { name: "createdAt", type: "uint64", indexed: false },
-      { name: "bidDeadline", type: "uint64", indexed: false },
-      { name: "finalizeDeadline", type: "uint64", indexed: false },
-      { name: "receiptDeadline", type: "uint64", indexed: false },
-    ],
-  },
   {
     type: "event",
     name: "TermsPublished",
@@ -57,6 +45,26 @@ export const sealedAuctionAbi = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ type: "bytes32" }],
+  },
+  {
+    type: "function",
+    name: "auctions",
+    stateMutability: "view",
+    inputs: [{ type: "bytes32" }],
+    outputs: [
+      { name: "state", type: "uint8" },
+      { name: "buyer", type: "address" },
+      { name: "createdAt", type: "uint64" },
+      { name: "bidDeadline", type: "uint64" },
+      { name: "finalizeDeadline", type: "uint64" },
+      { name: "receiptDeadline", type: "uint64" },
+      { name: "policyHash", type: "bytes32" },
+      { name: "payoutCap", type: "uint256" },
+      { name: "winner", type: "address" },
+      { name: "payout", type: "uint256" },
+      { name: "stakeReleased", type: "bool" },
+      { name: "stakeSlashed", type: "bool" },
+    ],
   },
   {
     type: "function",

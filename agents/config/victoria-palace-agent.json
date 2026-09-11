@@ -1,7 +1,7 @@
 {
   "name": "victoria-palace-agent",
   "relayUrl": "http://localhost:8787",
-  "rpcUrl": "https://rpc.testnet.arc.network",
+  "rpcUrl": "wss://rpc.testnet.arc.io",
   "sealedAuction": "0x0000000000000000000000000000000000000000",
   "hotel": { "hotelId": "lp44d1f", "hotelName": "Victoria Palace Hotel", "stars": 4 },
   "priceRange": { "min": 380000000, "max": 420000000 },

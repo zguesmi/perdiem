@@ -1,7 +1,7 @@
 {
   "name": "hotel-astoria-agent",
   "relayUrl": "http://localhost:8787",
-  "rpcUrl": "https://rpc.testnet.arc.network",
+  "rpcUrl": "wss://rpc.testnet.arc.io",
   "sealedAuction": "0x0000000000000000000000000000000000000000",
   "hotel": { "hotelId": "lp2f82e", "hotelName": "Hotel Astoria - Astotel", "stars": 3 },
   "priceRange": { "min": 300000000, "max": 360000000 },

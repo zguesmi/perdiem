@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { encodeAbiParameters, encodeEventTopics, type Log, type PublicClient } from "viem";
+import type { PublicClient } from "viem";
 
-import { sealedAuctionAbi } from "../src/abi.ts";
 import type { AuctionTerms } from "../src/tools.ts";
-import { watchAuctions } from "../src/watcher.ts";
+import { watchAuctions, type PublicRequirements } from "../src/watcher.ts";
 
 const SEALED_AUCTION = "0x000000000000000000000000000000000000dEaD" as const;
-const BUYER = "0x0000000000000000000000000000000000000b0b" as const;
+const FIRST = `0x${"a1".repeat(32)}` as const;
+const SECOND = `0x${"b2".repeat(32)}` as const;
 
-const requirements = {
+const requirements: PublicRequirements = {
   city: "Paris",
   checkin: "2026-10-12",
   checkout: "2026-10-14",
@@ -17,98 +17,92 @@ const requirements = {
   roomType: "double",
   numberOfRooms: 1,
   tradeDownStars: 3,
-} as const;
+};
 
-/** The two logs `createAuction` emits, encoded as the chain would return them. */
-function auctionLogs(auctionId: `0x${string}`): Log[] {
-  const created = {
-    topics: encodeEventTopics({
-      abi: sealedAuctionAbi,
-      eventName: "AuctionCreated",
-      args: { auctionId, buyer: BUYER },
-    }),
-    data: encodeAbiParameters(
-      [{ type: "uint64" }, { type: "uint64" }, { type: "uint64" }, { type: "uint64" }],
-      [1n, 7_200n, 14_400n, 21_600n],
-    ),
-  };
-  const published = {
-    topics: encodeEventTopics({
-      abi: sealedAuctionAbi,
-      eventName: "TermsPublished",
-      args: { auctionId },
-    }),
-    data: encodeAbiParameters(
-      [
-        { type: "uint256" },
-        {
-          type: "tuple",
-          components: [
-            { name: "city", type: "string" },
-            { name: "checkin", type: "string" },
-            { name: "checkout", type: "string" },
-            { name: "minStars", type: "uint8" },
-            { name: "roomType", type: "string" },
-            { name: "numberOfRooms", type: "uint8" },
-            { name: "tradeDownStars", type: "uint8" },
-          ],
-        },
-      ],
-      [750_000_000n, requirements],
-    ),
-  };
+/** The auction record as the generated getter returns it. Index 3 is `bidDeadline`. */
+const auctionRecord = [
+  2,
+  "0x0000000000000000000000000000000000000b0b",
+  1n,
+  7_200n,
+  14_400n,
+  21_600n,
+  `0x${"00".repeat(32)}`,
+  750_000_000n,
+  "0x0000000000000000000000000000000000000000",
+  0n,
+  false,
+  false,
+];
 
-  return [created, published].map(
-    (log) => ({ ...log, address: SEALED_AUCTION, blockNumber: 1n }) as unknown as Log,
-  );
+interface Emitter {
+  client: PublicClient;
+  emit: (auctionIds: `0x${string}`[]) => void;
+  fail: (error: Error) => void;
+  unwatched: () => number;
 }
 
-/** A chain that answers a fixed script of `getLogs` calls, one per tick. */
-function fakeClient(ticks: (Log[] | Error)[]) {
-  let tick = 0;
+/** A chain that hands logs to whatever `watchContractEvent` registered. */
+function fakeClient(options: { readFails?: boolean } = {}): Emitter {
+  let onLogs: (logs: unknown[]) => void = () => {};
+  let onError: (error: Error) => void = () => {};
+  let unwatched = 0;
+
+  const client = {
+    watchContractEvent: (parameters: {
+      onLogs: (logs: unknown[]) => void;
+      onError: (error: Error) => void;
+    }) => {
+      onLogs = parameters.onLogs;
+      onError = parameters.onError;
+      return () => {
+        unwatched += 1;
+      };
+    },
+    readContract: async () => {
+      if (options.readFails) {
+        throw new Error("rpc down");
+      }
+      return auctionRecord;
+    },
+  } as unknown as PublicClient;
+
   return {
-    calls: () => tick,
-    client: {
-      getBlockNumber: async () => BigInt(tick + 1),
-      getLogs: async () => {
-        const answer = ticks[tick] ?? [];
-        tick += 1;
-        if (answer instanceof Error) {
-          throw answer;
-        }
-        return answer;
-      },
-    } as unknown as PublicClient,
+    client,
+    emit: (auctionIds) => onLogs(auctionIds.map((auctionId) => ({ args: { auctionId, requirements } }))),
+    fail: (error) => onError(error),
+    unwatched: () => unwatched,
   };
 }
 
-/** Runs the watcher until it has seen `ticks` reads, then aborts it. */
-async function watch(ticks: (Log[] | Error)[]): Promise<AuctionTerms[]> {
+/** Starts a watcher, runs `body` against it, then aborts and waits for it to stop. */
+async function watching(
+  emitter: Emitter,
+  body: (seen: AuctionTerms[]) => void,
+): Promise<AuctionTerms[]> {
   const seen: AuctionTerms[] = [];
   const stopping = new AbortController();
-  const { client, calls } = fakeClient(ticks);
-
-  const watching = watchAuctions(
-    client,
+  const watched = watchAuctions(
+    emitter.client,
     SEALED_AUCTION,
-    { fromBlock: 1n, pollMs: 1, signal: stopping.signal },
+    { signal: stopping.signal },
     (auction) => seen.push(auction),
   );
 
-  while (calls() < ticks.length) {
-    await new Promise((resolve) => setTimeout(resolve, 2));
-  }
+  body(seen);
+  // The bid deadline is read from the chain, so every auction lands one microtask later.
+  await new Promise((resolve) => setTimeout(resolve, 5));
+
   stopping.abort();
-  await watching;
+  await watched;
 
   return seen;
 }
 
-const FIRST = `0x${"a1".repeat(32)}` as const;
-const SECOND = `0x${"b2".repeat(32)}` as const;
+test("hands every new auction to the bidder, with its terms and its deadline", async () => {
+  const emitter = fakeClient();
 
-test("hands every auction in a range to the bidder", async () => {
-  const seen = await watch([[...auctionLogs(FIRST), ...auctionLogs(SECOND)]]);
+  const seen = await watching(emitter, () => emitter.emit([FIRST, SECOND]));
 
   assert.deepEqual(
     seen.map((auction) => auction.auctionId),
@@ -119,7 +113,13 @@ test("hands every auction in a range to the bidder", async () => {
 });
 
 test("keeps listening after an auction, and never fires the same one twice", async () => {
-  const seen = await watch([auctionLogs(FIRST), auctionLogs(FIRST), auctionLogs(SECOND)]);
+  const emitter = fakeClient();
+
+  const seen = await watching(emitter, () => {
+    emitter.emit([FIRST]);
+    emitter.emit([FIRST]);
+    emitter.emit([SECOND]);
+  });
 
   assert.deepEqual(
     seen.map((auction) => auction.auctionId),
@@ -127,11 +127,33 @@ test("keeps listening after an auction, and never fires the same one twice", asy
   );
 });
 
-test("survives a dropped remote procedure call and reads the next tick", async () => {
-  const seen = await watch([new Error("connection reset"), auctionLogs(FIRST)]);
+test("a failed read drops that auction and leaves the watcher listening", async () => {
+  const emitter = fakeClient({ readFails: true });
+
+  const seen = await watching(emitter, () => emitter.emit([FIRST]));
+
+  assert.deepEqual(seen, []);
+  assert.equal(emitter.unwatched(), 1);
+});
+
+test("a transport error does not stop the watcher", async () => {
+  const emitter = fakeClient();
+
+  const seen = await watching(emitter, () => {
+    emitter.fail(new Error("connection reset"));
+    emitter.emit([FIRST]);
+  });
 
   assert.deepEqual(
     seen.map((auction) => auction.auctionId),
     [FIRST],
   );
+});
+
+test("aborting the signal unwatches exactly once", async () => {
+  const emitter = fakeClient();
+
+  await watching(emitter, () => {});
+
+  assert.equal(emitter.unwatched(), 1);
 });
