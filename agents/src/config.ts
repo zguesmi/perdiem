@@ -10,14 +10,6 @@ import { addressSchema } from "../../shared/bid.ts";
 export const agentConfigSchema = z
   .object({
     name: z.string().min(1),
-    relayUrl: z.url(),
-    /**
-     * `wss://` is the default, because viem then watches `TermsPublished` with `eth_subscribe`.
-     * An `https://` URL works and falls back to polling `eth_getLogs`: Arc's public endpoint
-     * answers `eth_newFilter` with "does not exist / is not available".
-     */
-    rpcUrl: z.url(),
-    sealedAuction: addressSchema,
     /**
      * The hotel this supplier sells. It is an operator's choice, checked against the supplier's own
      * catalogue before the agent runs, so the enclave can book it. Nothing but the identifier is
@@ -46,6 +38,29 @@ export type AgentConfig = z.infer<typeof agentConfigSchema>;
 export async function loadAgentConfig(path: string): Promise<AgentConfig> {
   return agentConfigSchema.parse(JSON.parse(await readFile(path, "utf8")));
 }
+
+/**
+ * Where the agent reads and writes: the chain, the escrow and the relay. One deployment serves
+ * every agent, so these are environment variables and not per-agent configuration, and
+ * `onchain/scripts/deploy.ts` writes two of them.
+ *
+ * The RPC URL is an `http://` or `https://` endpoint. The agent watches `TermsPublished` by
+ * reading `eth_getLogs` over a range it tracks itself, so it needs neither `eth_subscribe` nor
+ * `eth_newFilter`.
+ */
+export const deploymentSchema = z
+  .object({
+    ARC_RPC_URL: z.url(),
+    SEALED_AUCTION_ADDRESS: addressSchema,
+    RELAY_URL: z.url(),
+  })
+  .transform((environment) => ({
+    rpcUrl: environment.ARC_RPC_URL,
+    sealedAuction: environment.SEALED_AUCTION_ADDRESS,
+    relayUrl: environment.RELAY_URL,
+  }));
+
+export type Deployment = z.infer<typeof deploymentSchema>;
 
 /** The supplier's own booking API, sealed into the envelope so the enclave can book for it. */
 export const bookingCredentialsSchema = z

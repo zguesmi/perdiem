@@ -69,17 +69,21 @@ second stake and reverts on chain.
 
 ## How it listens
 
-`viem`'s `watchContractEvent` does the transport work.
+One `eth_getLogs` per interval, over the block range the agent tracks itself, starting at the block
+it read before it began.
 
-- Over `wss://`, it opens an `eth_subscribe` subscription and the chain pushes. This is the default
-  in the three configurations, and `wss://rpc.testnet.arc.io` answers `eth_subscribe` for both
-  `logs` and `newHeads`.
-- Over `https://`, it tries `eth_newFilter`, which Arc's public endpoint answers with
-  `The method "eth_newFilter" does not exist / is not available.`, and falls back to polling
-  `eth_getLogs`.
+Polling is not the fallback here, it is the choice. A subscription and an `eth_newFilter` filter are
+both created asynchronously and start at whatever block they land on, so an auction that opens
+during startup reaches neither, and a supplier that misses an auction bids on nothing. Reading the
+block number first closes that window: the log is fetched from a block that is already in the past.
 
-Both were measured against Arc testnet on 2026-09-11. Neither path is worth hand-rolling, and the
-fallback is what makes an HTTP endpoint usable at all.
+A node filter costs more than it saves. Hardhat answers `eth_getFilterChanges` with an empty array
+for the life of some filters, which drops an auction with no error on either side, and Arc's public
+HTTP endpoint answers `eth_newFilter` with
+`The method "eth_newFilter" does not exist / is not available.` `viem`'s `watchContractEvent` uses a
+filter wherever one can be created, so the agent does not use it.
+
+The cost: one `eth_getLogs` per polling interval per agent, instead of a pushed log.
 
 `TermsPublished` carries every public requirement. The bid deadline is not on it, so it is read from
 `auctions(auctionId)`.
@@ -103,6 +107,22 @@ path and is not written yet.
 
 The bid signature and the chain calls come from the same address, because `commit` pulls the stake
 from the caller and the enclave checks that the bid's signer staked.
+
+## Configuration and environment
+
+`config/<name>.json` holds what is this supplier's own: the hotel, the price range, the model and
+the effort. Where the agent reads and writes is one deployment shared by all three, so it comes from
+the environment.
+
+| Variable                 | What it is                                          |
+| ------------------------ | --------------------------------------------------- |
+| `ARC_RPC_URL`            | the chain, over HTTP                                |
+| `SEALED_AUCTION_ADDRESS` | the escrow, written by the local deploy script      |
+| `RELAY_URL`              | where the sealed bid is posted                      |
+| `AGENT_PRIVATE_KEY`      | this agent's wallet. One per process                |
+| `ANTHROPIC_API_KEY`      | the model that prices the bid                       |
+| `BOOKING_URL`            | the supplier's own booking API, sealed into the bid |
+| `BOOKING_API_KEY`        | the key that opens it, sealed into the bid          |
 
 ## Commands
 
