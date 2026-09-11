@@ -1,11 +1,10 @@
 {
+  "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["es2023"],
-    "module": "node20",
-    "target": "es2023",
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "types": ["node"],
-    "verbatimModuleSyntax": true
+    // Nothing here is emitted: `build` is `hardhat compile`, and the scripts run through Hardhat's
+    // own loader. Declarations would force a type annotation on every Ignition module.
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false
   }
 }

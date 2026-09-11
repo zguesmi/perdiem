@@ -3,8 +3,8 @@
 ## Project layout
 
 ```
-contracts/        Solidity source files (*.sol).
-test/             Solidity unit tests (*.t.sol), their mocks, and TypeScript integration tests
+contracts/        Solidity source files (*.sol). `mocks/` holds local stand-ins
+test/             Solidity unit tests (*.t.sol)
 ignition/         Hardhat Ignition deployment modules
 scripts/          Standalone scripts run with `hardhat run`
 hardhat.config.ts

@@ -171,6 +171,9 @@ importers:
       '@nomicfoundation/hardhat-ignition':
         specifier: ^3.1.8
         version: 3.1.8(@nomicfoundation/hardhat-verify@3.1.0(hardhat@3.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)))(bufferutil@4.1.0)(hardhat@3.16.0(bufferutil@4.1.0)(utf-8-validate@6.0.6))(utf-8-validate@6.0.6)
+      '@nomicfoundation/hardhat-ignition-viem':
+        specifier: ^3.1.6
+        version: 3.1.6
       '@nomicfoundation/hardhat-toolbox-viem':
         specifier: ^5.0.7
         version: 5.0.7(dc8c55a33289822f8b8cd12f753441d5)
