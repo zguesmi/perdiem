@@ -7,7 +7,7 @@ One page, five panels, read top to bottom during the demo:
 3. **Bids** — commitment hashes only until settlement, then the full bids, so the audience sees why
    the cheapest one lost.
 4. **Enclave** — a live tail of the simulation log. The policy never appears here.
-5. **Settlement** — winner, payout, refund, stake refunds, receipt hash, LiteAPI booking response.
+5. **Settlement** — winner, payout, refund, stake refunds, booking id.
 
 No design work beyond a clean default. No mobile layout.
 

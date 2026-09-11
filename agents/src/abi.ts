@@ -57,13 +57,10 @@ export const sealedAuctionAbi = [
       { name: "createdAt", type: "uint64" },
       { name: "bidDeadline", type: "uint64" },
       { name: "finalizeDeadline", type: "uint64" },
-      { name: "receiptDeadline", type: "uint64" },
       { name: "policyHash", type: "bytes32" },
       { name: "payoutCap", type: "uint256" },
       { name: "winner", type: "address" },
       { name: "payout", type: "uint256" },
-      { name: "stakeReleased", type: "bool" },
-      { name: "stakeSlashed", type: "bool" },
     ],
   },
   {
