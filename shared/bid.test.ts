@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { privateKeyToAccount } from "viem/accounts";
-import { verifyTypedData } from "viem";
+import { keccak256, toHex, verifyTypedData } from "viem";
 
 import {
   BID_TYPES,
@@ -14,7 +14,12 @@ import {
   bidSchema,
   bidsRoot,
 } from "./bid.ts";
-import { referenceBid, REFERENCE_SALT, REFERENCE_SIGNER_KEY, VERIFYING_CONTRACT } from "./reference-bid.ts";
+import {
+  referenceBid,
+  REFERENCE_SALT,
+  REFERENCE_SIGNER_KEY,
+  VERIFYING_CONTRACT,
+} from "./reference-bid.ts";
 import { ARC_CHAIN_ID } from "./chain.ts";
 
 const ZERO = `0x${"00".repeat(32)}` as const;
@@ -79,17 +84,36 @@ test("roots the empty commitment set at bytes32(0)", () => {
   assert.equal(bidsRoot([]), ZERO);
 });
 
+/**
+ * The two roots below are pinned in `onchain/test/SealedAuction.t.sol` against the same three
+ * commitments. `abi.encodePacked` and `abi.encode` root the same array differently, and a suite
+ * that pins neither agrees with whichever one it happens to use.
+ */
 test("roots commitments in arrival order, not sorted order", () => {
-  const a = `0x${"01".repeat(32)}` as const;
-  const b = `0x${"02".repeat(32)}` as const;
+  const commitments = [
+    keccak256(toHex("A")),
+    keccak256(toHex("B")),
+    keccak256(toHex("C")),
+  ] as const;
+  const [a, b, c] = commitments;
 
-  assert.notEqual(bidsRoot([b, a]), bidsRoot([a, b]));
+  assert.equal(
+    bidsRoot(commitments),
+    "0xffdbd9c1b65b61303d9298cfb6afcb3114a6ec8400b2280b102f32a581913b7f",
+  );
+  assert.equal(
+    bidsRoot([c, a, b]),
+    "0x4bab02b90a0348eb8ab4956b0e013ef1c3d7a4d77ad3c9253857dd8d0e561d1f",
+  );
 });
 
 test("hashes a bid whose supplier address is not checksummed", () => {
   // A Circle wallet address arrives lowercased often enough that a throw here would look like a
   // signing bug rather than a formatting one.
-  const lowercased = { ...referenceBid, supplier: referenceBid.supplier.toLowerCase() as `0x${string}` };
+  const lowercased = {
+    ...referenceBid,
+    supplier: referenceBid.supplier.toLowerCase() as `0x${string}`,
+  };
 
   assert.equal(bidHash(lowercased), bidHash(referenceBid));
 });

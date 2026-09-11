@@ -3,6 +3,9 @@ pragma solidity ^0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
+import {IReceiver} from "../contracts/IReceiver.sol";
 import {SealedAuction} from "../contracts/SealedAuction.sol";
 import {MockUSDC} from "../contracts/mocks/MockUSDC.sol";
 
@@ -51,6 +54,23 @@ contract SealedAuctionTest is Test {
 
     /// The same three commitments in the order C, A, B.
     bytes32 internal constant SHUFFLED_BIDS_ROOT = 0x4bab02b90a0348eb8ab4956b0e013ef1c3d7a4d77ad3c9253857dd8d0e561d1f;
+
+    /// The auction the pinned reports below were encoded against. Any value: nothing derives it.
+    bytes32 internal constant FIXTURE_AUCTION_ID = keccak256("the auction");
+
+    /**
+     * The three report bodies the enclave's encoder produced, pinned identically in
+     * `shared/report.test.ts`. A member reordered on one side fails one of the two suites; a body
+     * the tests build themselves agrees with whatever the tests do.
+     */
+    bytes internal constant CLAIM_REPORT =
+        hex"0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000204a6f6558ddbe534c870896c026435a848d633bcddadbb5ffdc7c84ba111a3827";
+
+    bytes internal constant SETTLEMENT_REPORT =
+        hex"00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000000204a6f6558ddbe534c870896c026435a848d633bcddadbb5ffdc7c84ba111a382700000000000000000000000000000000000000000000000000000000000000a3000000000000000000000000000000000000000000000000000000001a39de003d6505bc416908666b6dde75e609ac6fa0f6231177936c6027c9f5320a390993ffdbd9c1b65b61303d9298cfb6afcb3114a6ec8400b2280b102f32a581913b7f00000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000c6c702d626f6f6b696e672d310000000000000000000000000000000000000000";
+
+    bytes internal constant NO_WINNER_REPORT =
+        hex"00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000204a6f6558ddbe534c870896c026435a848d633bcddadbb5ffdc7c84ba111a3827000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003d6505bc416908666b6dde75e609ac6fa0f6231177936c6027c9f5320a390993ffdbd9c1b65b61303d9298cfb6afcb3114a6ec8400b2280b102f32a581913b7f00000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000";
 
     /// The moment the auction under test was opened. Every deadline is an offset from it.
     uint64 internal openedAt;
@@ -383,6 +403,33 @@ contract SealedAuctionTest is Test {
         settle(winningSettlement(auctionId));
     }
 
+    /// Both writes of one run, decoded from the bytes the enclave's encoder actually produced.
+    function test_onReport_decodesTheClaimAndTheSettlementTheEnclaveEncoded() public pure {
+        (uint8 claimAction, bytes memory claimPayload) = abi.decode(CLAIM_REPORT, (uint8, bytes));
+        (uint8 settleAction, bytes memory settlePayload) = abi.decode(SETTLEMENT_REPORT, (uint8, bytes));
+        SealedAuction.Settlement memory settlement = abi.decode(settlePayload, (SealedAuction.Settlement));
+
+        assertEq(claimAction, ACTION_CLAIM);
+        assertEq(abi.decode(claimPayload, (bytes32)), FIXTURE_AUCTION_ID);
+        assertEq(settleAction, ACTION_SETTLE);
+        assertEq(settlement.auctionId, FIXTURE_AUCTION_ID);
+        assertEq(settlement.winner, SUPPLIER_C);
+        assertEq(settlement.payout, PAYOUT);
+        assertEq(settlement.policyHash, POLICY_HASH);
+        assertEq(settlement.bidsRoot, BIDS_ROOT);
+        assertEq(settlement.bookingId, BOOKING_ID);
+    }
+
+    /// An empty `bookingId` is the no-winner path, and a dynamic member is where two encoders drift.
+    function test_onReport_decodesASettlementWithNoWinner() public pure {
+        (, bytes memory payload) = abi.decode(NO_WINNER_REPORT, (uint8, bytes));
+        SealedAuction.Settlement memory settlement = abi.decode(payload, (SealedAuction.Settlement));
+
+        assertEq(settlement.winner, address(0));
+        assertEq(settlement.payout, 0);
+        assertEq(settlement.bookingId, "");
+    }
+
     /// The workflow never claimed the auction.
     function test_timeoutRefund_refundsFromBidding() public {
         bytes32 auctionId = biddingClosedAuction();
@@ -587,6 +634,20 @@ contract SealedAuctionTest is Test {
 
         assertEq(auction.commitmentOf(auctionId, STRANGER), bytes32(0));
         assertEq(auction.commitmentOf(keccak256("no such auction"), SUPPLIER_A), bytes32(0));
+    }
+
+    function test_supportsInterface_answersForTheReceiverAndForERC165() public view {
+        assertEq(type(IReceiver).interfaceId, bytes4(0x805f2132), "the forwarder probes this identifier");
+        assertTrue(auction.supportsInterface(type(IReceiver).interfaceId));
+        assertTrue(auction.supportsInterface(type(IERC165).interfaceId));
+    }
+
+    /**
+     * A receiver that claims every identifier is skipped, and silently: the forwarder delivers
+     * nothing while the workflow still reads a successful transaction.
+     */
+    function test_supportsInterface_rejectsTheWildcard() public view {
+        assertFalse(auction.supportsInterface(0xffffffff));
     }
 
     function test_bidsRoot_isZeroWithNoCommitments() public {
