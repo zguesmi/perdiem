@@ -59,7 +59,9 @@ swap and pop. `pendingSettlement` walks it and returns the first auction in `Bid
 `bidDeadline`.
 
 The bound is `MAX_OPEN_AUCTIONS`, 32. `createAuction` reverts with `OpenAuctionLimitReached` at the
-ceiling. Cost of that: a buyer cannot open a 33rd auction until an open one finalizes or times out.
+ceiling. Cost of that: the 32 slots are shared by every buyer, and a slot is held until its auction
+reaches `Finalized` or `Timeout`. A rejected settlement therefore holds one for `FINALIZE_PERIOD`, 4
+hours, because `pendingSettlement` skips a `Settling` auction and nothing else frees the slot.
 
 Removal is a linear walk over at most 32 entries rather than a second mapping, matching
 `commitmentOf`. Cost of that: up to 32 extra storage reads on every settlement.

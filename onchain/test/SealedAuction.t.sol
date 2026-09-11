@@ -582,6 +582,20 @@ contract SealedAuctionTest is Test {
         assertEq(auction.pendingSettlement(), bytes32(0));
     }
 
+    /// A claimed auction keeps its place in the list, so the scan has to step past it.
+    function test_pendingSettlement_stepsPastAnAuctionThatIsAlreadySettling() public {
+        fundExtraAuctions(1);
+        bytes32 claimed = openAuctionWith(POLICY_HASH, PAYOUT_CAP);
+        bytes32 next = openAuctionWith(POLICY_HASH, PAYOUT_CAP - 1);
+        commitInOrder(claimed, 0, 1, 2);
+        commitInOrder(next, 0, 1, 2);
+        vm.warp(openedAt + BID_PERIOD);
+
+        claim(claimed);
+
+        assertEq(auction.pendingSettlement(), next);
+    }
+
     /// Both terminal states drop the auction from the list the scan walks.
     function test_pendingSettlement_isZeroOnceEveryAuctionIsFinalizedOrTimedOut() public {
         fundExtraAuctions(1);
