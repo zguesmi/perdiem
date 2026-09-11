@@ -1,6 +1,6 @@
 # Give the workflow and the page something to read
 
-Status: ready-for-agent Type: task Blocked by: 04
+Status: resolved Type: task Blocked by: 04
 
 The workflow holds no state of its own. Every 60 seconds the cron has to answer "is there an auction
 to settle", and the Enclave has to answer "which commitments are on chain for it". Neither question
@@ -31,16 +31,16 @@ What has to be true:
 
 ## Acceptance criteria
 
-- [ ] `pendingSettlement()` returns `bytes32(0)` when the only candidates are `Created`, `Settling`,
+- [x] `pendingSettlement()` returns `bytes32(0)` when the only candidates are `Created`, `Settling`,
       `Finalized` or `Timeout`.
-- [ ] It returns `bytes32(0)` before `bidDeadline`, even with commitments already in.
-- [ ] It returns an eligible `auctionId` when several qualify, and every one of them in turn as each
+- [x] It returns `bytes32(0)` before `bidDeadline`, even with commitments already in.
+- [x] It returns an eligible `auctionId` when several qualify, and every one of them in turn as each
       is settled.
 - [x] `commitments` returns the empty array for an unknown auction instead of reverting. Ticket 04.
 - [x] `auctions` returns every field the page and the workflow read, as listed in `docs/spec.md`.
       Ticket 04.
-- [ ] The open list drops an auction on `Finalized` and on `Timeout`, and one test drives both.
-- [ ] The scan has a written bound, and one test drives more auctions than that bound.
+- [x] The open list drops an auction on `Finalized` and on `Timeout`, and one test drives both.
+- [x] The scan has a written bound, and one test drives more auctions than that bound.
 
 ## Comments
 
@@ -51,3 +51,17 @@ ticket 04.
 
 `auctionId` is the keccak256 of the auction record, so there is no counter to scan.
 `pendingSettlement` needs a list of open auction ids, and that list is what is left of this ticket.
+
+## Resolution
+
+`_openAuctions` is a `bytes32[]`. `createAuction` pushes, `_settle` and `timeoutRefund` remove by
+swap and pop. `pendingSettlement` walks it and returns the first auction in `Bidding` past its
+`bidDeadline`.
+
+The bound is `MAX_OPEN_AUCTIONS`, 32. `createAuction` reverts with `OpenAuctionLimitReached` at the
+ceiling. Cost of that: the 32 slots are shared by every buyer, and a slot is held until its auction
+reaches `Finalized` or `Timeout`. A rejected settlement therefore holds one for `FINALIZE_PERIOD`, 4
+hours, because `pendingSettlement` skips a `Settling` auction and nothing else frees the slot.
+
+Removal is a linear walk over at most 32 entries rather than a second mapping, matching
+`commitmentOf`. Cost of that: up to 32 extra storage reads on every settlement.

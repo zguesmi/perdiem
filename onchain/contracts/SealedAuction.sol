@@ -77,6 +77,9 @@ contract SealedAuction {
     /// Commitments per auction. Settlement and every refund walk the array, so it stays bounded.
     uint256 public constant MAX_BIDS = 5;
 
+    /// Auctions that are neither finalized nor timed out. `pendingSettlement` walks them all.
+    uint256 public constant MAX_OPEN_AUCTIONS = 32;
+
     /// How long after creation a supplier may commit and seal a bid.
     uint64 public constant BID_PERIOD = 2 hours;
 
@@ -102,6 +105,12 @@ contract SealedAuction {
 
     mapping(bytes32 => Auction) public auctions;
 
+    /**
+     * Every auction that has not reached a terminal state. An `auctionId` is the hash of its
+     * record, so there is no counter to walk and a list is the only way to find one.
+     */
+    bytes32[] internal _openAuctions;
+
     /// The workflow and the relay read all three through the getters below.
     mapping(bytes32 => bytes32[]) internal _commitments;
     mapping(bytes32 => address[]) internal _committers;
@@ -124,6 +133,7 @@ contract SealedAuction {
     event StakeSlashed(bytes32 indexed auctionId, address indexed winner, address indexed buyer);
 
     error AuctionAlreadyExists();
+    error OpenAuctionLimitReached();
     error BadState();
     error BiddingClosed();
     error AlreadyCommitted();
@@ -169,6 +179,10 @@ contract SealedAuction {
         external
         returns (bytes32 auctionId)
     {
+        if (_openAuctions.length == MAX_OPEN_AUCTIONS) {
+            revert OpenAuctionLimitReached();
+        }
+
         uint64 createdAt = uint64(block.timestamp);
         Auction memory opened = Auction({
             state: State.Created,
@@ -190,6 +204,7 @@ contract SealedAuction {
             revert AuctionAlreadyExists();
         }
         auctions[auctionId] = opened;
+        _openAuctions.push(auctionId);
 
         usdc.safeTransferFrom(msg.sender, address(this), payoutCap);
 
@@ -316,11 +331,28 @@ contract SealedAuction {
         }
 
         auction.state = State.Timeout;
+        _closeAuction(auctionId);
 
         usdc.safeTransfer(auction.buyer, auction.payoutCap);
         _refundStakes(auctionId, address(0));
 
         emit AuctionTimedOut(auctionId);
+    }
+
+    /**
+     * @notice One auction the workflow can score now: it is in `Bidding` and its `bidDeadline` has
+     * passed. `bytes32(0)` when there is none. The cron reads this and nothing else.
+     * @dev The walk is over the open auctions, which `MAX_OPEN_AUCTIONS` caps and every terminal
+     * transition shortens.
+     */
+    function pendingSettlement() external view returns (bytes32) {
+        for (uint256 i = 0; i < _openAuctions.length; i++) {
+            Auction storage candidate = auctions[_openAuctions[i]];
+            if (candidate.state == State.Bidding && block.timestamp >= candidate.bidDeadline) {
+                return _openAuctions[i];
+            }
+        }
+        return bytes32(0);
     }
 
     /**
@@ -419,6 +451,7 @@ contract SealedAuction {
         auction.state = State.Finalized;
         auction.winner = settlement.winner;
         auction.payout = settlement.payout;
+        _closeAuction(settlement.auctionId);
 
         if (settlement.winner != address(0)) {
             usdc.safeTransfer(settlement.winner, settlement.payout);
@@ -427,6 +460,18 @@ contract SealedAuction {
         _refundStakes(settlement.auctionId, settlement.winner);
 
         emit AuctionFinalized(settlement.auctionId, settlement.winner, settlement.payout);
+    }
+
+    /// Drops a terminal auction from the open list, so the scan only ever walks live ones.
+    function _closeAuction(bytes32 auctionId) internal {
+        uint256 openCount = _openAuctions.length;
+        for (uint256 i = 0; i < openCount; i++) {
+            if (_openAuctions[i] == auctionId) {
+                _openAuctions[i] = _openAuctions[openCount - 1];
+                _openAuctions.pop();
+                return;
+            }
+        }
     }
 
     /// The winner's stake stays in the escrow until a receipt releases it or a slash pays it out.
