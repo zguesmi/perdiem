@@ -12,10 +12,10 @@ the winning bid itself, reads the booking id back, and carries it in the same Se
 The contract refuses a settlement that names a winner without a booking id. Nothing moves on a
 supplier's word.
 
-Booking needs the supplier's credentials, so each Sealed Bid envelope carries
-`booking: {baseUrl, apiKey}` beside the salt. They are not fields of the `Bid` type, so they never
-reach `hashStruct`, and the envelope is sealed to the enclave public key, so no rival and no node
-operator reads them.
+Booking needs the supplier's credentials, so each Sealed Bid envelope carries `bookingUrl` and
+`bookingApiKey` beside the salt. They are not fields of the `Bid` type, so they never reach
+`hashStruct`, and the envelope is sealed to the enclave public key, so no rival and no node operator
+reads them.
 
 ## How the write stays safe to repeat
 
@@ -46,10 +46,11 @@ any supplier, and only the public half is deployed. The enclave cannot generate 
 randomness, and `x25519.utils.randomPrivateKey()` throws `crypto.getRandomValues must be defined`
 there.
 
-`baseUrl` comes from the supplier, so a supplier can point the Enclave at a server it controls and
-be handed a booking id it invented. That buys it nothing the Bid did not already buy: the attributes
-were self-attested from the start, per `docs/adr/0004-bid-attributes-are-self-attested.md`. It is
-the supplier's own booking to fake, against its own stake and its own name.
+`bookingUrl` comes from the supplier, so a supplier can point the Enclave at a server it controls
+and be handed a booking id it invented. That buys it nothing the Bid did not already buy: the
+attributes were self-attested from the start, per
+`docs/adr/0004-bid-attributes-are-self-attested.md`. It is the supplier's own booking to fake,
+against its own stake and its own name.
 
 A booking that fails costs the auction. No booking means no winner: the Payout Cap and every Stake
 go back, and the Enclave does not fall through to the second-best bid. Falling through would mean

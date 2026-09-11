@@ -15,6 +15,9 @@ import {
 } from "./reference-bid.ts";
 import { openSealedBid, sealBid } from "./sealed-bid.ts";
 
+const BOOKING_URL = "https://api.liteapi.travel/v3.0";
+const BOOKING_API_KEY = "sand_00000000-0000-0000-0000-000000000000";
+
 const enclavePrivateKey = x25519.utils.randomSecretKey();
 const enclavePublicKey = x25519.getPublicKey(enclavePrivateKey);
 
@@ -28,10 +31,16 @@ async function signedPayload() {
     message: bidMessage(referenceBid),
   });
 
-  return { bid: referenceBid, salt: REFERENCE_SALT, signature };
+  return {
+    bid: referenceBid,
+    salt: REFERENCE_SALT,
+    signature,
+    bookingUrl: BOOKING_URL,
+    bookingApiKey: BOOKING_API_KEY,
+  };
 }
 
-test("round trips a bid, its salt and its signature", async () => {
+test("round trips a bid, its salt, its signature and its booking credentials", async () => {
   const payload = await signedPayload();
   const envelope = sealBid(payload, enclavePublicKey, REFERENCE_AUCTION_ID);
 
@@ -123,4 +132,35 @@ test("refuses to seal a payload the enclave would drop", async () => {
   assert.throws(() =>
     sealBid(withSaltInside as typeof payload, enclavePublicKey, REFERENCE_AUCTION_ID),
   );
+});
+
+test("keeps the booking credentials out of the bid hash", async () => {
+  // They sit beside the bid for the same reason the salt does: a member the EIP-712 type does not
+  // have cannot reach `hashStruct`, so no bid hash, commitment or signature moves.
+  const withCredentials = {
+    ...referenceBid,
+    bookingUrl: BOOKING_URL,
+    bookingApiKey: BOOKING_API_KEY,
+  };
+
+  assert.equal(bidHash(withCredentials as typeof referenceBid), bidHash(referenceBid));
+});
+
+test("refuses to seal a payload with no booking credentials", async () => {
+  // The enclave cannot book without them, and it drops what it cannot book.
+  const { bookingUrl, bookingApiKey, ...payload } = await signedPayload();
+
+  assert.throws(() =>
+    sealBid(
+      payload as typeof payload & { bookingUrl: string; bookingApiKey: string },
+      enclavePublicKey,
+      REFERENCE_AUCTION_ID,
+    ),
+  );
+});
+
+test("never writes the api key into the envelope in the clear", async () => {
+  const envelope = sealBid(await signedPayload(), enclavePublicKey, REFERENCE_AUCTION_ID);
+
+  assert.ok(!Buffer.from(envelope).includes(BOOKING_API_KEY));
 });

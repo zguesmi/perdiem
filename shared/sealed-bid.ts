@@ -38,6 +38,10 @@ export const sealedBidPayloadSchema = z
       (value) => isHex(value) && value.length > 2,
       "expected a hex-encoded signature",
     ),
+    // Beside the bid for the reason the salt is: a member the type does not have cannot reach
+    // `hashStruct`. Only the enclave reads them, and nothing logs them.
+    bookingUrl: z.url(),
+    bookingApiKey: z.string().min(1),
   })
   .strict();
 
