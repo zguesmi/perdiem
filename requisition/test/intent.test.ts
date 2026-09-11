@@ -9,7 +9,7 @@ import { createRequisitionApp } from "../src/app.ts";
 // docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md for the exact Policy shape.
 
 const intent =
-  "Paris, 12 to 14 October, one double room, 4 star minimum, within 2 km of Gare du Nord. " +
+  "Paris, 12 to 14 October, one double room, 4 star minimum. " +
   "Free cancellation is worth 50. Breakfast is worth 40. I would accept 3 star if at least 30% cheaper.";
 
 test("turns one sentence into a policy", async () => {

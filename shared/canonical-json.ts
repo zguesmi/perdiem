@@ -19,7 +19,7 @@ export function canonicalJson(value: unknown): string {
     if (typeof member === "number" && !Number.isSafeInteger(member)) {
       throw new Error(
         `canonicalJson cannot encode ${field}: ${member} is not a safe integer. Money is USDC ` +
-          `minor units, distance is metres and coordinates are microdegrees`,
+          `minor units`,
       );
     }
 
