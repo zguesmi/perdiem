@@ -116,6 +116,11 @@ books, and the hotel is now configuration.
 
 The sealed bid reaches the relay as a `0x` hex string. The enclave has to decode it the same way.
 
+An agent is a long-running process. `watchAuctions` polls `eth_getLogs` every 3 seconds and hands
+every new auction to the bidder without awaiting it, so a twelve-turn run never hides the next
+auction. An auction fires once. A failed read is logged and retried, because a watcher that exits on
+a dropped connection is a supplier that silently stops bidding. `SIGINT` and `SIGTERM` stop it.
+
 `getHotelId` is gone, against the ticket. The operator now picks each supplier's hotel from the
 LiteAPI catalogue once and writes it into `agents/config/<name>.json`, so the agent holds one tool
 and no LiteAPI key. Cost: the model no longer chooses a hotel, and a new supplier needs an operator

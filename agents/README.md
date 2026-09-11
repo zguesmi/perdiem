@@ -33,13 +33,19 @@ with them, so the agent has nothing to do after the bid deadline.
 
 ## What happens in one run
 
+An agent is a long-running process. It starts once, listens to `SealedAuction`, and bids on every
+auction that opens while it runs. `SIGINT` or `SIGTERM` stops it.
+
 ```mermaid
 flowchart TD
   main["main()"] --> load["loadAgentConfig, read prompts/NAME.txt"]
-  load --> print["print the rules"]
+  load --> print["print the hotel and the rules"]
   print --> reads["readContract: usdc, enclavePublicKey, SUPPLIER_STAKE"]
-  reads --> watch["nextAuction: poll getLogs for AuctionCreated and TermsPublished"]
-  watch --> run["runBidder: systemPrompt, then toolRunner"]
+  reads --> watch["watchAuctions: poll getLogs every 3 seconds, forever"]
+  watch -->|"a new auctionId"| bid["bidOn, not awaited"]
+  watch --> watch
+
+  bid --> run["runBidder: systemPrompt, then toolRunner"]
   run --> model["the model prices the stay"]
   model --> submit["submit: refuse a second bid, then submitBid"]
 
@@ -54,6 +60,12 @@ flowchart TD
 ```
 
 Every box below `submit` is Node, in that order. The model sees the first box and the last one.
+
+The watcher never awaits a bid. One auction that takes twelve model turns must not hide the next
+one, and one auction that fails must not stop the agent bidding on anything else. An auction fires
+once: a rescan of the same block is ignored. A failed read of the chain is logged and retried on the
+next tick, because a watcher that exits on a dropped connection is a supplier that silently stops
+bidding.
 
 ## The price range
 
