@@ -122,6 +122,18 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
     [13 — Can the enclave reach the relay](scratch/verification/issues/13-can-the-enclave-reach-the-relay.md)
   - Evidence:
     [13 — The confidential handler reaches a relay on localhost](evidence/13-can-the-enclave-reach-the-relay.md)
+- V14 — the handler calls `POST` with a body through the same
+  `cre.capabilities.HTTPClient().sendRequest` row V2 used, and `Date.now()` works inside it. Search,
+  prebook and book chained took 7,650 ms against a 10 s per-request timeout. A duplicate write under
+  a shared `clientReference` is refused with code `4005` in 190 ms and the read-back returns one
+  record, so the handler writes with a deterministic key, discards the response and lets consensus
+  run over the read. The HTTP capability caps a response at 250 KB and a request at 120 KB: a plain
+  LiteAPI city search returned 589,856 bytes and failed the run with `[8]ResourceExhausted`, while
+  `maxRatesPerHotel: 1` brings it to 3,023.
+  - Ticket:
+    [14 — Enclave books through the supplier API](scratch/verification/issues/14-enclave-books-through-the-supplier-api.md)
+  - Evidence:
+    [14 — The confidential handler books through a supplier API](evidence/14-enclave-books-through-the-supplier-api.md)
 
 ## Circle
 
