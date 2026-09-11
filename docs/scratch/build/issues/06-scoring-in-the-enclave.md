@@ -1,9 +1,10 @@
 # Implement scoring inside the workflow
 
-Status: ready-for-agent Type: task Blocked by: 01
+Status: ready-for-agent Type: task Blocked by: 01, 27
 
-`workflow/src/scoring.ts` still declares `distanceKm` and plain `number` prices. Ticket 01 settled
-on `distanceMeters` and integer minor units, so correcting the stub's interface is part of the work.
+`workflow/src/scoring.ts` still declares `distanceKm` and plain `number` prices. Ticket 27 removes
+distance from the Bid, and ticket 01 settled on integer minor units, so correcting the stub's
+interface is part of the work.
 
 Scope boundary: this ticket is the pure scoring function. The rest of the Enclave pipeline is
 `docs/spec.md` step 7 and no ticket in this backlog owns it. That pipeline decrypts, checks the
