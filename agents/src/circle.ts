@@ -22,11 +22,10 @@ export type RunCircle = (args: readonly string[]) => Promise<string>;
 const execFileAsync = promisify(execFile);
 
 async function runCircleCli(args: readonly string[]): Promise<string> {
-  // The CLI refuses every command until its terms are accepted, and a long-running agent has no
-  // one to accept them at the prompt.
-  const { stdout } = await execFileAsync(circleBinary, [...args], {
-    env: { ...process.env, CIRCLE_ACCEPT_TERMS: "1" },
-  });
+  // The terms an operator accepts once with `circle terms accept` are recorded on disk, so nothing
+  // here accepts them. An agent that accepted them silently would be agreeing on the operator's
+  // behalf, and it would turn "the terms are not accepted" into a signing failure at the deadline.
+  const { stdout } = await execFileAsync(circleBinary, [...args]);
   return stdout;
 }
 

@@ -113,8 +113,9 @@ from the caller and the enclave checks that the bid's signer staked.
 
 `createCircleAgentSigner` drives the Circle CLI. The CLI is the whole client: it authenticates as a
 Circle user with a session opened by an email one-time code, every wallet endpoint it calls is
-user-scoped, and it accepts no API key. An operator runs `circle wallet login <email> --testnet`
-once per agent and the session lasts 28 days.
+user-scoped, and it accepts no API key. An operator runs `circle terms accept` once, then
+`circle wallet login <email> --testnet` once per agent, and the session lasts 28 days. Both are
+recorded on disk, so the agent itself accepts nothing and logs in to nothing.
 
 The wallet is an ERC-4337 smart contract account, so its signature recovers to the account's owner
 key and never to the wallet. The enclave binds the two with ERC-1271, and the address above is the
