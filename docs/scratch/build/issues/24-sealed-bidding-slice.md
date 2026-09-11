@@ -1,6 +1,6 @@
 # Run the sealed bidding half end to end
 
-Status: ready-for-agent Type: task Blocked by: 07, 09, 22, 23
+Status: resolved Type: task Blocked by: 07, 09, 23
 
 `scripts/demo-sealed-bidding.sh` runs steps 1 to 5 of the flow and stops there. It proves the
 privacy claim without the enclave: three commitments on chain, three ciphertexts at the relay, and
@@ -23,17 +23,20 @@ What it does not cover: scoring, settlement and the booking. Those are 05, 06, 1
 
 ## Acceptance criteria
 
-- [ ] The script starts a Hardhat node, deploys with ticket 23, starts the relay, opens an auction
+- [x] The script starts a Hardhat node, deploys with ticket 23, starts the relay, opens an auction
       with the `referencePolicy` hash, and runs the three agents.
-- [ ] It exits non-zero on the first failed step, and prints one line per step with a transaction
+- [x] It exits non-zero on the first failed step, and prints one line per step with a transaction
       hash or an HTTP status.
-- [ ] `commitments(auctionId)` returns three commitments. `GET /auctions/{auctionId}/bids` returns
+- [x] `commitments(auctionId)` returns three commitments. `GET /auctions/{auctionId}/bids` returns
       three ciphertexts.
-- [ ] No step prints the Policy, the maximum price, the preferences, a salt, a decrypted bid or an
+- [x] No step prints the Policy, the maximum price, the preferences, a salt, a decrypted bid or an
       `apiKey`.
-- [ ] It runs twice in a row with no manual cleanup.
+- [x] It runs twice in a row with no manual cleanup.
 
 ## Comments
+
+The suppliers sign with `createLocalSigner` here, so ticket 22 was never a blocker and is no longer
+listed as one.
 
 ## Dev review
 

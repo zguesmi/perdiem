@@ -78,7 +78,6 @@ const buyerAbi = [
       { name: "createdAt", type: "uint64" },
       { name: "bidDeadline", type: "uint64" },
       { name: "finalizeDeadline", type: "uint64" },
-      { name: "receiptDeadline", type: "uint64" },
     ],
   },
 ] as const;
