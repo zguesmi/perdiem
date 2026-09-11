@@ -1,4 +1,4 @@
-import { encodeAbiParameters, parseAbiParameters } from "viem";
+import { encodeAbiParameters, parseAbiParameters, zeroAddress } from "viem";
 
 /**
  * What the enclave writes to `SealedAuction`. A workflow's one write RPC carries no calldata, so
@@ -13,10 +13,19 @@ import { encodeAbiParameters, parseAbiParameters } from "viem";
 export const ACTION_CLAIM = 1;
 export const ACTION_SETTLE = 2;
 
-/** The only thing that leaves the enclave. `payout` is USDC minor units, `bookingId` empty when there is no winner. */
+/**
+ * The only thing that leaves the enclave. `payout` is USDC minor units, `bookingId` empty when there
+ * is no winner.
+ *
+ * `winner` is `null` when nothing won, which is what scoring reports when no bid is eligible and
+ * what the booking step reports when the booking fails. The zero address is the wire spelling of
+ * that, and this module is the only place the two are exchanged: an encoder that took the zero
+ * address instead would make "nobody won" and "an address that happens to be zero" the same value
+ * everywhere upstream.
+ */
 export type Settlement = {
   auctionId: `0x${string}`;
-  winner: `0x${string}`;
+  winner: `0x${string}` | null;
   payout: number;
   policyHash: `0x${string}`;
   bidsRoot: `0x${string}`;
@@ -39,7 +48,11 @@ export function encodeClaimReport(auctionId: `0x${string}`): `0x${string}` {
 
 export function encodeSettlementReport(settlement: Settlement): `0x${string}` {
   const payload = encodeAbiParameters(SETTLEMENT_PAYLOAD, [
-    { ...settlement, payout: BigInt(settlement.payout) },
+    {
+      ...settlement,
+      winner: settlement.winner ?? zeroAddress,
+      payout: BigInt(settlement.payout),
+    },
   ]);
   return encodeAbiParameters(REPORT_BODY, [ACTION_SETTLE, payload]);
 }

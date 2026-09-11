@@ -13,7 +13,11 @@ export interface ScoredBid {
   score: number;
 }
 
-export interface Settlement {
+/**
+ * What scoring alone decides. The enclave adds the auction, the hashes and the booking id to it
+ * before it encodes the `Settlement` that `shared/report.ts` puts on the wire.
+ */
+export interface ScoringResult {
   winner: string | null;
   payout: number;
 }
@@ -34,7 +38,7 @@ export interface Bid {
  * Eligibility, then score, then the winner. Deterministic integer arithmetic throughout: the same
  * inputs must produce the same settlement on every node.
  */
-export function settle(_policy: Policy, _bids: Bid[]): Settlement {
+export function settle(_policy: Policy, _bids: Bid[]): ScoringResult {
   throw new Error(
     "settle is not implemented yet. See docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md",
   );

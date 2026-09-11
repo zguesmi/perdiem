@@ -58,6 +58,18 @@ test("encodes a settlement with no winner and no booking id", () => {
   assert.equal(encodeSettlementReport(noWinner), NO_WINNER_REPORT);
 });
 
+/// Scoring reports `null` for no winner, and the wire spells it as the zero address.
+test("encodes a null winner as the zero address", () => {
+  const noWinner: Settlement = {
+    ...settlement,
+    winner: null,
+    payout: 0,
+    bookingId: "",
+  };
+
+  assert.equal(encodeSettlementReport(noWinner), NO_WINNER_REPORT);
+});
+
 test("prefixes each report with its own action", () => {
   const [claimAction] = decodeAbiParameters(parseAbiParameters("uint8, bytes"), CLAIM_REPORT);
   const [settleAction] = decodeAbiParameters(parseAbiParameters("uint8, bytes"), SETTLEMENT_REPORT);

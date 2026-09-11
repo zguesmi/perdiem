@@ -82,3 +82,16 @@ simulation, per row V1.
 `supportsInterface`, the Chainlink receiver template, and the Bids Root parity assertion.
 
 The report `kind` is an `action`. The bids root is hashed in arrival order, with no sort.
+
+## Review follow-ups
+
+Two findings from the review of this branch, both left open.
+
+- `Settlement.payout` is a `number` against a `uint256`, and there is no `settlementSchema` beside
+  `bidSchema` and `policySchema`. A fractional value fails as `RangeError` from `BigInt()` rather
+  than as a validation error. Above `Number.MAX_SAFE_INTEGER` the value loses precision before
+  `BigInt()` reads it, which is about 9e9 USDC and out of reach here.
+- The pinned report bodies in `onchain/test/SealedAuction.t.sol` are decoded by `abi.decode` in two
+  `pure` tests, never delivered through `onReport`. The tests that call `onReport` build their own
+  report. A length or prefix check added to `onReport` would leave both pinned tests green. Closing
+  this needs an auction opened at `FIXTURE_AUCTION_ID`, or the fixture rebuilt against a real one.
