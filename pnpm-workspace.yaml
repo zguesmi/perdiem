@@ -17,10 +17,5 @@ allowBuilds:
   esbuild: true
   utf-8-validate: false
 
-# pnpm holds back packages published very recently. Hardhat 3.16.0 is newer than that threshold and
-# is the version the project is pinned to, so it is excluded from the hold.
-minimumReleaseAgeExclude:
-  - hardhat@3.16.0
-
 storeDir: .pnpm-store
 cacheDir: .pnpm-cache
