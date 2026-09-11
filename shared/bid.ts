@@ -1,4 +1,4 @@
-import { concatHex, encodeAbiParameters, hashStruct, hashTypedData, keccak256 } from "viem";
+import { concatHex, encodeAbiParameters, hashStruct, hashTypedData, keccak256, toHex } from "viem";
 import { z } from "zod";
 
 import { ARC_CHAIN_ID } from "./chain.ts";
@@ -7,7 +7,7 @@ import { ARC_CHAIN_ID } from "./chain.ts";
  * The bid a supplier signs. Three hashes come off it, and swapping two of them drops honest bids:
  *
  * - `bidHash` is the EIP-712 struct hash. No salt, no domain.
- * - the signature is over `keccak256(0x1901 ‖ domainSeparator ‖ bidHash)`, which is `bidDigest`.
+ * - the signature is over `keccak256(0x1901 || domainSeparator || bidHash)`, which is `bidDigest`.
  * - the Bid Commitment is `keccak256(abi.encode(bidHash, salt))`.
  *
  * The salt is not a member of the struct, so a signature is checkable without it and the salt

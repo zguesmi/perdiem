@@ -12,20 +12,21 @@ import { bidSchema, bytes32Schema } from "./bid.ts";
  * salt and the bid space is small enough to brute-force the commitment in seconds without it.
  *
  * ```
- * envelope = epk(32) ‖ nonce(24) ‖ ciphertext
- * key      = HKDF-SHA256(X25519(esk, enclavePublicKey),
- *                        epk ‖ enclavePublicKey,
- *                        "perdiem/sealed-bid/v1" ‖ auctionId,
- *                        32)
+ * envelope = ephemeralPublicKey(32) || nonce(24) || ciphertext
+ * key      = HKDF-SHA256(
+ *              X25519(ephemeralSecretKey, enclavePublicKey),
+ *              ephemeralPublicKey || enclavePublicKey,
+ *              "perdiem/sealed-bid/v1" || auctionId,
+ *              32
+ *            )
  * ```
  *
- * The scheme and its rejected alternatives are in `docs/adr/0005-sealed-bid-envelope-scheme.md`.
- * Opening needs no randomness, which is what lets it run in the enclave: that runtime has no
- * `crypto.getRandomValues`, so sealing happens on Node and opening happens in the handler.
+ * Opening needs no randomness, which is what lets it run in the enclave: CRE runtime has no
+ * `crypto.getRandomValues`.
  */
 
-const EPHEMERAL_KEY_BYTES = 32;
-const NONCE_BYTES = 24;
+const EPHEMERAL_KEY_BYTE_LENGTH = 32;
+const NONCE_BYTE_LENGTH = 24;
 /** Bytes, not a string: `TextEncoder` is not in the inventory the enclave runtime was probed for. */
 const INFO_PREFIX = stringToBytes("perdiem/sealed-bid/v1");
 
@@ -79,15 +80,17 @@ export function sealBid(
   // enclave logs a count and no reason.
   sealedBidPayloadSchema.parse(payload);
 
-  const nonce = crypto.getRandomValues(new Uint8Array(NONCE_BYTES));
+  const nonce = crypto.getRandomValues(new Uint8Array(NONCE_BYTE_LENGTH));
   const ciphertext = xchacha20poly1305(key, nonce).encrypt(
     new TextEncoder().encode(JSON.stringify(payload)),
   );
 
-  const envelope = new Uint8Array(EPHEMERAL_KEY_BYTES + NONCE_BYTES + ciphertext.length);
+  const envelope = new Uint8Array(
+    EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH + ciphertext.length,
+  );
   envelope.set(ephemeralPublicKey);
-  envelope.set(nonce, EPHEMERAL_KEY_BYTES);
-  envelope.set(ciphertext, EPHEMERAL_KEY_BYTES + NONCE_BYTES);
+  envelope.set(nonce, EPHEMERAL_KEY_BYTE_LENGTH);
+  envelope.set(ciphertext, EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH);
 
   return envelope;
 }
@@ -102,13 +105,16 @@ export function openSealedBid(
   enclavePrivateKey: Uint8Array,
   auctionId: `0x${string}`,
 ): SealedBidPayload {
-  if (envelope.length <= EPHEMERAL_KEY_BYTES + NONCE_BYTES) {
+  if (envelope.length <= EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH) {
     throw new Error("sealed bid is too short to hold an ephemeral key, a nonce and a ciphertext");
   }
 
-  const ephemeralPublicKey = envelope.subarray(0, EPHEMERAL_KEY_BYTES);
-  const nonce = envelope.subarray(EPHEMERAL_KEY_BYTES, EPHEMERAL_KEY_BYTES + NONCE_BYTES);
-  const ciphertext = envelope.subarray(EPHEMERAL_KEY_BYTES + NONCE_BYTES);
+  const ephemeralPublicKey = envelope.subarray(0, EPHEMERAL_KEY_BYTE_LENGTH);
+  const nonce = envelope.subarray(
+    EPHEMERAL_KEY_BYTE_LENGTH,
+    EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH,
+  );
+  const ciphertext = envelope.subarray(EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH);
 
   const key = envelopeKey(
     x25519.getSharedSecret(enclavePrivateKey, ephemeralPublicKey),
@@ -120,7 +126,7 @@ export function openSealedBid(
   const plaintext = xchacha20poly1305(key, nonce).decrypt(ciphertext);
 
   // `Buffer` rather than `TextDecoder`: the enclave runtime is Javy, where `Buffer` is confirmed
-  // present and `TextDecoder` was never probed. See `docs/evidence/03-enclave-decrypts-sealed-bids.md`.
+  // present and `TextDecoder` was never probed.
   const payload = sealedBidPayloadSchema.parse(JSON.parse(Buffer.from(plaintext).toString("utf8")));
 
   // The HKDF binds the envelope to the auction, not the bid inside it. Without this, a supplier

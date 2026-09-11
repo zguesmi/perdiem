@@ -147,7 +147,7 @@ Bid(bytes32 auctionId,address supplier,string hotelId,string hotelName,uint8 sta
 Three hashes, and getting them the wrong way round is how honest bids get dropped:
 
 - `bidHash` is the EIP-712 `hashStruct` of that type. No salt, no domain.
-- The signature is over `keccak256(0x1901 ‖ domainSeparator ‖ bidHash)`.
+- The signature is over `keccak256(0x1901 || domainSeparator || bidHash)`.
 - The Bid Commitment is `keccak256(abi.encode(bidHash, salt))`.
 
 The salt is not a field of the Bid. It travels beside the Bid inside the Sealed Bid envelope, as
@@ -166,7 +166,7 @@ ECDSA signature from the account's owner key, and recovering it yields the owner
 The wallet is the address that stakes, wins and gets paid, so the wallet is the address the
 signature has to bind to. The check is therefore `eth_call isValidSignature(digest, signature)` on
 the supplier address, valid on the magic value `0x1626ba7e`, where `digest` is the signed
-`keccak256(0x1901 ‖ domainSeparator ‖ bidHash)` and not `bidHash`. `ecrecover` is tried first and
+`keccak256(0x1901 || domainSeparator || bidHash)` and not `bidHash`. `ecrecover` is tried first and
 accepted when it returns the supplier, which keeps `createLocalSigner` working. See
 `docs/scratch/verification/issues/07-circle-agent-stack-wallets.md`.
 
@@ -198,8 +198,8 @@ enough that keccak256 brute-forces the commitment in seconds without it.
   that bid, and only a count is logged. The signature check costs one `eth_call` per bid, because a
   contract-account supplier is checked with ERC-1271.
 
-The envelope is `epk(32) ‖ nonce(24) ‖ ciphertext`, with the key
-`HKDF-SHA256(X25519(esk, enclavePublicKey), epk ‖ enclavePublicKey, "perdiem/sealed-bid/v1" ‖ auctionId, 32)`
+The envelope is `epk(32) || nonce(24) || ciphertext`, with the key
+`HKDF-SHA256(X25519(esk, enclavePublicKey), epk || enclavePublicKey, "perdiem/sealed-bid/v1" || auctionId, 32)`
 and XChaCha20-Poly1305 over the JSON. One ephemeral keypair per bid. `@noble/curves`,
 `@noble/ciphers` and `@noble/hashes` on both sides, which `viem` already puts in the tree. Verified
 in a confidential handler, row V3: 11 ms per bid, 30 ms for three. A wrong key or one flipped byte
