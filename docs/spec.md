@@ -45,7 +45,7 @@ not compared with the bid price, and no cancellation path exists.
 | -------------- | ---------------------------------------------------------------------------- |
 | `onchain/`     | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
 | `workflow/`    | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
-| `agents/`      | Three supplier agents. One wraps the LiteAPI sandbox                         |
+| `agents/`      | Three supplier agents. A model prices, two tools execute                     |
 | `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding            |
 | `relay/`       | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
 | `web/`         | One page, five panels                                                        |
@@ -92,18 +92,15 @@ regenerated fixture.
     "checkout": "2026-10-14",
     "minStars": 4,
     "roomType": "double",
-    "numberOfRooms": 1,
-    "location": { "name": "Gare du Nord", "latitudeMicro": 48880900, "longitudeMicro": 2355300 },
-    "radiusMeters": 2000
+    "numberOfRooms": 1
   },
   "tradeDown": { "stars": 3, "requiredDiscountPercentage": 30 },
   "preferences": { "refundable": 50000000, "breakfastIncluded": 40000000 }
 }
 ```
 
-- Every number is an integer: money in USDC minor units, distance in metres, coordinates in
-  microdegrees. A fraction has more than one shortest decimal form, and one digit of disagreement
-  between two encoders produces two Policy Hashes.
+- Every number is an integer: money in USDC minor units. A fraction has more than one shortest
+  decimal form, and one digit of disagreement between two encoders produces two Policy Hashes.
 - The requisition service converts what the buyer typed into these integers once, before the buyer
   confirms. Nothing downstream converts anything.
 - A Preference Bonus is a flat number, not a rate: "20 a night" becomes what it is worth on this
@@ -114,9 +111,9 @@ regenerated fixture.
   so their bytes agree by construction. See `docs/adr/0003-canonical-encoding.md`.
 
 Public Requirements, emitted in `TermsPublished`: city, checkin, checkout, minStars, roomType,
-numberOfRooms, location, radiusMeters, `tradeDown.stars`. Never emitted: `maxPrice`,
-`tradeDown.requiredDiscountPercentage`, `preferences`. They have their own event because
-`AuctionCreated` carries only the identifier, the buyer and the deadlines.
+numberOfRooms, `tradeDown.stars`. Never emitted: `maxPrice`, `tradeDown.requiredDiscountPercentage`,
+`preferences`. They have their own event because `AuctionCreated` carries only the identifier, the
+buyer and the deadlines.
 
 The Payout Cap is padded above `maxPrice`, because `transferFrom` is public and an exact cap would
 publish the ceiling. Demo: Payout Cap 750, maximum price 520, Payout 440, refund 310. A workaround,
@@ -132,7 +129,6 @@ cap bounds the Payout and states nothing about what the buyer is willing to pay.
   "hotelId": "lp1a2b3",
   "hotelName": "Awesome Hotel",
   "stars": 4,
-  "distanceMeters": 1000,
   "price": 440000000,
   "refundable": true,
   "breakfastIncluded": true,
@@ -143,8 +139,7 @@ cap bounds the Payout and states nothing about what the buyer is willing to pay.
 
 ```
 Bid(bytes32 auctionId,address supplier,string hotelId,string hotelName,uint8 stars,
-    uint32 distanceMeters,uint256 price,bool refundable,bool breakfastIncluded,
-    string roomType,uint8 numberOfRooms)
+    uint256 price,bool refundable,bool breakfastIncluded,string roomType,uint8 numberOfRooms)
 ```
 
 Three hashes, and getting them the wrong way round is how honest bids get dropped:
@@ -182,11 +177,11 @@ The EIP-712 domain is fixed per deployment, so a signature for one auction on on
 be replayed against the same auction on another: `name "Perdiem"`, `version "1"`, `chainId` the Arc
 testnet chain id, `verifyingContract` the `SealedAuction` address.
 
-`stars`, `distanceMeters`, `refundable` and `breakfastIncluded` are self-attested and no oracle
-contradicts them. The booking is the exception: the Enclave books the winner itself, so `hotelId` is
-checked by the supplier's own API before any USDC moves. So the claim is "the payout went to the
-supplier that claimed the best fit against a private rule, and it booked", not "the best hotel
-wins". See `docs/adr/0004-bid-attributes-are-self-attested.md`.
+`stars`, `refundable` and `breakfastIncluded` are self-attested and no oracle contradicts them. The
+booking is the exception: the Enclave books the winner itself, so `hotelId` is checked by the
+supplier's own API before any USDC moves. So the claim is "the payout went to the supplier that
+claimed the best fit against a private rule, and it booked", not "the best hotel wins". See
+`docs/adr/0004-bid-attributes-are-self-attested.md`.
 
 ## Sealed Bid
 
@@ -288,7 +283,6 @@ Inside the Enclave. Deterministic integer arithmetic.
    failure; log counts only.
 2. Eligibility, per bid:
    - city, checkin, checkout, roomType and numberOfRooms equal the hard requirements.
-   - `distanceMeters <= radiusMeters`.
    - `price <= maxPrice`.
    - `stars >= minStars`, **or** the Trade-Down applies: `stars == tradeDown.stars` and
      `price * 100 <= cheapestEligibleAtMinStars * (100 - tradeDown.requiredDiscountPercentage)`.
@@ -338,11 +332,11 @@ One double room, two nights. Payout Cap 750, maximum price 520, `refundable` 50,
 `breakfastIncluded` 40. Whole USDC here for reading; the test carries the same figures in minor
 units.
 
-| Bid | Stars | Distance | Price | Refundable | Breakfast | Result                                                                                 |
-| --- | ----- | -------- | ----- | ---------- | --------- | -------------------------------------------------------------------------------------- |
-| A   | 3     | 500 m    | 330   | yes        | no        | Ineligible. 330 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
-| B   | 4     | 700 m    | 400   | no         | no        | Score 120                                                                              |
-| C   | 4     | 1000 m   | 440   | yes        | yes       | Score 80 + 50 + 40 = **170. Wins**                                                     |
+| Bid | Stars | Price | Refundable | Breakfast | Result                                                                                 |
+| --- | ----- | ----- | ---------- | --------- | -------------------------------------------------------------------------------------- |
+| A   | 3     | 330   | yes        | no        | Ineligible. 330 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
+| B   | 4     | 400   | no         | no        | Score 120                                                                              |
+| C   | 4     | 440   | yes        | yes       | Score 80 + 50 + 40 = **170. Wins**                                                     |
 
 Payout 440, refund 310. All three Stakes come back at settlement. This table is a test in
 `workflow/`.
@@ -487,15 +481,47 @@ committing them.
 
 ## Supplier agents
 
-Three processes, one codebase, three rate plans: hotel, stars, distance, base price, refundable,
-breakfast, margin.
+Three processes, one codebase, three prompts. Each agent is a Claude tool-calling loop. An operator
+starts it with one sentence of business rules, and the model reads the auction terms, applies the
+rules, and submits one Bid. See `docs/adr/0007-supplier-agents-decide-with-a-model.md`.
 
-- On start, call the LiteAPI sandbox for the Public Requirements and pick a real hotel and a real
-  rate as the base price, then apply the rate plan. That is the decision logic tied to a real
-  signal.
-- Build one Bid, sign it, commit with the Stake, post the Sealed Bid. Both before `bidDeadline`.
-- Seal its own `booking` credentials into that envelope. An agent never books: the Enclave books
-  with those credentials, so the agent has nothing to do after `bidDeadline`.
+```
+You sell 3-star rooms in Paris. Room price is 330 USDC for 1 or 2 nights,
+280 for 3 nights or more. In winter all prices drop to 240. Refundable,
+no breakfast. Bid on requests.
+```
+
+The model derives three things from the auction rather than the prompt: nights from
+`checkout - checkin`, season from the month of `checkin`, and a hotel at its own star level. Winter
+is December, January and February, named in the system prompt so nothing guesses.
+
+The model holds two tools and nothing else:
+
+- `getHotelId(city)` returns real hotel identifiers, names and star levels from the LiteAPI sandbox.
+  Any valid identifier is acceptable. The Enclave books against it, so it has to exist, and nothing
+  else about it is scored.
+- `submitBid(...)` validates the fields, checks the price band, hashes the Bid, signs it, draws a
+  salt, computes the Bid Commitment, seals `{bid, salt, signature, booking}`, commits on chain with
+  the Stake, and posts the ciphertext to the relay. All of it in Node, all of it before
+  `bidDeadline`.
+
+Those steps have one legal order, so they are one tool. Split apart, a model can seal without
+committing, commit without posting, or commit twice.
+
+The model never sees a hash, a salt, a signature or a private key. A model that wrote its own
+hashing would produce a commitment the Enclave drops, and that drop is silent.
+
+An agent never books. It seals its own `booking` credentials into the envelope and the Enclave books
+with them, so the agent has nothing to do after `bidDeadline`.
+
+Each agent's configuration carries a `priceBand`, and `submitBid` refuses a price outside it. The
+demo result is a knife edge: Agent A stays Ineligible only above 280, and Agent C wins only
+below 490. The band is configuration, not a hidden rule.
+
+The price is prompt-derived, not market-derived. LiteAPI supplies a real hotel, and the rate card
+comes from the operator, so the number is the supplier's own list price. The claim is "three agents
+priced one request by their own published rules", not "three agents priced against the market".
+There is no deterministic fallback: an Anthropic API outage means no bid.
 
 Each agent holds a Circle Agent Stack wallet, and that wallet signs the Bid and the `commit` call.
 This is what the Arc track asks for, so it ships. It is required, not optional. Two signer

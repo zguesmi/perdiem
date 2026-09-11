@@ -27,11 +27,10 @@ a hash and as a workflow secret. _Avoid_: Rules, criteria, preferences object
 exists.
 
 **Public Requirements**: The subset of the Policy emitted on chain: city, dates, minimum stars, room
-type, number of rooms, location, radius, and the trade-down star level. Everything else stays
-private.
+type, number of rooms, and the trade-down star level. Everything else stays private.
 
-**Bid**: One supplier's priced offer: hotel, stars, distance, price, and its attributes. _Avoid_:
-Offer, quote, proposal
+**Bid**: One supplier's priced offer: hotel, stars, price, and its attributes. _Avoid_: Offer,
+quote, proposal
 
 **Bid Commitment**: The keccak256 that binds a Bid on chain. Placed before the bid deadline, with
 the Stake. _Avoid_: Commitment hash, sealed hash
@@ -70,9 +69,8 @@ the Stakes. Not a separate contract.
 
 ### Scoring rules
 
-**Eligible**: A Bid that satisfies every hard requirement: city, dates, room type, room count,
-distance, price ceiling, and either the minimum stars or the Trade-Down. _Avoid_: Feasible, valid,
-qualifying
+**Eligible**: A Bid that satisfies every hard requirement: city, dates, room type, room count, price
+ceiling, and either the minimum stars or the Trade-Down. _Avoid_: Feasible, valid, qualifying
 
 **Trade-Down**: The rule that accepts a lower star level in exchange for a required discount against
 the cheapest Eligible bid at the minimum stars. _Avoid_: Fallback, downgrade, second tier
