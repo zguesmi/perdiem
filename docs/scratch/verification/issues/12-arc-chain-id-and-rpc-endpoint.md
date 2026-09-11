@@ -1,6 +1,6 @@
 # What is the Arc testnet chain id and public RPC endpoint?
 
-Status: closed Type: research
+Status: resolved Type: research
 
 `docs/spec.md` states chain id 5042002 in three places, and `docs/decisions.md` has no row for it.
 It came from reading, not from a connection. Everything downstream assumes it: the Hardhat network

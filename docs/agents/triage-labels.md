@@ -14,6 +14,8 @@ the top of an issue file.
 | `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
 | `wontfix`                  | `wontfix`            | Will not be actioned                     |
 
+A closed issue is `resolved`, whatever its `Type:`. Do not write `done` or `closed`.
+
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label
 string from this table.
 

@@ -1,6 +1,6 @@
 # Can the confidential handler reach a relay running on the developer's machine?
 
-Status: closed Type: research Blocked by: 01-cre-simulate-writes-to-arc.md,
+Status: resolved Type: research Blocked by: 01-cre-simulate-writes-to-arc.md,
 02-enclave-chain-read-and-confidential-http.md
 
 `docs/scratch/verification/issues/02` asks whether the handler can make a confidential HTTP call at

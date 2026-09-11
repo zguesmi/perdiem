@@ -1,6 +1,6 @@
 # What is the USDC ERC-20 address on Arc testnet, and how many decimals does it use?
 
-Status: closed Type: research
+Status: resolved Type: research
 
 `onchain/contracts/SealedAuction.t.sol` already assumes 6 decimals via `750e6`, which nothing has
 verified.

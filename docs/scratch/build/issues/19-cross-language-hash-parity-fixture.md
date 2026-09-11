@@ -1,61 +1,28 @@
 # One reference fixture that every hash implementation asserts against
 
-Status: ready-for-agent Type: task Blocked by: 02, 03
+Status: wontfix Type: task Blocked by: 02, 03
 
-A Solidity assertion of the Bids Root needs a Solidity function that computes it, and that function
-is ticket 05. So this ticket ships the fixture, the regeneration script, the TypeScript assertions
-of all four hashes, and the Solidity assertions of `bidHash` and the commitment. The Bids Root
-assertion in Solidity is an acceptance criterion of 05, against this fixture.
+Dropped. The fixture file, the regeneration script and the Solidity assertions of `bidHash` and the
+commitment are work the demo does not need. What the fixture was meant to protect is one hash, and
+eight lines of test protect it.
 
-Three hashes cross a language boundary, and each one kills an auction silently when the two sides
-disagree:
+Only one hash crosses a language boundary. `bidHash` and the Bid Commitment are produced in
+TypeScript by the supplier agent and compared in TypeScript by the Enclave. `SealedAuction` stores
+the commitment as an opaque `bytes32` and computes neither. The Bids Root is the only value both
+languages compute: the Enclave builds it with `bidsRoot` in `shared/bid.ts`, and
+`SealedAuction.bidsRoot` recomputes it in Solidity.
 
-| Hash                               | Produced by                | Compared by                                     |
-| ---------------------------------- | -------------------------- | ----------------------------------------------- |
-| `bidHash`, the EIP-712 struct hash | supplier agent, TypeScript | the Enclave, checking signatures                |
-| Bid Commitment                     | supplier agent, TypeScript | the contract stores it, the Enclave rechecks it |
-| Bids Root                          | the Enclave, TypeScript    | the contract, recomputing it in Solidity        |
+The two sides already agree. `onchain/test/SealedAuction.t.sol` pins `BIDS_ROOT` to
+`0xffdbd9c1b65b61303d9298cfb6afcb3114a6ec8400b2280b102f32a581913b7f` and `SHUFFLED_BIDS_ROOT` to
+`0x4bab02b90a0348eb8ab4956b0e013ef1c3d7a4d77ad3c9253857dd8d0e561d1f`, over the commitments
+`keccak256("A")`, `keccak256("B")` and `keccak256("C")`. `bidsRoot` returns the same two values for
+the same inputs, checked on 2026-09-11.
 
-The Policy Hash is not in this list. It is produced in TypeScript and compared in TypeScript: the
-requisition service and the Enclave both call one `canonicalJson` in `shared/`, and the contract
-only compares the bytes32 it was given against the bytes32 it stored. Its canonical bytes and hash
-are asserted as literals in `shared/policy-hash.test.ts`. See `docs/adr/0003-canonical-encoding.md`.
+The gap left behind: `shared/bid.test.ts` asserts the shape of the root, never those literals, so a
+change on the TypeScript side drifts silently. Ticket 05 now owns that assertion.
 
-Rather than testing each side against its own expectation, there is one fixture file: a Bid, a salt,
-and the three hex strings those inputs must produce. Every side asserts against that file and no
-side computes its own expected value.
-
-This is the only new test seam this feature needs. It sits above all three implementations, so a
-divergence names itself: the failing test says which hash and which side.
-
-What has to be true:
-
-- The fixture is in `shared/`, so `workflow/` and the supplier agents import it by relative path and
-  the Solidity tests read the same JSON from disk.
-- The TypeScript test asserts all three.
-- A Solidity test asserts the `bidHash`, the commitment and the Bids Root against the same strings.
-- The Bids Root case uses at least three commitments in a deliberately shuffled arrival order, so
-  that the ascending-byte sort is exercised, and one case with no commitments, which is
-  `bytes32(0)`.
-- Regenerating the fixture is a script, not a hand edit, and the script is what runs when `version`
-  changes.
-
-The rule stated in `docs/spec.md` is exact on purpose:
-`bidsRoot = keccak256(abi.encodePacked(commitments))` over the 32-byte commitments in arrival
-big-endian, and `bytes32(0)` for the empty set. `abi.encodePacked` and `abi.encode` differ here, and
-picking the wrong one passes every test written on one side alone.
-
-## Acceptance criteria
-
-- [ ] The fixture is in `shared/`, is importable by TypeScript, and is readable as JSON from disk by
-      the Solidity tests.
-- [ ] It carries a Bid, a salt, at least three commitments in a deliberately shuffled arrival order,
-      one empty set, and the three expected hex strings.
-- [ ] The TypeScript test asserts `bidHash`, the commitment and the Bids Root against the file.
-- [ ] A Solidity test asserts `bidHash` and the commitment against the same strings.
-- [ ] Regenerating is a script, not a hand edit, and the ticket says to run it when `version`
-      changes.
-- [ ] No side computes its own expected value.
+What this costs: no single file states the expected hashes, and a fourth implementation would have
+to read two test files to find them. Acceptable while there are two.
 
 ## Comments
 

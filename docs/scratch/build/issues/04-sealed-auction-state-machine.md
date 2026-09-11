@@ -1,6 +1,6 @@
 # Implement the SealedAuction state machine and escrow
 
-Status: ready-for-agent Type: task Blocked by: 01
+Status: resolved Type: task Blocked by: 01
 
 USDC on Arc testnet has 6 decimals, verified on chain, so `SealedAuction.t.sol` hardcoding `750e6`
 is correct. See `../verification/issues/05-arc-usdc-address-and-decimals.md`.
@@ -55,8 +55,8 @@ Two things the ticket did not decide, decided here:
 - A settlement with a named winner and a zero Payout is rejected. The Payout is the winning Bid's
   price, and a winner paid nothing would have its Stake held against a delivery nobody bought.
 
-The Solidity Bids Root asserts against a literal computed off chain with viem. That is not the
-cross-language parity test, which stays with ticket 19.
+The Solidity Bids Root asserts against a literal computed off chain with viem. The matching
+TypeScript assertion of the same literal stays with ticket 05.
 
 ## Dev review
 

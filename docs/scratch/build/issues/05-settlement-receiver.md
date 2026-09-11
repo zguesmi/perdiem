@@ -1,14 +1,13 @@
 # Accept the settlement from the CRE forwarder
 
-Status: ready-for-agent Type: task Blocked by: 04, 19,
+Status: ready-for-agent Type: task Blocked by: 04,
 ../verification/issues/01-cre-simulate-writes-to-arc.md
 
 `onReport`, the forwarder check and the action dispatch shipped with ticket 04, because the tests
 there needed the real entry rather than a harness. What is left here: `supportsInterface`, the
-Chainlink receiver template, and the assertions against ticket 19's fixture.
+Chainlink receiver template, and the TypeScript assertion of the Bids Root literals.
 
-The Bids Root fixture ships in 19; the Solidity assertion against it ships here, because it needs
-this function to exist.
+Ticket 19 is `wontfix`, so the Bids Root parity assertion ships here instead.
 
 Use the Chainlink receiver template. Only the forwarder may call it, only in state Settling, and
 only with a Policy Hash and a Bids Root that match what was committed.
@@ -34,9 +33,13 @@ Row V8.
 
 Matching the Bids Root means recomputing it in Solidity: `keccak256(abi.encodePacked(commitments))`
 over every 32-byte commitment for the auction, in arrival order, and `bytes32(0)` when there are
-none. Ticket 19 holds the fixture that keeps this side and the Enclave's side byte-identical.
-`abi.encodePacked` and `abi.encode` produce different roots, and a test written on one side alone
-passes with either.
+none. `abi.encodePacked` and `abi.encode` produce different roots, and a test written on one side
+alone passes with either.
+
+The Solidity side already pins both roots: `BIDS_ROOT` and `SHUFFLED_BIDS_ROOT` in
+`onchain/test/SealedAuction.t.sol`, over the commitments `keccak256("A")`, `keccak256("B")` and
+`keccak256("C")`. `shared/bid.test.ts` asserts neither, so the TypeScript side can drift without a
+test failing.
 
 Also decide and write down how the `Settlement` struct is encoded inside the report body, because
 the Enclave encodes it and this function decodes it, and that is a fifth place two sides can
@@ -57,8 +60,9 @@ simulation, per row V1.
       A winner that never committed reverts. Ticket 04.
 - [x] `winner == address(0)` with `payout == 0` refunds the Payout Cap and every Stake and
       finalizes. Ticket 04.
-- [ ] The Solidity Bids Root recompute asserts against ticket 19's fixture, including a shuffled
-      arrival order case and the empty case, which is `bytes32(0)`.
+- [ ] `shared/bid.test.ts` asserts `bidsRoot` against the `BIDS_ROOT` and `SHUFFLED_BIDS_ROOT`
+      literals from `onchain/test/SealedAuction.t.sol`, over the same three commitments, plus the
+      empty case, which is `bytes32(0)`.
 - [ ] The encoding of `Settlement` inside the report body is written down, and one test decodes a
       payload produced by the Enclave's encoder rather than by the test itself.
 - [ ] The action prefix is written down with it, and one test decodes a two-write sequence the
@@ -70,7 +74,6 @@ simulation, per row V1.
 
 `onReport`, the `onlyForwarder` modifier and the action dispatch moved from this ticket into ticket
 04, because the tests there needed the real entry rather than a harness. What is left:
-`supportsInterface`, the Chainlink receiver template, and the assertions against ticket 19's
-fixture.
+`supportsInterface`, the Chainlink receiver template, and the Bids Root parity assertion.
 
 The report `kind` is an `action`. The bids root is hashed in arrival order, with no sort.
