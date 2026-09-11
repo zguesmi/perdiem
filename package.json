@@ -18,6 +18,7 @@
     "format:md:check": "prettier --check \"**/*.md\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@noble/ciphers": "^2.4.0",
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
