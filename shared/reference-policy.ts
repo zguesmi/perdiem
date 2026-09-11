@@ -22,8 +22,6 @@ export const referencePolicy: Policy = {
     minStars: 4,
     roomType: "double",
     numberOfRooms: 1,
-    location: { name: "Gare du Nord", latitudeMicro: 48_880_900, longitudeMicro: 2_355_300 },
-    radiusMeters: 2000,
   },
   tradeDown: { stars: 3, requiredDiscountPercentage: 30 },
   preferences: {

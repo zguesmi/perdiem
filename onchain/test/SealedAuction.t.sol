@@ -620,7 +620,7 @@ contract SealedAuctionTest is Test {
         auction.slash(auctionId);
     }
 
-    /// @notice The public requirements under test: one double room near Gare du Nord.
+    /// @notice The public requirements under test: one double four-star room in Paris.
     function requirements() internal pure returns (SealedAuction.PublicRequirements memory) {
         return SealedAuction.PublicRequirements({
             city: "Paris",
@@ -629,10 +629,6 @@ contract SealedAuctionTest is Test {
             minStars: 4,
             roomType: "double",
             numberOfRooms: 1,
-            locationName: "Gare du Nord",
-            latitudeMicro: 48880900,
-            longitudeMicro: 2355300,
-            radiusMeters: 2000,
             tradeDownStars: 3
         });
     }

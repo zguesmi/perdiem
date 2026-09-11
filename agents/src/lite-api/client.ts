@@ -21,7 +21,6 @@ export interface Hotel {
   hotelId: string;
   hotelName: string;
   stars: number;
-  distanceKm: number;
 }
 
 export interface Rate {

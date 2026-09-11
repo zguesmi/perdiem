@@ -17,7 +17,6 @@ const bids: Bid[] = [
     supplier: "0xa",
     hotelId: "hotel-a",
     stars: 3,
-    distanceMeters: 500,
     price: 330_000_000,
     refundable: true,
     breakfastIncluded: false,
@@ -28,7 +27,6 @@ const bids: Bid[] = [
     supplier: "0xb",
     hotelId: "hotel-b",
     stars: 4,
-    distanceMeters: 700,
     price: 400_000_000,
     refundable: false,
     breakfastIncluded: false,
@@ -39,7 +37,6 @@ const bids: Bid[] = [
     supplier: "0xc",
     hotelId: "hotel-c",
     stars: 4,
-    distanceMeters: 1000,
     price: 440_000_000,
     refundable: true,
     breakfastIncluded: true,
@@ -66,18 +63,6 @@ test("a bid over the maximum price is ineligible", () => {
   const overpriced = bids.map((bid) => ({ ...bid, price: policy.maxPrice + 1 }));
 
   const settlement = settle(policy, overpriced);
-
-  assert.equal(settlement.winner, null);
-  assert.equal(settlement.payout, 0);
-});
-
-test("a bid outside the radius is ineligible", () => {
-  const tooFar = bids.map((bid) => ({
-    ...bid,
-    distanceMeters: policy.hardRequirements.radiusMeters + 1,
-  }));
-
-  const settlement = settle(policy, tooFar);
 
   assert.equal(settlement.winner, null);
   assert.equal(settlement.payout, 0);

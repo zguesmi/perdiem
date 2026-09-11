@@ -7,7 +7,6 @@ export interface RatePlan {
   /** Which agent this is, for logs and configuration. */
   name: string;
   stars: number;
-  distanceKm: number;
   refundable: boolean;
   breakfastIncluded: boolean;
   /** Percentage added to the base rate. May be negative, which is how the cheap bid gets cheap. */
@@ -16,9 +15,9 @@ export interface RatePlan {
 
 /** The three plans behind the demo. Their prices are asserted in the tests. */
 export const DEMO_RATE_PLANS: Record<"a" | "b" | "c", RatePlan> = {
-  a: { name: "a", stars: 3, distanceKm: 0.5, refundable: true, breakfastIncluded: false, marginPercent: -18 },
-  b: { name: "b", stars: 4, distanceKm: 0.7, refundable: false, breakfastIncluded: false, marginPercent: 0 },
-  c: { name: "c", stars: 4, distanceKm: 1.0, refundable: true, breakfastIncluded: true, marginPercent: 10 },
+  a: { name: "a", stars: 3, refundable: true, breakfastIncluded: false, marginPercent: -18 },
+  b: { name: "b", stars: 4, refundable: false, breakfastIncluded: false, marginPercent: 0 },
+  c: { name: "c", stars: 4, refundable: true, breakfastIncluded: true, marginPercent: 10 },
 };
 
 /** Applies a rate plan to a base rate. Integer arithmetic; no floating point reaches a bid. */

@@ -33,10 +33,6 @@ contract SealedAuction {
         uint8 minStars;
         string roomType;
         uint8 numberOfRooms;
-        string locationName;
-        int32 latitudeMicro;
-        int32 longitudeMicro;
-        uint32 radiusMeters;
         uint8 tradeDownStars;
     }
 
