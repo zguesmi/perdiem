@@ -1,10 +1,8 @@
 import type { Bid } from "./bid.ts";
 
 /**
- * The winning bid of the reference auction, and the inputs every hash fixture is generated from.
- *
- * These values are arbitrary but fixed. Changing one invalidates `fixtures/bid-hashes.json`, which
- * is regenerated with `pnpm fixtures` and never edited by hand.
+ * The winning bid of the reference auction, and the inputs the bid hashing tests are written
+ * against. These values are arbitrary but fixed: changing one changes every hash asserted below.
  */
 export const REFERENCE_AUCTION_ID = `0x${"a1".repeat(32)}` as const;
 
@@ -33,13 +31,3 @@ export const referenceBid: Bid = {
   roomType: "double",
   numberOfRooms: 1,
 };
-
-/**
- * Three commitments in an arrival order that is not ascending, so the bids root fixture proves the
- * array is hashed as it arrived rather than sorted.
- */
-export const REFERENCE_COMMITMENTS = [
-  `0x${"c3".repeat(32)}`,
-  `0x${"a1".repeat(32)}`,
-  `0x${"b2".repeat(32)}`,
-] as const;
