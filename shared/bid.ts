@@ -1,4 +1,13 @@
-import { concatHex, encodeAbiParameters, hashStruct, hashTypedData, keccak256, toHex } from "viem";
+import {
+  concatHex,
+  encodeAbiParameters,
+  hashStruct,
+  hashTypedData,
+  isAddress,
+  isHex,
+  keccak256,
+  zeroHash,
+} from "viem";
 import { z } from "zod";
 
 import { ARC_CHAIN_ID } from "./chain.ts";
@@ -16,15 +25,16 @@ import { ARC_CHAIN_ID } from "./chain.ts";
  * Every number is an integer, for the reason `docs/adr/0003-canonical-encoding.md` gives.
  */
 
-function hex(bytes: number) {
-  return z.custom<`0x${string}`>(
-    (value) => typeof value === "string" && new RegExp(`^0x[0-9a-fA-F]{${bytes * 2}}$`).test(value),
-    `expected ${bytes} hex-encoded bytes`,
-  );
-}
+/** The length is explicit because `isHex` does not check the width. */
+export const bytes32Schema = z.custom<`0x${string}`>(
+  (value) => isHex(value) && value.length === 66,
+  "expected 32 hex-encoded bytes",
+);
 
-export const bytes32Schema = hex(32);
-export const addressSchema = hex(20);
+export const addressSchema = z.custom<`0x${string}`>(
+  (value) => typeof value === "string" && isAddress(value),
+  "expected an address",
+);
 
 export const bidSchema = z
   .object({
@@ -111,7 +121,7 @@ export function bidCommitment(hash: `0x${string}`, salt: `0x${string}`): `0x${st
  */
 export function bidsRoot(commitments: readonly `0x${string}`[]): `0x${string}` {
   if (commitments.length === 0) {
-    return `0x${"00".repeat(32)}`;
+    return zeroHash;
   }
   return keccak256(concatHex(commitments));
 }

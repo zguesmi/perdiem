@@ -2,7 +2,7 @@ import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { x25519 } from "@noble/curves/ed25519.js";
 import { hkdf } from "@noble/hashes/hkdf.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import { hexToBytes, stringToBytes } from "viem";
+import { hexToBytes, isHex, stringToBytes } from "viem";
 import { z } from "zod";
 
 import { bidSchema, bytes32Schema } from "./bid.ts";
@@ -25,8 +25,8 @@ import { bidSchema, bytes32Schema } from "./bid.ts";
  * `crypto.getRandomValues`.
  */
 
-const EPHEMERAL_KEY_BYTE_LENGTH = 32;
-const NONCE_BYTE_LENGTH = 24;
+const EPHEMERAL_KEY_LENGTH = 32;
+const NONCE_LENGTH = 24;
 /** Bytes, not a string: `TextEncoder` is not in the inventory the enclave runtime was probed for. */
 const INFO_PREFIX = stringToBytes("perdiem/sealed-bid/v1");
 
@@ -35,7 +35,7 @@ export const sealedBidPayloadSchema = z
     bid: bidSchema,
     salt: bytes32Schema,
     signature: z.custom<`0x${string}`>(
-      (value) => typeof value === "string" && /^0x[0-9a-fA-F]+$/.test(value),
+      (value) => isHex(value) && value.length > 2,
       "expected a hex-encoded signature",
     ),
   })
@@ -43,7 +43,7 @@ export const sealedBidPayloadSchema = z
 
 export type SealedBidPayload = z.infer<typeof sealedBidPayloadSchema>;
 
-function envelopeKey(
+function deriveEnvelopeKey(
   sharedSecret: Uint8Array,
   ephemeralPublicKey: Uint8Array,
   enclavePublicKey: Uint8Array,
@@ -69,7 +69,7 @@ export function sealBid(
 ): Uint8Array {
   const ephemeralSecretKey = x25519.utils.randomSecretKey();
   const ephemeralPublicKey = x25519.getPublicKey(ephemeralSecretKey);
-  const key = envelopeKey(
+  const key = deriveEnvelopeKey(
     x25519.getSharedSecret(ephemeralSecretKey, enclavePublicKey),
     ephemeralPublicKey,
     enclavePublicKey,
@@ -80,17 +80,15 @@ export function sealBid(
   // enclave logs a count and no reason.
   sealedBidPayloadSchema.parse(payload);
 
-  const nonce = crypto.getRandomValues(new Uint8Array(NONCE_BYTE_LENGTH));
+  const nonce = crypto.getRandomValues(new Uint8Array(NONCE_LENGTH));
   const ciphertext = xchacha20poly1305(key, nonce).encrypt(
     new TextEncoder().encode(JSON.stringify(payload)),
   );
 
-  const envelope = new Uint8Array(
-    EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH + ciphertext.length,
-  );
+  const envelope = new Uint8Array(EPHEMERAL_KEY_LENGTH + NONCE_LENGTH + ciphertext.length);
   envelope.set(ephemeralPublicKey);
-  envelope.set(nonce, EPHEMERAL_KEY_BYTE_LENGTH);
-  envelope.set(ciphertext, EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH);
+  envelope.set(nonce, EPHEMERAL_KEY_LENGTH);
+  envelope.set(ciphertext, EPHEMERAL_KEY_LENGTH + NONCE_LENGTH);
 
   return envelope;
 }
@@ -105,18 +103,15 @@ export function openSealedBid(
   enclavePrivateKey: Uint8Array,
   auctionId: `0x${string}`,
 ): SealedBidPayload {
-  if (envelope.length <= EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH) {
+  if (envelope.length <= EPHEMERAL_KEY_LENGTH + NONCE_LENGTH) {
     throw new Error("sealed bid is too short to hold an ephemeral key, a nonce and a ciphertext");
   }
 
-  const ephemeralPublicKey = envelope.subarray(0, EPHEMERAL_KEY_BYTE_LENGTH);
-  const nonce = envelope.subarray(
-    EPHEMERAL_KEY_BYTE_LENGTH,
-    EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH,
-  );
-  const ciphertext = envelope.subarray(EPHEMERAL_KEY_BYTE_LENGTH + NONCE_BYTE_LENGTH);
+  const ephemeralPublicKey = envelope.subarray(0, EPHEMERAL_KEY_LENGTH);
+  const nonce = envelope.subarray(EPHEMERAL_KEY_LENGTH, EPHEMERAL_KEY_LENGTH + NONCE_LENGTH);
+  const ciphertext = envelope.subarray(EPHEMERAL_KEY_LENGTH + NONCE_LENGTH);
 
-  const key = envelopeKey(
+  const key = deriveEnvelopeKey(
     x25519.getSharedSecret(enclavePrivateKey, ephemeralPublicKey),
     ephemeralPublicKey,
     x25519.getPublicKey(enclavePrivateKey),
