@@ -4,14 +4,11 @@ Stores one sealed bid per supplier, per auction, and serves the set to the encla
 what it holds: the bid, its salt and its signature are sealed to the enclave's public key inside the
 supplier agent, so a relay leak reveals ciphertext and nothing else.
 
-Two tokens, two directions:
+There is no authentication. A supplier can fetch a rival's ciphertext and count the bids; it learns
+no price, because only the enclave holds the private key. Dropping a blob is still possible, and
+that is what the bids root on chain catches.
 
-- **Write token** — held by supplier agents. Lets an agent store its own sealed bid, nothing else.
-- **Read token** — held by the workflow. Lets the enclave collect every sealed bid for an auction.
-
-An agent that could read the relay could read a rival's price before the bid deadline. That is the
-attack this split prevents. Dropping a blob is still possible, and that is what the bids root on
-chain catches.
+The store is an in-memory map, keyed by auction and supplier. First write wins.
 
 ## Commands
 
@@ -26,8 +23,3 @@ pnpm --filter @perdiem/relay start       # runs dist/index.js, needs build first
 ```
 
 The server listens on port 8787. Set `RELAY_PORT` to move it.
-
-## Status
-
-Both routes answer `501`. The tests state the token rules and are red until the store and the token
-check are implemented.
