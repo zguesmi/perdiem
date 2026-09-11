@@ -73,7 +73,7 @@ async function main(): Promise<void> {
       bookingUrl: secrets.BOOKING_URL,
       bookingApiKey: secrets.BOOKING_API_KEY,
     }),
-    priceBand: config.priceBand,
+    priceRange: config.priceRange,
   };
 
   await runBidder(config, rules, context);

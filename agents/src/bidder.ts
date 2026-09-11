@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { AgentConfig } from "./config.ts";
-import { createTools, type BidRunContext } from "./tools.ts";
+import { createTools, type AuctionTerms, type BidRunContext } from "./tools.ts";
 
 /** A run that has not bid after this many assistant turns has drifted. It exits non-zero. */
 const MAX_TURNS = 12;
@@ -13,15 +13,17 @@ const MAX_TURNS = 12;
  * Three things are deliberately derived here rather than stated: the number of nights, the season,
  * and which hotel matches this supplier's star level. They are what the model is for.
  */
-export function systemPrompt(rules: string, context: BidRunContext): string {
-  const { auction } = context;
-
+export function systemPrompt(
+  rules: string,
+  auction: AuctionTerms,
+  hotel: AgentConfig["hotel"],
+): string {
   return [
     "You are a hotel supplier's bidding agent. Bid once on the request below, then stop.",
     "",
     `Your business rules: ${rules}`,
     "",
-    `You sell one hotel: ${context.hotel.hotelName}, ${context.hotel.stars} stars. It is attached to`,
+    `You sell one hotel: ${hotel.hotelName}, ${hotel.stars} stars. It is attached to`,
     "every bid you make. You do not choose it and you cannot change it.",
     "",
     "The request:",
@@ -65,7 +67,7 @@ export async function runBidder(
     max_tokens: 16000,
     thinking: { type: "adaptive" },
     output_config: { effort: config.effort },
-    system: systemPrompt(rules, context),
+    system: systemPrompt(rules, context.auction, context.hotel),
     tools,
     messages: [{ role: "user", content: "Bid on this request." }],
     max_iterations: MAX_TURNS,

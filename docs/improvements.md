@@ -22,13 +22,13 @@ externally owned account holding a demo key. The Arc track asks for Circle Agent
 
 ## The three demo prices are unverified
 
-`agents/test/bidder.test.ts` asserts 330, 400 and 440 against the reference auction. The tests skip
-without `ANTHROPIC_API_KEY`, so no run has observed those numbers.
+`agents/scripts/check-demo-prices.ts` checks 330, 400 and 440 against the reference auction. It is a
+script, not a test, because no test in this repository calls a model. No run has been recorded.
 
-## A price band covers one auction shape
+## A price range covers one auction shape
 
-Each agent's band covers the one or two night rate outside winter. A three night or winter auction
-prices below the band and `submitBid` refuses it.
+Each agent's price range covers the one or two night rate outside winter. A three night or winter
+auction prices below the range and `submitBid` refuses it.
 
 ## An Anthropic outage means no bid
 

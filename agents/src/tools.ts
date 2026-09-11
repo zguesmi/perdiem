@@ -31,7 +31,7 @@ export interface BidRunContext {
   enclavePublicKey: Uint8Array;
   relayUrl: string;
   booking: BookingCredentials;
-  priceBand: { min: number; max: number };
+  priceRange: { min: number; max: number };
 }
 
 /**
@@ -70,9 +70,9 @@ export async function submitBid(
     throw new Error("the bid deadline has passed");
   }
 
-  const { min, max } = context.priceBand;
+  const { min, max } = context.priceRange;
   if (input.price < min || input.price > max) {
-    throw new Error(`price ${input.price} is outside this supplier's band of ${min} to ${max}`);
+    throw new Error(`price ${input.price} is outside this supplier's range of ${min} to ${max}`);
   }
 
   const bid: Bid = bidSchema.parse({
@@ -123,7 +123,7 @@ export async function submitBid(
 }
 
 /**
- * The two tools, and a way to ask whether the bid actually landed. The turn cap cannot tell a run
+ * The tool, and a way to ask whether the bid actually landed. The turn cap cannot tell a run
  * that bid on its third turn from one that is still arguing with itself without it.
  */
 export function createTools(context: BidRunContext) {

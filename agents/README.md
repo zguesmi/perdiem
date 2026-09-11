@@ -15,7 +15,7 @@ season. That is what the model is for. See `docs/adr/0007-supplier-agents-decide
 
 ## The one tool
 
-`submitBid` does everything in Node, in one call: validate the fields, check the price band, hash
+`submitBid` does everything in Node, in one call: validate the fields, check the price range, hash
 the bid, sign it, draw a salt, compute the commitment, seal the envelope, approve and commit the
 stake on chain, and post the ciphertext to the relay. Those steps have one legal order, so they are
 one tool. Split apart, a model can seal without committing, commit without posting, or commit twice.
@@ -43,7 +43,7 @@ flowchart TD
   run --> model["the model prices the stay"]
   model --> submit["submit: refuse a second bid, then submitBid"]
 
-  submit --> g1["deadline guard, then price band guard"]
+  submit --> g1["deadline guard, then price range guard"]
   g1 --> g2["bidSchema.parse over the model's fields plus the configured hotel"]
   g2 --> g3["bidHash, signer.signBid, random salt, bidCommitment"]
   g3 --> g4["sealBid: X25519 to enclavePublicKey"]
@@ -55,15 +55,15 @@ flowchart TD
 
 Every box below `submit` is Node, in that order. The model sees the first box and the last one.
 
-## The price band
+## The price range
 
-Each configuration carries a `priceBand` in USDC minor units, and `submitBid` refuses a price
-outside it and names the band in the error. The model corrects on the next turn. The band is
+Each configuration carries a `priceRange` in USDC minor units, and `submitBid` refuses a price
+outside it and names the range in the error. The model corrects on the next turn. The range is
 configuration, not a hidden rule.
 
-Each band covers the rate its prompt gives for a one or two night stay outside winter, which is the
-only auction the demo runs. A three night or winter auction prices below the band, and `submitBid`
-refuses it. The cost of that: the bands are a guard on one auction, not a full rate card.
+Each range covers the rate its prompt gives for a one or two night stay outside winter, which is the
+only auction the demo runs. A three night or winter auction prices below the range, and `submitBid`
+refuses it. The cost of that: the ranges are a guard on one auction, not a full rate card.
 
 ## Wallets
 
@@ -80,10 +80,12 @@ from the caller and the enclave checks that the bid's signer staked.
 Run from the repository root, after `pnpm install`.
 
 ```sh
-pnpm --filter @perdiem/agents test                                 # tsx --test
-pnpm --filter @perdiem/agents typecheck                            # tsc --noEmit
-pnpm --filter @perdiem/agents start grands-voyageurs-agent         # one agent
+pnpm --filter @perdiem/agents test                          # tsx --test, no network
+pnpm --filter @perdiem/agents typecheck                     # tsc --noEmit
+pnpm --filter @perdiem/agents start grands-voyageurs-agent  # one agent
+pnpm --filter @perdiem/agents check:prices                  # calls the model, costs money
 ```
 
-The tool tests need no API key. The three end-to-end tests that assert the demo prices skip without
-`ANTHROPIC_API_KEY`.
+No test calls a model or a hotel supplier. `check:prices` does: it runs all three agents against the
+reference auction, prints what each one bid, and exits non-zero on a price the demo table does not
+expect. Run it after any change to a prompt, a price range or the system prompt.

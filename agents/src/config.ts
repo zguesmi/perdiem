@@ -26,15 +26,15 @@ export const agentConfigSchema = z
     }),
     /**
      * The price the model may bid, in USDC minor units. `submitBid` refuses anything outside it and
-     * names the band, so the model corrects on the next turn instead of bidding a price the
+     * names the range, so the model corrects on the next turn instead of bidding a price the
      * operator never published.
      */
-    priceBand: z.object({ min: z.int().positive(), max: z.int().positive() }),
+    priceRange: z.object({ min: z.int().positive(), max: z.int().positive() }),
     model: z.string().min(1).default("claude-opus-5"),
     effort: z.enum(["low", "medium", "high", "xhigh", "max"]).default("low"),
   })
   .strict()
-  .refine((config) => config.priceBand.min <= config.priceBand.max, "priceBand.min exceeds max");
+  .refine((config) => config.priceRange.min <= config.priceRange.max, "priceRange.min exceeds max");
 
 export type AgentConfig = z.infer<typeof agentConfigSchema>;
 

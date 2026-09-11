@@ -32,7 +32,7 @@ The model picks one that matches its own star level. Any valid identifier is acc
 books against it, so it has to exist, and nothing else about it is scored.
 
 `submitBid(hotelId, hotelName, stars, price, refundable, breakfastIncluded, roomType, numberOfRooms)`
-does the rest in Node, in one call: validate against `bidSchema`, check the price band, `bidHash`,
+does the rest in Node, in one call: validate against `bidSchema`, check the price range, `bidHash`,
 sign through the ticket 22 signer interface, draw a salt, `bidCommitment`, seal
 `{bid, salt, signature, booking}` to the enclave public key, `commit` on chain with the Stake, and
 `PUT` the ciphertext to the relay.
@@ -42,7 +42,7 @@ seal without committing, commit without posting, or commit twice.
 
 ## Configuration and secrets
 
-`agents/config/<name>.json` is committed: `relayUrl`, `rpcUrl`, `sealedAuction`, `priceBand`,
+`agents/config/<name>.json` is committed: `relayUrl`, `rpcUrl`, `sealedAuction`, `priceRange`,
 `model`, `effort`.
 
 The environment holds `ANTHROPIC_API_KEY`, the Circle session, and the `booking` credentials from
@@ -80,8 +80,9 @@ tools if it does not.
 ## Acceptance criteria
 
 - [ ] Each agent runs a tool loop with exactly two tools, `getHotelId` and `submitBid`.
-- [ ] The three demo prompts produce 330, 400 and 440 against `referencePolicy`.
-- [x] `submitBid` refuses a price outside the agent's `priceBand` and names the band in the error.
+- [ ] The three demo prompts produce 330, 400 and 440 against `referencePolicy`. A script checks it;
+      no run has been recorded.
+- [x] `submitBid` refuses a price outside the agent's `priceRange` and names the range in the error.
       The model corrects on the next turn.
 - [ ] One bid per agent, signed through the ticket 22 signer interface. No viem account is reachable
       from the bid flow.
@@ -95,7 +96,8 @@ tools if it does not.
 - [x] No log line and no error message carries `apiKey`, a salt, a signature or a decrypted bid. One
       test greps the agent output.
 - [x] `agents/src/rate-plan.ts` and `agents/test/rate-plan.test.ts` are gone.
-- [x] The tool tests run with no `ANTHROPIC_API_KEY`. Only the end-to-end agent test needs one.
+- [x] The tool tests run with no `ANTHROPIC_API_KEY`. No test needs one: the end-to-end check is a
+      script.
 
 ## Comments
 
@@ -105,11 +107,12 @@ The Circle Agent Stack signer is not written, because ticket 22 is still `ready-
 signer interface and `createLocalSigner` ship here instead, so the bid flow runs; ticket 22 keeps
 `createCircleAgentSigner` and the address-identity test it asks for.
 
-The three demo prices are asserted in `agents/test/bidder.test.ts` and skip without
-`ANTHROPIC_API_KEY`, so that criterion is written and not yet observed.
+The three demo prices are checked by `agents/scripts/check-demo-prices.ts`, run with
+`pnpm --filter @perdiem/agents check:prices`. It is a script and not a test, because no test in this
+repository calls a model. That criterion is therefore written and not yet observed.
 
 `agents/src/lite-api/` is gone with the rate plan. Every function in it threw, the agent never
-books, and `getHotelId` needs one static catalogue read. That read is `agents/src/hotels.ts`.
+books, and the hotel is now configuration.
 
 The sealed bid reaches the relay as a `0x` hex string. The enclave has to decode it the same way.
 

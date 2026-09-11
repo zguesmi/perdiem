@@ -12,18 +12,19 @@ You sell 3-star rooms in Paris. Room price is 300 USDC for 1 or 2 nights,
 no breakfast. Bid on requests.
 ```
 
-That prompt needs three decisions the model must derive from the auction, not from the prompt:
-nights from `checkout - checkin`, season from the month of `checkin`, and a hotel that matches its
-own star level.
+That prompt needs two decisions the model must derive from the auction, not from the prompt: nights
+from `checkout - checkin`, and season from the month of `checkin`.
 
 ## What the model decides
 
-The model holds two tools.
+The model holds one tool, `submitBid`. It takes the price, the refundable and breakfast terms, the
+room type and the room count, and it builds, signs, seals, commits and posts one Bid.
 
-| Tool                | What it does                                                      |
-| ------------------- | ----------------------------------------------------------------- |
-| `getHotelId(city)`  | Returns real hotel identifiers and names from the LiteAPI sandbox |
-| `submitBid(fields)` | Builds, signs, seals, commits and posts one Bid                   |
+The hotel is not one of the model's decisions. An operator reads the supplier's catalogue once and
+writes the identifier, the name and the star level into `agents/config/<name>.json`. Cost: the model
+no longer picks a hotel, and a new supplier needs an operator to look one up. Gain: one less network
+call in the loop, one less key on the agent, and a model that cannot bid a room its supplier does
+not sell.
 
 `submitBid` runs entirely in Node. It validates the fields, hashes the Bid with EIP-712, signs
 through the signer interface, draws a salt, computes the Bid Commitment, seals the envelope, commits
@@ -33,7 +34,8 @@ The model never sees a hash, a salt, a signature or a private key. A model that 
 hashing would produce a commitment the Enclave drops, and the drop is silent: scoring logs counts,
 not reasons.
 
-So the model chooses the hotel, the price and the attributes. Nothing else.
+So the model chooses the price, the refundable and breakfast terms, the room type and the room
+count. Nothing else.
 
 ## Rejected
 
@@ -47,16 +49,16 @@ itself and writes its own calls through a bash tool. Rejected on byte-exactness:
 `hashStruct`, the canonical encoding and the X25519 envelope have one correct output each, and a
 model that re-derives them each run is not reproducible.
 
-## The price band
+## The price range
 
 The demo result is a knife edge. Against the reference Policy, Agent A stays Ineligible only while
 its price is above 280: at 280 it clears the 30% Trade-Down against B's 400, becomes Eligible, and
 scores 290 against C's 170. The cheapest bid would then win, which is the opposite of the claim.
 Agent C must stay below 490 or it ties B and loses on price.
 
-So each agent's configuration carries a `priceBand`. `submitBid` refuses a price outside it and
-names the band in the error. The model corrects on the next turn. The band is configuration, not a
-hidden rule, and one test asserts each agent lands inside its own.
+So each agent's configuration carries a `priceRange`. `submitBid` refuses a price outside it and
+names the range in the error. The model corrects on the next turn. The range is configuration, not a
+hidden rule, and `agents/scripts/check-demo-prices.ts` states each agent's price.
 
 A silent clamp was rejected. It always terminates and never costs a turn, but the model then
 believes it bid a price it did not bid.
@@ -75,5 +77,5 @@ paths for one decision, and a fallback nobody exercises.
 
 Every bid costs tokens and a round trip. A deterministic agent bid in milliseconds for nothing.
 
-A model can decline or drift. The band catches a bad price. Nothing catches a model that reasons its
-way to a bid the operator did not intend, beyond the turn cap and a non-zero exit.
+A model can decline or drift. The range catches a bad price. Nothing catches a model that reasons
+its way to a bid the operator did not intend, beyond the turn cap and a non-zero exit.

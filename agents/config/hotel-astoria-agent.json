@@ -4,7 +4,7 @@
   "rpcUrl": "https://rpc.testnet.arc.network",
   "sealedAuction": "0x0000000000000000000000000000000000000000",
   "hotel": { "hotelId": "lp2f82e", "hotelName": "Hotel Astoria - Astotel", "stars": 3 },
-  "priceBand": { "min": 300000000, "max": 360000000 },
+  "priceRange": { "min": 300000000, "max": 360000000 },
   "model": "claude-opus-5",
   "effort": "low"
 }

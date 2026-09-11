@@ -74,7 +74,7 @@ function harness(t: TestContext, overrides: Partial<BidRunContext> = {}) {
     enclavePublicKey: x25519.getPublicKey(ENCLAVE_KEY),
     relayUrl: "http://relay.test",
     booking: { bookingUrl: "https://api.liteapi.travel/v3.0", bookingApiKey: "booking-key" },
-    priceBand: { min: 420_000_000, max: 480_000_000 },
+    priceRange: { min: 420_000_000, max: 480_000_000 },
     ...overrides,
   };
 
@@ -89,12 +89,12 @@ function harness(t: TestContext, overrides: Partial<BidRunContext> = {}) {
   return { account, context, writes, posts };
 }
 
-test("refuses a price outside the band and names the band", async (t) => {
+test("refuses a price outside the range and names the range", async (t) => {
   const { context } = harness(t);
 
   await assert.rejects(
     submitBid(context, { ...offer, price: 500_000_000 }),
-    /outside this supplier's band of 420000000 to 480000000/,
+    /outside this supplier's range of 420000000 to 480000000/,
   );
 });
 
@@ -149,7 +149,7 @@ test("the on-chain commitment opens with the salt inside the envelope", async (t
   assert.equal(writes[1]?.args[1], bidCommitment(bidHash(envelope.bid), envelope.salt));
 });
 
-test("the band refusal carries no salt, signature or booking key", async (t) => {
+test("the range refusal carries no salt, signature or booking key", async (t) => {
   const { context } = harness(t);
 
   const error = await submitBid(context, { ...offer, price: 1 }).then(

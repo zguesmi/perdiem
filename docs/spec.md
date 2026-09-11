@@ -45,7 +45,7 @@ not compared with the bid price, and no cancellation path exists.
 | -------------- | ---------------------------------------------------------------------------- |
 | `onchain/`     | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
 | `workflow/`    | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
-| `agents/`      | Three supplier agents. A model prices, two tools execute                     |
+| `agents/`      | Three supplier agents. A model prices, one tool executes                     |
 | `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding            |
 | `relay/`       | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
 | `web/`         | One page, five panels                                                        |
@@ -491,19 +491,22 @@ You sell 3-star rooms in Paris. Room price is 330 USDC for 1 or 2 nights,
 no breakfast. Bid on requests.
 ```
 
-The model derives three things from the auction rather than the prompt: nights from
-`checkout - checkin`, season from the month of `checkin`, and a hotel at its own star level. Winter
-is December, January and February, named in the system prompt so nothing guesses.
+The model derives two things from the auction rather than the prompt: nights from
+`checkout - checkin`, and season from the month of `checkin`. Winter is December, January and
+February, named in the system prompt so nothing guesses.
 
-The model holds two tools and nothing else:
+The hotel is configuration, not a decision. An operator reads the supplier's catalogue once and
+writes the identifier, the name and the star level into `agents/config/<name>.json`. Any valid
+identifier is acceptable. The Enclave books against it, so it has to exist, and nothing else about
+it is scored. Cost: a new supplier needs an operator to look one up.
 
-- `getHotelId(city)` returns real hotel identifiers, names and star levels from the LiteAPI sandbox.
-  Any valid identifier is acceptable. The Enclave books against it, so it has to exist, and nothing
-  else about it is scored.
-- `submitBid(...)` validates the fields, checks the price band, hashes the Bid, signs it, draws a
-  salt, computes the Bid Commitment, seals `{bid, salt, signature, bookingUrl, bookingApiKey}`,
-  commits on chain with the Stake, and posts the ciphertext to the relay. All of it in Node, all of
-  it before `bidDeadline`.
+The model holds one tool and nothing else:
+
+- `submitBid(price, refundable, breakfastIncluded, roomType, numberOfRooms)` validates the fields,
+  checks the price range, attaches the configured hotel, hashes the Bid, signs it, draws a salt,
+  computes the Bid Commitment, seals `{bid, salt, signature, bookingUrl, bookingApiKey}`, commits on
+  chain with the Stake, and posts the ciphertext to the relay. All of it in Node, all of it before
+  `bidDeadline`.
 
 Those steps have one legal order, so they are one tool. Split apart, a model can seal without
 committing, commit without posting, or commit twice.
@@ -514,9 +517,9 @@ hashing would produce a commitment the Enclave drops, and that drop is silent.
 An agent never books. It seals its own booking credentials into the envelope and the Enclave books
 with them, so the agent has nothing to do after `bidDeadline`.
 
-Each agent's configuration carries a `priceBand`, and `submitBid` refuses a price outside it. The
+Each agent's configuration carries a `priceRange`, and `submitBid` refuses a price outside it. The
 demo result is a knife edge: Agent A stays Ineligible only above 280, and Agent C wins only
-below 490. The band is configuration, not a hidden rule.
+below 490. The range is configuration, not a hidden rule.
 
 The price is prompt-derived, not market-derived. LiteAPI supplies a real hotel, and the rate card
 comes from the operator, so the number is the supplier's own list price. The claim is "three agents
