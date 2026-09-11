@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
 import { addressSchema } from "../../shared/bid.ts";
+import type { Wallet } from "./signer.ts";
 
 /**
  * What an operator sets per agent. The rate card, the star level and the refundable and breakfast
@@ -68,3 +69,32 @@ export const bookingCredentialsSchema = z
   .strict();
 
 export type BookingCredentials = z.infer<typeof bookingCredentialsSchema>;
+
+/**
+ * Which wallet this agent signs with. `circle` is the demo path, a Circle Agent Stack wallet driven
+ * through a CLI session an operator opens once. `local` is a viem externally owned account and the
+ * default, kept so the bid flow and its tests run with no Circle account.
+ */
+export const walletSchema = z
+  .object({
+    AGENT_SIGNER: z.enum(["local", "circle"]).default("local"),
+    AGENT_PRIVATE_KEY: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{64}$/)
+      .optional(),
+    CIRCLE_WALLET_ADDRESS: addressSchema.optional(),
+  })
+  .transform((environment, ctx): Wallet => {
+    if (environment.AGENT_SIGNER === "circle") {
+      if (environment.CIRCLE_WALLET_ADDRESS) {
+        return { kind: "circle", address: environment.CIRCLE_WALLET_ADDRESS };
+      }
+      ctx.addIssue("AGENT_SIGNER=circle needs CIRCLE_WALLET_ADDRESS");
+      return z.NEVER;
+    }
+    if (environment.AGENT_PRIVATE_KEY) {
+      return { kind: "local", privateKey: environment.AGENT_PRIVATE_KEY as `0x${string}` };
+    }
+    ctx.addIssue("AGENT_SIGNER=local needs AGENT_PRIVATE_KEY");
+    return z.NEVER;
+  });

@@ -10,22 +10,23 @@ import {
   bookingCredentialsSchema,
   deploymentSchema,
   loadAgentConfig,
+  walletSchema,
   type AgentConfig,
   type Deployment,
 } from "./config.ts";
-import { createLocalSigner, type Signer } from "./signer.ts";
+import { createSigner, type Signer } from "./signer.ts";
 import type { AuctionTerms, BidRunContext } from "./tools.ts";
 import { watchAuctions } from "./watcher.ts";
 
 export { loadAgentConfig, type AgentConfig, type Deployment } from "./config.ts";
-export { createLocalSigner, type Signer } from "./signer.ts";
+export { createLocalSigner, createSigner, type Signer, type Wallet } from "./signer.ts";
+export { createCircleAgentSigner } from "./circle.ts";
 export { submitBid, createTools, type AuctionTerms, type BidRunContext } from "./tools.ts";
 export { auctionTerms, watchAuctions } from "./watcher.ts";
 
 /** Secrets only. Nothing here reaches a committed file. */
 const environment = z.object({
   ANTHROPIC_API_KEY: z.string().min(1),
-  AGENT_PRIVATE_KEY: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
   BOOKING_URL: z.url(),
   BOOKING_API_KEY: z.string().min(1),
 });
@@ -70,6 +71,7 @@ async function main(): Promise<void> {
 
   const secrets: Secrets = environment.parse(process.env);
   const deployment = deploymentSchema.parse(process.env);
+  const wallet = walletSchema.parse(process.env);
   const config = await loadAgentConfig(
     fileURLToPath(new URL(`../config/${name}.json`, import.meta.url)),
   );
@@ -78,6 +80,7 @@ async function main(): Promise<void> {
   // The rules are the only thing an operator changes between agents, so the run states them before
   // it does anything a reader would have to infer them from.
   console.log(`${config.name} at ${config.hotel.hotelName}, ${config.hotel.stars} stars`);
+  console.log(`wallet: ${wallet.kind}`);
   console.log(`rules: ${rules}`);
 
   const client = createArcClient(deployment.rpcUrl);
@@ -94,10 +97,7 @@ async function main(): Promise<void> {
     config,
     deployment,
     rules,
-    signer: createLocalSigner({
-      privateKey: secrets.AGENT_PRIVATE_KEY as `0x${string}`,
-      rpcUrl: deployment.rpcUrl,
-    }),
+    signer: createSigner(wallet, deployment.rpcUrl),
     usdc,
     stake,
     enclavePublicKey: hexToBytes(enclavePublicKey),
