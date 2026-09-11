@@ -20,7 +20,7 @@
   "scripts": {
     "build": "hardhat compile",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
-    "node": "hardhat node",
+    "node": "hardhat node --chain-id 5042002",
     "test": "hardhat test",
     "typecheck": "hardhat compile && tsc --noEmit"
   }

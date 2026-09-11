@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { makePolicy, referencePolicy } from "./reference-policy.ts";
-import { policySchema } from "./policy.ts";
+import { policySchema, publicRequirements } from "./policy.ts";
 
 // The schema is the only check on what one model call returns. Whatever it lets through is hashed,
 // committed on chain, and cannot be corrected afterwards.
@@ -58,4 +58,18 @@ test("rejects a fractional amount, because a fraction has no single canonical fo
 
 test("rejects a currency the escrow does not hold", () => {
   assert.throws(() => policySchema.parse(makePolicy({ currency: "EUR" })));
+});
+
+test("publishes the public requirements and nothing else", () => {
+  // What leaves this function is emitted on chain. A key added here is a key every supplier reads,
+  // so the assertion is the whole object and not a field of it.
+  assert.deepEqual(publicRequirements(referencePolicy), {
+    city: "Paris",
+    checkin: "2026-10-12",
+    checkout: "2026-10-14",
+    minStars: 4,
+    roomType: "double",
+    numberOfRooms: 1,
+    tradeDownStars: 3,
+  });
 });

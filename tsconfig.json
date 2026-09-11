@@ -3,5 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["shared"]
+  "include": ["shared", "scripts"]
 }

@@ -58,5 +58,18 @@ Run the services for the demo, one terminal each:
 | `pnpm --filter @perdiem/requisition dev` | the requisition service | 8788, `REQUISITION_PORT` |
 | `pnpm --filter @perdiem/web dev`         | the demo page           | 5173                     |
 
+## The sealed bidding slice
+
+One script runs the first half of the flow on a local node and stops at the last sealed bid:
+
+```sh
+./scripts/demo-sealed-bidding.sh
+```
+
+It starts a Hardhat node, deploys, starts the relay, starts the three agents, opens an auction
+against `referencePolicy`, and waits for three commitments on chain and three ciphertexts at the
+relay. It needs `ANTHROPIC_API_KEY` and the booking credentials in `.env`, because the agents price
+with a model. Scoring, settlement and the booking are not in it.
+
 The test suites are red on purpose. They state the behaviour each package owes before it is written;
 every package README says what its own red tests are waiting on.
