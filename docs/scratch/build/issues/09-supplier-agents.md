@@ -79,7 +79,7 @@ tools if it does not.
 
 ## Acceptance criteria
 
-- [x] Each agent runs a tool loop with exactly two tools, `getHotelId` and `submitBid`.
+- [ ] Each agent runs a tool loop with exactly two tools, `getHotelId` and `submitBid`.
 - [ ] The three demo prompts produce 330, 400 and 440 against `referencePolicy`.
 - [x] `submitBid` refuses a price outside the agent's `priceBand` and names the band in the error.
       The model corrects on the next turn.
@@ -112,6 +112,16 @@ The three demo prices are asserted in `agents/test/bidder.test.ts` and skip with
 books, and `getHotelId` needs one static catalogue read. That read is `agents/src/hotels.ts`.
 
 The sealed bid reaches the relay as a `0x` hex string. The enclave has to decode it the same way.
+
+`getHotelId` is gone, against the ticket. The operator now picks each supplier's hotel from the
+LiteAPI catalogue once and writes it into `agents/config/<name>.json`, so the agent holds one tool
+and no LiteAPI key. Cost: the model no longer chooses a hotel, and a new supplier needs an operator
+to look up an identifier. Gain: one less network call in the loop, one less key on the agent, and a
+model that cannot bid a room its supplier does not sell. The three identifiers are verified against
+`POST /hotels/rates` for the reference dates.
+
+The three agents are named after their hotels: `hotel-astoria-agent`, `victoria-palace-agent` and
+`grands-voyageurs-agent`.
 
 ## Dev review
 

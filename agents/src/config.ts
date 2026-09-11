@@ -14,6 +14,17 @@ export const agentConfigSchema = z
     rpcUrl: z.url(),
     sealedAuction: addressSchema,
     /**
+     * The hotel this supplier sells. It is an operator's choice, checked against the supplier's own
+     * catalogue before the agent runs, so the enclave can book it. Nothing but the identifier is
+     * checked by anyone: the star level is self-attested, per
+     * `docs/adr/0004-bid-attributes-are-self-attested.md`.
+     */
+    hotel: z.object({
+      hotelId: z.string().min(1),
+      hotelName: z.string().min(1),
+      stars: z.int().min(1).max(5),
+    }),
+    /**
      * The price the model may bid, in USDC minor units. `submitBid` refuses anything outside it and
      * names the band, so the model corrects on the next turn instead of bidding a price the
      * operator never published.

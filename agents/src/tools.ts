@@ -4,8 +4,7 @@ import { z } from "zod";
 
 import { bidCommitment, bidHash, bidSchema, type Bid } from "../../shared/bid.ts";
 import { sealBid } from "../../shared/sealed-bid.ts";
-import type { BookingCredentials } from "./config.ts";
-import { searchHotels } from "./hotels.ts";
+import type { AgentConfig, BookingCredentials } from "./config.ts";
 import { sealedAuctionAbi, usdcAbi } from "./abi.ts";
 import type { Signer } from "./signer.ts";
 
@@ -24,6 +23,7 @@ export interface AuctionTerms {
 
 export interface BidRunContext {
   auction: AuctionTerms;
+  hotel: AgentConfig["hotel"];
   signer: Signer;
   sealedAuction: `0x${string}`;
   usdc: `0x${string}`;
@@ -32,15 +32,18 @@ export interface BidRunContext {
   relayUrl: string;
   booking: BookingCredentials;
   priceBand: { min: number; max: number };
-  liteApiKey: string;
 }
 
+/**
+ * What the model decides. The hotel is not here: it is the operator's, fixed in the configuration,
+ * so the model cannot bid a room this supplier does not sell.
+ */
 export const submitBidInput = z
   .object({
-    hotelId: z.string().min(1).describe("An identifier from getHotelId."),
-    hotelName: z.string().min(1),
-    stars: z.int().min(1).max(5),
-    price: z.int().positive().describe("The whole stay, in USDC minor units. 330 USDC is 330000000."),
+    price: z
+      .int()
+      .positive()
+      .describe("The whole stay, in USDC minor units. 330 USDC is 330000000."),
     refundable: z.boolean(),
     breakfastIncluded: z.boolean(),
     roomType: z.string().min(1),
@@ -74,6 +77,7 @@ export async function submitBid(
 
   const bid: Bid = bidSchema.parse({
     ...input,
+    ...context.hotel,
     auctionId: context.auction.auctionId,
     supplier: context.signer.address,
   });
@@ -142,19 +146,6 @@ export function createTools(context: BidRunContext) {
   }
 
   const tools = [
-    betaZodTool({
-      name: "getHotelId",
-      description:
-        "Real hotels in a city: identifier, name and star level. Pick one at your own star level.",
-      inputSchema: z
-        .object({
-          city: z.string().min(1),
-          countryCode: z.string().length(2).describe("ISO 3166-1 alpha-2, for example FR."),
-        })
-        .strict(),
-      run: async ({ city, countryCode }) =>
-        JSON.stringify(await searchHotels(context.liteApiKey, { city, countryCode })),
-    }),
     betaZodTool({
       name: "submitBid",
       description:

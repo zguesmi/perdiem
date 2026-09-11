@@ -26,10 +26,9 @@ const auction: AuctionTerms = {
   tradeDownStars: 3,
 };
 
+const hotel = { hotelId: "lp1beec", hotelName: "Hotel Des Grands Voyageurs", stars: 4 };
+
 const offer = {
-  hotelId: "lp1beec",
-  hotelName: "Hotel Des Grands Voyageurs",
-  stars: 4,
   price: 440_000_000,
   refundable: true,
   breakfastIncluded: true,
@@ -67,6 +66,7 @@ function harness(t: TestContext, overrides: Partial<BidRunContext> = {}) {
 
   const context: BidRunContext = {
     auction,
+    hotel,
     signer,
     sealedAuction: SEALED_AUCTION,
     usdc: USDC,
@@ -75,7 +75,6 @@ function harness(t: TestContext, overrides: Partial<BidRunContext> = {}) {
     relayUrl: "http://relay.test",
     booking: { bookingUrl: "https://api.liteapi.travel/v3.0", bookingApiKey: "booking-key" },
     priceBand: { min: 420_000_000, max: 480_000_000 },
-    liteApiKey: "hotels-key",
     ...overrides,
   };
 

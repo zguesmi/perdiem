@@ -1,8 +1,9 @@
 {
-  "name": "b",
+  "name": "victoria-palace-agent",
   "relayUrl": "http://localhost:8787",
   "rpcUrl": "https://rpc.testnet.arc.network",
   "sealedAuction": "0x0000000000000000000000000000000000000000",
+  "hotel": { "hotelId": "lp44d1f", "hotelName": "Victoria Palace Hotel", "stars": 4 },
   "priceBand": { "min": 380000000, "max": 420000000 },
   "model": "claude-opus-5",
   "effort": "low"

@@ -45,6 +45,7 @@ function context(overrides: Partial<BidRunContext> = {}): BidRunContext {
 
   return {
     auction,
+    hotel: { hotelId: "lp1beec", hotelName: "Hotel Des Grands Voyageurs", stars: 4 },
     signer,
     sealedAuction: SEALED_AUCTION,
     usdc: "0x0000000000000000000000000000000000000001",
@@ -53,7 +54,6 @@ function context(overrides: Partial<BidRunContext> = {}): BidRunContext {
     relayUrl: "http://relay.test",
     booking: { bookingUrl: "https://api.liteapi.travel/v3.0", bookingApiKey: "booking-key" },
     priceBand: { min: 1, max: 1_000_000_000 },
-    liteApiKey: process.env.LITEAPI_SANDBOX_KEY ?? "",
     ...overrides,
   };
 }
@@ -64,6 +64,7 @@ test("the system prompt states what the model has to derive and never the answer
   assert.match(prompt, /2026-10-12/);
   assert.match(prompt, /2026-10-14/);
   assert.match(prompt, /December, January and February/);
+  assert.match(prompt, /Hotel Des Grands Voyageurs, 4 stars/);
   // Nights and season are derived from the dates above, so neither may appear as an answer.
   assert.doesNotMatch(prompt, /2 nights|autumn/i);
 });
@@ -72,12 +73,16 @@ test("the system prompt states what the model has to derive and never the answer
  * The demo turns on three prices. The model derives each one from its own rate card plus the two
  * nights in the auction, so a prompt change that breaks the demo table fails here first.
  */
-const DEMO_PRICES = { a: 330_000_000, b: 400_000_000, c: 440_000_000 };
+const DEMO_PRICES = {
+  "hotel-astoria-agent": 330_000_000,
+  "victoria-palace-agent": 400_000_000,
+  "grands-voyageurs-agent": 440_000_000,
+};
 
 for (const [name, price] of Object.entries(DEMO_PRICES)) {
   test(`agent ${name} bids ${price} against the reference auction`, async (t) => {
-    if (!process.env.ANTHROPIC_API_KEY || !process.env.LITEAPI_SANDBOX_KEY) {
-      return t.skip("needs ANTHROPIC_API_KEY and LITEAPI_SANDBOX_KEY");
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return t.skip("needs ANTHROPIC_API_KEY");
     }
 
     const config = await loadAgentConfig(
@@ -100,7 +105,7 @@ for (const [name, price] of Object.entries(DEMO_PRICES)) {
       globalThis.fetch = realFetch;
     });
 
-    await runBidder(config, rules, context({ priceBand: config.priceBand }));
+    await runBidder(config, rules, context({ priceBand: config.priceBand, hotel: config.hotel }));
 
     const { bid } = openSealedBid(hexToBytes(body as `0x${string}`), ENCLAVE_KEY, auction.auctionId);
     assert.equal(bid.price, price);

@@ -20,7 +20,6 @@ export { nextAuction } from "./watcher.ts";
 const environment = z.object({
   ANTHROPIC_API_KEY: z.string().min(1),
   AGENT_PRIVATE_KEY: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
-  LITEAPI_SANDBOX_KEY: z.string().min(1),
   BOOKING_URL: z.url(),
   BOOKING_API_KEY: z.string().min(1),
 });
@@ -38,6 +37,11 @@ async function main(): Promise<void> {
   const rules = (
     await readFile(new URL(`../prompts/${name}.txt`, import.meta.url), "utf8")
   ).trim();
+
+  // The rules are the only thing an operator changes between the three agents, so the run states
+  // them before it does anything a reader would have to infer them from.
+  console.log(`${config.name} at ${config.hotel.hotelName}, ${config.hotel.stars} stars`);
+  console.log(`rules: ${rules}`);
 
   const client = createArcClient(config.rpcUrl);
   const signer = createLocalSigner({
@@ -58,6 +62,7 @@ async function main(): Promise<void> {
 
   const context: BidRunContext = {
     auction,
+    hotel: config.hotel,
     signer,
     sealedAuction: config.sealedAuction,
     usdc,
@@ -69,7 +74,6 @@ async function main(): Promise<void> {
       bookingApiKey: secrets.BOOKING_API_KEY,
     }),
     priceBand: config.priceBand,
-    liteApiKey: secrets.LITEAPI_SANDBOX_KEY,
   };
 
   await runBidder(config, rules, context);
