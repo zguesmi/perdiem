@@ -1,10 +1,13 @@
 # Make the three supplier agents bid
 
-Status: ready-for-agent Type: task Blocked by: 03, 04, 07, 08, 22
+Status: ready-for-agent Type: task Blocked by: 03, 04, 07, 08, 22, 26
 
 Read a real LiteAPI rate for the auction's public requirements, apply the rate plan, sign the bid,
 then commit on chain with the Stake and post the sealed bid to the relay. One beat, both before the
 bid deadline.
+
+An agent never books. It seals its booking credentials into the envelope, per ticket 26, and the
+Enclave books the winner. So the agent's work ends at `bidDeadline`.
 
 The rate plan tests in `agents/` state the three demo prices: 330, 400, 440.
 
@@ -22,6 +25,8 @@ signs with Circle Agent Stack wallets, and an agent that reaches for a private k
 - [ ] The bid signer address and the committing address are identical, and a test states it.
 - [ ] `auctionId` is read from `AuctionCreated` and never derived.
 - [ ] A LiteAPI failure falls back to the fake client, so the flow still runs during the demo.
+- [ ] The envelope carries that agent's own booking credentials, and no code path books from the
+      agent.
 
 ## Comments
 

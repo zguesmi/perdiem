@@ -7,7 +7,8 @@ on `distanceMeters` and integer minor units, so correcting the stub's interface 
 
 Scope boundary: this ticket is the pure scoring function. The rest of the Enclave pipeline is
 `docs/spec.md` step 7 and no ticket in this backlog owns it. That pipeline decrypts, checks the
-signature, checks the commitment, and builds the Bids Root. Flagged, not fixed here.
+signature, checks the commitment, and builds the Bids Root. Ticket 14 owns the booking that follows
+the winner. Both are flagged, not fixed here.
 
 `workflow/` already carries the demo table as a red test: three bids arrive, the cheapest loses, the
 second cheapest wins at 440. Make it pass.

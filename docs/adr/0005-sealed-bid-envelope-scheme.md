@@ -8,7 +8,7 @@ key = HKDF-SHA256(ikm: X25519(esk, enclavePublicKey),
                   salt: epk || enclavePublicKey,
                   info: "perdiem/sealed-bid/v1" || auctionId,
                   32)
-plaintext = JSON of { bid, salt, signature }
+plaintext = JSON of { bid, salt, signature, booking }
 ```
 
 One ephemeral X25519 keypair per bid, thrown away after sealing. `@noble/curves`, `@noble/ciphers`

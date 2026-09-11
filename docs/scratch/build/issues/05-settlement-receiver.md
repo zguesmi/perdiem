@@ -12,6 +12,10 @@ Ticket 19 is `wontfix`, so the Bids Root parity assertion ships here instead.
 Use the Chainlink receiver template. Only the forwarder may call it, only in state Settling, and
 only with a Policy Hash and a Bids Root that match what was committed.
 
+`Settlement` carries a `string bookingId`, and a settlement that names a winner without one reverts.
+The contract stores it nowhere and emits it in `AuctionFinalized`. Ticket 25 removes the receipt
+phase from the contract; this ticket only has to decode and check the field.
+
 `onReport` carries both workflow writes and dispatches on an action, because it is the only entry a
 workflow has. The `evm@1.0.0` capability has one write RPC, `writeReport`, and its request has no
 calldata field, so a workflow cannot call `_startSettling` or any other function on the receiver.
@@ -64,7 +68,9 @@ simulation, per row V1.
       literals from `onchain/test/SealedAuction.t.sol`, over the same three commitments, plus the
       empty case, which is `bytes32(0)`.
 - [ ] The encoding of `Settlement` inside the report body is written down, and one test decodes a
-      payload produced by the Enclave's encoder rather than by the test itself.
+      payload produced by the Enclave's encoder rather than by the test itself. `bookingId` is a
+      dynamic `string`, so the test covers the empty case too.
+- [ ] A settlement with a winner and an empty `bookingId` reverts. One test states it.
 - [ ] The action prefix is written down with it, and one test decodes a two-write sequence the
       workflow produced rather than one the test built.
 
