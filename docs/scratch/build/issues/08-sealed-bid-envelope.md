@@ -1,6 +1,7 @@
 # Seal the bid to the enclave public key
 
-Status: done Type: task Blocked by: 03, ../verification/issues/03-enclave-decrypts-sealed-bids.md
+Status: resolved Type: task Blocked by: 03,
+../verification/issues/03-enclave-decrypts-sealed-bids.md
 
 The supplier seals the bid, its salt and its signature to the enclave's X25519 public key. The salt
 goes inside the ciphertext: a leaked salt unseals the commitment, because the bid space is small

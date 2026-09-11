@@ -1,6 +1,6 @@
 # Can the confidential handler read the chain and call confidential HTTP in simulation?
 
-Status: closed Type: research Blocked by: 01-cre-simulate-writes-to-arc.md
+Status: resolved Type: research Blocked by: 01-cre-simulate-writes-to-arc.md
 
 Two answers, one ticket, because both are properties of the same handler.
 

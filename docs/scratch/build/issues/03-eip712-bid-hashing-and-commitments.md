@@ -1,6 +1,6 @@
 # Implement the EIP-712 bid struct hash and the bid commitment
 
-Status: done Type: task Blocked by: none (can start immediately)
+Status: resolved Type: task Blocked by: none (can start immediately)
 
 The chain id in the EIP-712 domain comes from
 `../verification/issues/12-arc-chain-id-and-rpc-endpoint.md`, which is open. A wrong chain id
@@ -15,9 +15,10 @@ the signature can be checked without it.
 The EIP-712 type and the domain are both written out in `docs/spec.md`. `distanceMeters` is a
 `uint32` and not a fraction, and `price` is `uint256` minor units.
 
-Add the cross-language test: the Solidity hash and the TypeScript hash of the same bid must match,
-or the enclave's commitment check rejects honest bids. Ticket 19 turns that pair of tests into one
-shared fixture, which is where the Bids Root joins them.
+`bidHash` and the Bid Commitment stay inside TypeScript: the supplier agent produces them and the
+Enclave compares them. `SealedAuction` stores the commitment as an opaque `bytes32`, so neither hash
+crosses a language boundary and neither needs a Solidity assertion. The Bids Root is the one value
+both languages compute, and ticket 05 owns its parity test.
 
 ## Acceptance criteria
 

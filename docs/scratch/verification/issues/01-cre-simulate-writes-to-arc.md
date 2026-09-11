@@ -1,6 +1,6 @@
 # Does `cre workflow simulate` broadcast a real write to Arc testnet, and which forwarder address does it use?
 
-Status: closed Type: research Blocked by: 10-confidential-workflows-beta-access.md,
+Status: resolved Type: research Blocked by: 10-confidential-workflows-beta-access.md,
 12-arc-chain-id-and-rpc-endpoint.md
 
 The contract accepts settlements only from the CRE forwarder, so the forwarder address is a

@@ -1,6 +1,6 @@
 # Can the Circle Agent Stack create a wallet on Arc testnet, and can that wallet sign a contract call?
 
-Status: closed Type: research Blocked by: 05-arc-usdc-address-and-decimals.md,
+Status: resolved Type: research Blocked by: 05-arc-usdc-address-and-decimals.md,
 12-arc-chain-id-and-rpc-endpoint.md
 
 This is a priority row, not optional. Goal 7 in `docs/spec.md` says the supplier agent wallets come
