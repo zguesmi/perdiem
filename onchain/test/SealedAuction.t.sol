@@ -4,7 +4,7 @@ pragma solidity ^0.8.34;
 import {Test} from "forge-std/Test.sol";
 
 import {SealedAuction} from "../contracts/SealedAuction.sol";
-import {MockUSDC} from "./MockUSDC.sol";
+import {MockUSDC} from "../contracts/mocks/MockUSDC.sol";
 
 /**
  * The whole `SealedAuction` state machine: escrow, the auction lifecycle, the settlement the
