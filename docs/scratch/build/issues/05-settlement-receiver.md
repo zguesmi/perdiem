@@ -1,7 +1,6 @@
 # Accept the settlement from the CRE forwarder
 
-Status: ready-for-agent Type: task Blocked by: 04,
-../verification/issues/01-cre-simulate-writes-to-arc.md
+Status: done Type: task Blocked by: 04, ../verification/issues/01-cre-simulate-writes-to-arc.md
 
 `onReport`, the forwarder check and the action dispatch shipped with ticket 04, because the tests
 there needed the real entry rather than a harness. What is left here: `supportsInterface`, the
@@ -64,14 +63,14 @@ simulation, per row V1.
       A winner that never committed reverts. Ticket 04.
 - [x] `winner == address(0)` with `payout == 0` refunds the Payout Cap and every Stake and
       finalizes. Ticket 04.
-- [ ] `shared/bid.test.ts` asserts `bidsRoot` against the `BIDS_ROOT` and `SHUFFLED_BIDS_ROOT`
+- [x] `shared/bid.test.ts` asserts `bidsRoot` against the `BIDS_ROOT` and `SHUFFLED_BIDS_ROOT`
       literals from `onchain/test/SealedAuction.t.sol`, over the same three commitments, plus the
       empty case, which is `bytes32(0)`.
-- [ ] The encoding of `Settlement` inside the report body is written down, and one test decodes a
+- [x] The encoding of `Settlement` inside the report body is written down, and one test decodes a
       payload produced by the Enclave's encoder rather than by the test itself. `bookingId` is a
       dynamic `string`, so the test covers the empty case too.
-- [ ] A settlement with a winner and an empty `bookingId` reverts. One test states it.
-- [ ] The action prefix is written down with it, and one test decodes a two-write sequence the
+- [x] A settlement with a winner and an empty `bookingId` reverts. One test states it.
+- [x] The action prefix is written down with it, and one test decodes a two-write sequence the
       workflow produced rather than one the test built.
 
 ## Comments
@@ -83,3 +82,16 @@ simulation, per row V1.
 `supportsInterface`, the Chainlink receiver template, and the Bids Root parity assertion.
 
 The report `kind` is an `action`. The bids root is hashed in arrival order, with no sort.
+
+## Review follow-ups
+
+Two findings from the review of this branch, both left open.
+
+- `Settlement.payout` is a `number` against a `uint256`, and there is no `settlementSchema` beside
+  `bidSchema` and `policySchema`. A fractional value fails as `RangeError` from `BigInt()` rather
+  than as a validation error. Above `Number.MAX_SAFE_INTEGER` the value loses precision before
+  `BigInt()` reads it, which is about 9e9 USDC and out of reach here.
+- The pinned report bodies in `onchain/test/SealedAuction.t.sol` are decoded by `abi.decode` in two
+  `pure` tests, never delivered through `onReport`. The tests that call `onReport` build their own
+  report. A length or prefix check added to `onReport` would leave both pinned tests green. Closing
+  this needs an auction opened at `FIXTURE_AUCTION_ID`, or the fixture rebuilt against a real one.

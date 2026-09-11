@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.34;
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import {IReceiver} from "./IReceiver.sol";
 
 /**
  * @title SealedAuction
@@ -10,7 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * payout cap and every supplier's stake, and it pays only against a settlement whose policy hash and
  * bids root match what was committed before bidding opened.
  */
-contract SealedAuction {
+contract SealedAuction is IReceiver {
     using SafeERC20 for IERC20;
 
     enum State {
@@ -241,7 +244,7 @@ contract SealedAuction {
      * the claim payload is `abi.encode(bytes32 auctionId)` and the settlement payload is
      * `abi.encode(Settlement)`.
      */
-    function onReport(bytes calldata, bytes calldata report) external onlyForwarder {
+    function onReport(bytes calldata, bytes calldata report) external override onlyForwarder {
         (uint8 action, bytes memory payload) = abi.decode(report, (uint8, bytes));
         if (action == ACTION_CLAIM) {
             _startSettling(abi.decode(payload, (bytes32)));
@@ -323,6 +326,16 @@ contract SealedAuction {
             }
         }
         return bytes32(0);
+    }
+
+    /**
+     * @notice Whether this contract answers to an interface. The forwarder probes it before every
+     * report and delivers nothing to a receiver that claims `0xffffffff`.
+     * @dev A rejected delivery is silent: the forwarder emits a failed result while the workflow
+     * still reads a successful transaction, and the auction sits in `Settling` until the timeout.
+     */
+    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
+        return interfaceId == type(IERC165).interfaceId || interfaceId == type(IReceiver).interfaceId;
     }
 
     /**

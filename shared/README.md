@@ -1,11 +1,13 @@
 # shared
 
 Everything the buyer, the suppliers and the enclave have to agree on: the Policy schema, the
-canonical encoding, the Policy Hash, the three bid hashes and the sealed bid envelope. Scoring is
-not here, and never will be — see `docs/adr/0002-scoring-is-not-shared.md`.
+canonical encoding, the Policy Hash, the three bid hashes, the sealed bid envelope and the report
+bodies the enclave writes. Scoring is not here, and never will be — see
+`docs/adr/0002-scoring-is-not-shared.md`.
 
 - `policy.ts`, `canonical-json.ts`, `policy-hash.ts` — the Policy and its commitment.
 - `bid.ts` — the EIP-712 bid struct hash, the signing digest, the bid commitment and the bids root.
+- `report.ts` — the claim and settlement report bodies the enclave writes to `SealedAuction`.
 - `sealed-bid.ts` — sealing a bid to the enclave key and opening it inside the enclave. The scheme
   is in `docs/adr/0005-sealed-bid-envelope-scheme.md`.
 - `chain.ts` — the Arc chain id, which the EIP-712 domain reads.
