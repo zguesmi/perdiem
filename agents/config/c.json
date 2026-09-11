@@ -1,0 +1,9 @@
+{
+  "name": "c",
+  "relayUrl": "http://localhost:8787",
+  "rpcUrl": "https://rpc.testnet.arc.network",
+  "sealedAuction": "0x0000000000000000000000000000000000000000",
+  "priceBand": { "min": 420000000, "max": 480000000 },
+  "model": "claude-opus-5",
+  "effort": "low"
+}

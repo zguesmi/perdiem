@@ -1,7 +1,7 @@
 {
   "name": "@perdiem/agents",
   "version": "0.0.0",
-  "description": "Three supplier agents. Each prices a real LiteAPI rate through its own rate plan, then commits and seals one bid.",
+  "description": "Three supplier agents, one codebase. A model prices one bid; two tools fetch hotels and bind it.",
   "private": true,
   "scripts": {
     "test": "tsx --test 'test/**/*.test.ts'",

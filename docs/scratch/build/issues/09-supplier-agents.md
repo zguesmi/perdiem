@@ -79,25 +79,39 @@ tools if it does not.
 
 ## Acceptance criteria
 
-- [ ] Each agent runs a tool loop with exactly two tools, `getHotelId` and `submitBid`.
+- [x] Each agent runs a tool loop with exactly two tools, `getHotelId` and `submitBid`.
 - [ ] The three demo prompts produce 330, 400 and 440 against `referencePolicy`.
-- [ ] `submitBid` refuses a price outside the agent's `priceBand` and names the band in the error.
+- [x] `submitBid` refuses a price outside the agent's `priceBand` and names the band in the error.
       The model corrects on the next turn.
 - [ ] One bid per agent, signed through the ticket 22 signer interface. No viem account is reachable
       from the bid flow.
-- [ ] The commit lands with the Stake and the Sealed Bid lands at the relay, both before
+- [x] The commit lands with the Stake and the Sealed Bid lands at the relay, both before
       `bidDeadline`.
-- [ ] The bid signer address and the committing address are identical, and a test states it.
-- [ ] `auctionId` is read from `AuctionCreated` and never derived.
-- [ ] The envelope carries that agent's own booking credentials, and no code path books from the
+- [x] The bid signer address and the committing address are identical, and a test states it.
+- [x] `auctionId` is read from `AuctionCreated` and never derived.
+- [x] The envelope carries that agent's own booking credentials, and no code path books from the
       agent.
-- [ ] A run stops after 12 model turns and exits non-zero.
-- [ ] No log line and no error message carries `apiKey`, a salt, a signature or a decrypted bid. One
+- [x] A run stops after 12 model turns and exits non-zero.
+- [x] No log line and no error message carries `apiKey`, a salt, a signature or a decrypted bid. One
       test greps the agent output.
-- [ ] `agents/src/rate-plan.ts` and `agents/test/rate-plan.test.ts` are gone.
-- [ ] The tool tests run with no `ANTHROPIC_API_KEY`. Only the end-to-end agent test needs one.
+- [x] `agents/src/rate-plan.ts` and `agents/test/rate-plan.test.ts` are gone.
+- [x] The tool tests run with no `ANTHROPIC_API_KEY`. Only the end-to-end agent test needs one.
 
 ## Comments
+
+Implemented, less two things.
+
+The Circle Agent Stack signer is not written, because ticket 22 is still `ready-for-agent`. The
+signer interface and `createLocalSigner` ship here instead, so the bid flow runs; ticket 22 keeps
+`createCircleAgentSigner` and the address-identity test it asks for.
+
+The three demo prices are asserted in `agents/test/bidder.test.ts` and skip without
+`ANTHROPIC_API_KEY`, so that criterion is written and not yet observed.
+
+`agents/src/lite-api/` is gone with the rate plan. Every function in it threw, the agent never
+books, and `getHotelId` needs one static catalogue read. That read is `agents/src/hotels.ts`.
+
+The sealed bid reaches the relay as a `0x` hex string. The enclave has to decode it the same way.
 
 ## Dev review
 
