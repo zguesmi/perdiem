@@ -10,8 +10,9 @@ paths:
 
 ## Names
 
-Write short fully qualified names. No acronyms. Rename `req`, `cfg` and `impl` to the words they
-stand for.
+- Write short fully qualified names. No acronyms. Rename `req`, `cfg` and `impl` to the words they
+  stand for.
+- File: noun, function: verb unless it's obvious and the noun is shorter, variable: noun
 
 ## Comments
 

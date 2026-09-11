@@ -188,8 +188,8 @@ lastMetadata 0x1111111111111111111111111111111111111111111111111111111111111111
 lastReport   0x000000000000000000000000000000000000000000000000000000000000002a
 ```
 
-`msg.sender` is the forwarder. `metadata` is 64 bytes: `workflowId(32) ‖ workflowName(10) ‖
-workflowOwner(20) ‖ reportId(2)`. `report` is the payload the workflow passed to
+`msg.sender` is the forwarder. `metadata` is 64 bytes: `workflowId(32) || workflowName(10) ||
+workflowOwner(20) || reportId(2)`. `report` is the payload the workflow passed to
 `prepareReportRequest`, here `abi.encode(uint256 42)`.
 
 In simulation `workflowId` is `0x1111…` and `workflowOwner` is `0xaaaa…`. Both are placeholders,

@@ -8,7 +8,7 @@ verifies locally, and the Enclave rejects the bid. Keep it in one constant, so a
 one line and a regenerated fixture rather than a rewrite.
 
 Three hashes, and `docs/spec.md` keeps them apart on purpose: `bidHash` is the EIP-712 `hashStruct`
-with no salt and no domain; the signature is over `keccak256(0x1901 ‖ domainSeparator ‖ bidHash)`;
+with no salt and no domain; the signature is over `keccak256(0x1901 || domainSeparator || bidHash)`;
 the commitment is `keccak256(abi.encode(bidHash, salt))`. The salt stays outside the struct hash so
 the signature can be checked without it.
 
@@ -22,7 +22,7 @@ shared fixture, which is where the Bids Root joins them.
 ## Acceptance criteria
 
 - [x] `bidHash` is the EIP-712 `hashStruct` of the type in `docs/spec.md`: no salt, no domain.
-- [x] The signature is over `keccak256(0x1901 ‖ domainSeparator ‖ bidHash)`, with domain name
+- [x] The signature is over `keccak256(0x1901 || domainSeparator || bidHash)`, with domain name
       `Perdiem`, version `1`, the Arc chain id and the `SealedAuction` address.
 - [x] The Bid Commitment is `keccak256(abi.encode(bidHash, salt))`, and the salt appears in no
       struct hash.

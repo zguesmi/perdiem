@@ -90,11 +90,11 @@ Wire formats, all base64 in the config:
 
 | Probe | Envelope                          | Key derivation                          |
 | ----- | --------------------------------- | --------------------------------------- |
-| A     | `epk(32) ‖ nonce(24) ‖ ct`        | `HKDF-SHA256(X25519(esk, pk), epk ‖ pk, "perdiem/sealed-bid/v1", 32)` |
-| B, G  | `epk(32) ‖ nonce(24) ‖ ct`        | `HSalsa20(X25519(esk, pk), 0^16)`, the `crypto_box` derivation |
-| C, I  | `epk(32) ‖ ct`                    | same as B, nonce `blake2b(epk ‖ pk, 24)` |
-| D     | `epk(33) ‖ nonce(24) ‖ ct`        | `HKDF-SHA256(secp256k1 ECDH, epk ‖ pk, …, 32)` |
-| H     | `epk(32) ‖ nonce(12) ‖ ct`        | same as A                               |
+| A     | `epk(32) || nonce(24) || ct`        | `HKDF-SHA256(X25519(esk, pk), epk || pk, "perdiem/sealed-bid/v1", 32)` |
+| B, G  | `epk(32) || nonce(24) || ct`        | `HSalsa20(X25519(esk, pk), 0^16)`, the `crypto_box` derivation |
+| C, I  | `epk(32) || ct`                    | same as B, nonce `blake2b(epk || pk, 24)` |
+| D     | `epk(33) || nonce(24) || ct`        | `HKDF-SHA256(secp256k1 ECDH, epk || pk, …, 32)` |
+| H     | `epk(32) || nonce(12) || ct`        | same as A                               |
 
 AEADs: XChaCha20-Poly1305 for A and D, XSalsa20-Poly1305 for B, C, G and I, AES-256-GCM for H. A
 548-byte bid seals to 620 bytes under A, 596 under C, well inside the relay's 16 KiB cap.

@@ -3,10 +3,10 @@
 The envelope is:
 
 ```
-epk(32) ‖ nonce(24) ‖ ciphertext
+epk(32) || nonce(24) || ciphertext
 key = HKDF-SHA256(ikm: X25519(esk, enclavePublicKey),
-                  salt: epk ‖ enclavePublicKey,
-                  info: "perdiem/sealed-bid/v1" ‖ auctionId,
+                  salt: epk || enclavePublicKey,
+                  info: "perdiem/sealed-bid/v1" || auctionId,
                   32)
 plaintext = JSON of { bid, salt, signature }
 ```
@@ -44,7 +44,7 @@ The cost: one more key type in the demo, and a public key that has to travel in 
   the shared secret alone: nothing binds the ciphertext to this auction or this deployment. HKDF
   binds `auctionId` and both public keys in, so a Sealed Bid cannot be replayed into another
   auction. With multi-language agents, this becomes the better trade.
-- **libsodium sealed box** — `crypto_box` with the nonce derived as `blake2b(epk ‖ pk, 24)`, so no
+- **libsodium sealed box** — `crypto_box` with the nonce derived as `blake2b(epk || pk, 24)`, so no
   nonce on the wire: 596 bytes against 620. 12 ms. Same missing binding, plus a hash function used
   nowhere else in the project.
 - **secp256k1 ECIES** — works, 28 ms. Rejected for the reasons above, not for speed.
