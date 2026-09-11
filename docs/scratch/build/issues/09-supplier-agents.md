@@ -89,7 +89,7 @@ tools if it does not.
 - [x] The commit lands with the Stake and the Sealed Bid lands at the relay, both before
       `bidDeadline`.
 - [x] The bid signer address and the committing address are identical, and a test states it.
-- [x] `auctionId` is read from `AuctionCreated` and never derived.
+- [x] `auctionId` is read from `TermsPublished` and never derived.
 - [x] The envelope carries that agent's own booking credentials, and no code path books from the
       agent.
 - [x] A run stops after 12 model turns and exits non-zero.
@@ -119,6 +119,10 @@ The sealed bid reaches the relay as a `0x` hex string. The enclave has to decode
 An agent is a long-running process. `watchAuctions` wraps viem's `watchContractEvent` on
 `TermsPublished` and hands every new auction to the bidder without awaiting it, so a twelve-turn run
 never hides the next auction. An auction fires once per process. `SIGINT` and `SIGTERM` stop it.
+
+The criterion said `auctionId` comes from `AuctionCreated`. It comes from `TermsPublished`, which
+carries every public requirement in one event; the bid deadline is read from `auctions(auctionId)`.
+`AuctionCreated` is no longer in the agent's ABI. Still read, never derived.
 
 The three configurations point at `wss://rpc.testnet.arc.io`, so viem watches with `eth_subscribe`.
 Measured on Arc testnet, 2026-09-11: `eth_subscribe` answers for `logs` and `newHeads`, and the HTTP
