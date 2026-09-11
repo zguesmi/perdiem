@@ -28,6 +28,7 @@ contract SealedAuctionTest is Test {
     uint256 internal constant SUPPLIER_STAKE = 50e6;
     uint256 internal constant PAYOUT = 440e6;
     uint256 internal constant MAX_BIDS = 5;
+    uint256 internal constant MAX_OPEN_AUCTIONS = 32;
 
     /// @dev Ample: each supplier commits at most once per auction across the whole suite.
     uint256 internal constant SUPPLIER_FUNDING = 500e6;
@@ -154,6 +155,17 @@ contract SealedAuctionTest is Test {
         vm.prank(BUYER);
         vm.expectRevert(SealedAuction.AuctionAlreadyExists.selector);
         auction.createAuction(POLICY_HASH, requirements(), PAYOUT_CAP);
+    }
+
+    /// `pendingSettlement` walks the open auctions, so the list has a ceiling and this enforces it.
+    function test_createAuction_rejectsMoreOpenAuctionsThanTheScanWalks() public {
+        fundExtraAuctions(MAX_OPEN_AUCTIONS);
+        for (uint256 i = 0; i < MAX_OPEN_AUCTIONS; i++) {
+            openAuctionWith(POLICY_HASH, PAYOUT_CAP - i);
+        }
+
+        vm.expectRevert(SealedAuction.OpenAuctionLimitReached.selector);
+        openAuctionWith(POLICY_HASH, PAYOUT_CAP - MAX_OPEN_AUCTIONS);
     }
 
     function test_commit_movesCreatedToBiddingWithNoExtraTransaction() public {
@@ -535,6 +547,96 @@ contract SealedAuctionTest is Test {
         auction.timeoutRefund(auctionId);
     }
 
+    /**
+     * What the cron reads every minute: an auction past its bid deadline that nobody has claimed.
+     */
+    function test_pendingSettlement_returnsAnAuctionPastItsBidDeadline() public {
+        assertEq(auction.pendingSettlement(), bytes32(0), "no auction is open yet");
+
+        bytes32 auctionId = biddingClosedAuction();
+
+        assertEq(auction.pendingSettlement(), auctionId);
+    }
+
+    /// Bidding is still open, so scoring now would drop every bid that has not arrived.
+    function test_pendingSettlement_isZeroBeforeTheBidDeadline() public {
+        bytes32 auctionId = openAuction();
+        commitInOrder(auctionId, 0, 1, 2);
+        vm.warp(openedAt + BID_PERIOD - 1);
+
+        assertEq(auction.pendingSettlement(), bytes32(0));
+    }
+
+    /// Nobody committed, so the auction is still `Created` and there is nothing to score.
+    function test_pendingSettlement_isZeroForAnAuctionNobodyCommittedTo() public {
+        openAuction();
+        vm.warp(openedAt + BID_PERIOD);
+
+        assertEq(auction.pendingSettlement(), bytes32(0));
+    }
+
+    /// A second claim wastes a write and reads, in the logs, exactly like a broken settlement.
+    function test_pendingSettlement_isZeroWhileAnAuctionIsSettling() public {
+        claimedAuction();
+
+        assertEq(auction.pendingSettlement(), bytes32(0));
+    }
+
+    /// A claimed auction keeps its place in the list, so the scan has to step past it.
+    function test_pendingSettlement_stepsPastAnAuctionThatIsAlreadySettling() public {
+        fundExtraAuctions(1);
+        bytes32 claimed = openAuctionWith(POLICY_HASH, PAYOUT_CAP);
+        bytes32 next = openAuctionWith(POLICY_HASH, PAYOUT_CAP - 1);
+        commitInOrder(claimed, 0, 1, 2);
+        commitInOrder(next, 0, 1, 2);
+        vm.warp(openedAt + BID_PERIOD);
+
+        claim(claimed);
+
+        assertEq(auction.pendingSettlement(), next);
+    }
+
+    /// Both terminal states drop the auction from the list the scan walks.
+    function test_pendingSettlement_isZeroOnceEveryAuctionIsFinalizedOrTimedOut() public {
+        fundExtraAuctions(1);
+        bytes32 settled = openAuctionWith(POLICY_HASH, PAYOUT_CAP);
+        bytes32 abandoned = openAuctionWith(POLICY_HASH, PAYOUT_CAP - 1);
+        commitInOrder(settled, 0, 1, 2);
+        commitInOrder(abandoned, 0, 1, 2);
+
+        vm.warp(openedAt + BID_PERIOD);
+        claim(settled);
+        settle(winningSettlement(settled));
+
+        vm.warp(openedAt + FINALIZE_PERIOD);
+        auction.timeoutRefund(abandoned);
+
+        assertEq(auction.pendingSettlement(), bytes32(0));
+    }
+
+    /// The cron settles one auction per tick, so every eligible auction has to come up in turn.
+    function test_pendingSettlement_returnsEachEligibleAuctionInTurn() public {
+        fundExtraAuctions(2);
+        bytes32[3] memory opened;
+        for (uint256 i = 0; i < 3; i++) {
+            opened[i] = openAuctionWith(POLICY_HASH, PAYOUT_CAP - i);
+            commitInOrder(opened[i], 0, 1, 2);
+        }
+        vm.warp(openedAt + BID_PERIOD);
+
+        for (uint256 tick = 0; tick < 3; tick++) {
+            bytes32 pending = auction.pendingSettlement();
+            assertTrue(pending != bytes32(0), "an eligible auction is left");
+            claim(pending);
+            settle(winningSettlement(pending));
+        }
+
+        assertEq(auction.pendingSettlement(), bytes32(0), "and none is left");
+        for (uint256 i = 0; i < 3; i++) {
+            assertEq(uint8(stateOf(opened[i])), uint8(SealedAuction.State.Finalized));
+        }
+    }
+
     function test_commitments_returnsEveryCommitmentInArrivalOrder() public {
         bytes32 auctionId = openAuction();
         commitInOrder(auctionId, 2, 0, 1);
@@ -638,9 +740,19 @@ contract SealedAuctionTest is Test {
     }
 
     function openAuctionWith(bytes32 policyHash) internal returns (bytes32 auctionId) {
+        return openAuctionWith(policyHash, PAYOUT_CAP);
+    }
+
+    /// Two auctions opened in one block need one term apart, and the cap is the cheapest to vary.
+    function openAuctionWith(bytes32 policyHash, uint256 payoutCap) internal returns (bytes32 auctionId) {
         openedAt = uint64(block.timestamp);
         vm.prank(BUYER);
-        auctionId = auction.createAuction(policyHash, requirements(), PAYOUT_CAP);
+        auctionId = auction.createAuction(policyHash, requirements(), payoutCap);
+    }
+
+    /// `setUp` funds one cap, so a test that opens several auctions tops the buyer up first.
+    function fundExtraAuctions(uint256 count) internal {
+        usdc.mint(BUYER, count * PAYOUT_CAP);
     }
 
     /// An auction with all three commitments in and `bidDeadline` reached.
