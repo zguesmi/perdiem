@@ -1,9 +1,8 @@
 # A Bid's attributes are self-attested
 
-A Bid carries `stars`, `distanceMeters`, `refundable` and `breakfastIncluded`. The Enclave checks
-the EIP-712 signature and the on-chain commitment, so it knows which staked address said this and
-that the words have not changed since before the deadline. It does not know whether the words are
-true.
+A Bid carries `stars`, `refundable` and `breakfastIncluded`. The Enclave checks the EIP-712
+signature and the on-chain commitment, so it knows which staked address said this and that the words
+have not changed since before the deadline. It does not know whether the words are true.
 
 Verifying them would mean the Enclave calling a hotel content API for every bid and treating that
 answer as authoritative. That is a second confidential HTTP dependency, a second failure mode in the
@@ -22,9 +21,9 @@ The product claim has to be stated at its real width, in the README and in `docs
 buyer's selection rule stayed private, the bids were sealed and single-shot, and the payout went to
 the supplier that claimed the best fit. Not "the best hotel wins".
 
-Nothing enforces the four attributes. The booking proves a booking happened, not that it was
-four-star, refundable or 1,000 metres from Gare du Nord. The Stake is an anti-spam bond now, not a
-penalty: every Stake comes back at settlement, because there is no later obligation left to fail.
+Nothing enforces the three attributes. The booking proves a booking happened, not that it was
+four-star, refundable or served with breakfast. The Stake is an anti-spam bond now, not a penalty:
+every Stake comes back at settlement, because there is no later obligation left to fail.
 
 A later version could compare the booking response with the Bid and refuse to settle on a mismatch.
 The Enclave already holds both, so the check costs no new dependency. It is out of scope here.

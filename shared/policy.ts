@@ -37,15 +37,6 @@ function nightsBetween(checkin: string, checkout: string): number {
   return (to - from) / millisecondsPerDay;
 }
 
-/** Microdegrees, so the coordinate stays an integer. */
-const locationSchema = z
-  .object({
-    name: z.string().min(1),
-    latitudeMicro: integer.min(-90_000_000).max(90_000_000),
-    longitudeMicro: integer.min(-180_000_000).max(180_000_000),
-  })
-  .strict();
-
 const hardRequirementsSchema = z
   .object({
     city: z.string().min(1),
@@ -54,8 +45,6 @@ const hardRequirementsSchema = z
     minStars: stars,
     roomType: z.string().min(1),
     numberOfRooms: positiveInteger,
-    location: locationSchema,
-    radiusMeters: positiveInteger,
   })
   .strict();
 

@@ -13,13 +13,12 @@ import { hashPolicy } from "./policy-hash.ts";
 
 const CANONICAL =
   '{"currency":"USDC","hardRequirements":{"checkin":"2026-10-12","checkout":"2026-10-14",' +
-  '"city":"Paris","location":{"latitudeMicro":48880900,"longitudeMicro":2355300,' +
-  '"name":"Gare du Nord"},"minStars":4,"numberOfRooms":1,"radiusMeters":2000,' +
-  '"roomType":"double"},"maxPrice":520000000,"nights":2,' +
+  '"city":"Paris","minStars":4,"numberOfRooms":1,"roomType":"double"},' +
+  '"maxPrice":520000000,"nights":2,' +
   '"preferences":{"breakfastIncluded":40000000,"refundable":50000000},' +
   '"tradeDown":{"requiredDiscountPercentage":30,"stars":3},"version":1}';
 
-const POLICY_HASH = "0xcf8e8d0c8679bb6c91011ea5d77ef5f4e44efcce1846bec48aa1ddcc2235ea8c";
+const POLICY_HASH = "0xc02246ea158658c8ee47f33d88f453046752a6cd63502f414449986c512a9902";
 
 test("canonicalizes the reference Policy to the committed bytes", () => {
   assert.equal(canonicalJson(referencePolicy), CANONICAL);

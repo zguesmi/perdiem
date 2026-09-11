@@ -31,7 +31,7 @@ implementation. Its cost was 97 lines of guards against inputs the Policy schema
 array hole, a bigint or a `Date` cannot reach the encoder from a validated Policy.
 
 Both versions hash the Policy in `docs/spec.md` to the same 32 bytes,
-`0xcf8e8d0c8679bb6c91011ea5d77ef5f4e44efcce1846bec48aa1ddcc2235ea8c`.
+`0xc02246ea158658c8ee47f33d88f453046752a6cd63502f414449986c512a9902`.
 
 We also rejected a package. Three zero-dependency canonical encoders were measured on 2026-09-10:
 `canonicalize@5.0.0`, `fast-json-stable-stringify@2.1.0` and `safe-stable-stringify@2.5.0`. All
