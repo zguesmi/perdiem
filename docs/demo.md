@@ -13,7 +13,7 @@ work beyond a clean default. No mobile layout.
 3. **Bids** — commitment hashes only until settlement, then every bid with its price and attributes,
    so the audience sees why the cheapest lost.
 4. **Enclave** — a live tail of the simulation log. The preferences never appear.
-5. **Settlement** — winner, Payout, refund, Stake refunds, Receipt, LiteAPI response.
+5. **Settlement** — winner, Payout, refund, Stake refunds, booking id, LiteAPI response.
 
 ## The video
 
@@ -28,7 +28,8 @@ work beyond a clean default. No mobile layout.
   scoring done. "The relay never saw a price."
 - 1:10 The settlement. C wins at 440, refund 310. "The cheapest lost. The second cheapest won."
 - 1:25 The three bids, and why: A failed the trade-down rule, B lost on cancellation and breakfast.
-- 1:40 The winner books in the sandbox. Receipt on chain. Stake released.
+- 1:40 The booking id in the settlement. "The enclave booked it with the supplier's own key, so the
+  payout and the proof are one transaction."
 - 1:50 "Name Your Own Price had one dimension and the platform saw the bid. Here the scoring rule is
   private from the platform too."
 - 2:00 End card.

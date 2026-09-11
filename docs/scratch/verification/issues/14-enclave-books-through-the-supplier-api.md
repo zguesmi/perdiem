@@ -47,6 +47,11 @@ consensus run over the read. That also covers a workflow retry and a re-fired cr
 not depend on the node count. The run was one simulated node, so it proves the API deduplicates and
 proves nothing about how a real Nitro enclave fans a handler out.
 
+The search is not optional. `POST /rates/prebook` without an `offerId` fails with `400` code `4002`,
+`"Field validation for 'OfferID' failed on the 'required' tag"`, only `POST /hotels/rates` mints an
+`offerId`, `GET /hotels/rates` is a `404`, and `GET /data/hotel` returns static content with no
+rates. Row V9 measured an `offerId` going stale in minutes, so the Bid cannot carry one either.
+
 The limit that bites is the response size, not the time. The HTTP capability caps a response at 250
 KB and a request at 120 KB. A plain city search returned 589,856 bytes and failed the run with
 `[8]ResourceExhausted`, because one hotel carries about 200 offers and `limit` counts hotels.

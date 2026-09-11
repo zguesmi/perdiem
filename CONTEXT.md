@@ -42,10 +42,15 @@ stored at the relay. _Avoid_: Envelope, blob, ciphertext
 **Bids Root**: The keccak256 over every on-chain Bid Commitment for an auction, sorted. Built inside
 the enclave, over all commitments, including any whose Sealed Bid never arrived.
 
-**Settlement**: What the enclave reports: the auction, the winner, the payout, the Policy Hash and
-the Bids Root. _Avoid_: Report, result, outcome
+**Settlement**: What the enclave reports: the auction, the winner, the payout, the Policy Hash, the
+Bids Root and the booking id. _Avoid_: Report, result, outcome
 
-**Receipt**: The keccak256 of the LiteAPI booking id, posted by the winner to release its Stake.
+**Booking Proof**: The booking id the enclave reads back from the supplier's API after booking the
+winning bid. It travels inside the Settlement, and the contract refuses to pay a winner without one.
+_Avoid_: Receipt, confirmation, voucher
+
+**Booking Credentials**: The supplier's own API base URL and key, sealed inside its Sealed Bid
+envelope and read by nobody but the enclave. _Avoid_: Token, secret, credentials
 
 ### Money
 
@@ -57,8 +62,8 @@ amount, deposit, funds
 **Payout**: The USDC the winner receives. First price: exactly what the winning Bid asked for.
 _Avoid_: Amount, award, price paid
 
-**Stake**: The USDC a supplier locks when committing a Bid. Refunded on losing, released on a
-Receipt, and paid to the buyer if the winner never delivers. _Avoid_: Bond, deposit, collateral
+**Stake**: The USDC a supplier locks when committing a Bid. It binds the commitment to a real
+supplier, and every Stake comes back at settlement. _Avoid_: Bond, deposit, collateral
 
 **Escrow**: The custody role the `SealedAuction` contract plays while it holds the Payout Cap and
 the Stakes. Not a separate contract.

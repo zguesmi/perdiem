@@ -129,7 +129,9 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   record, so the handler writes with a deterministic key, discards the response and lets consensus
   run over the read. The HTTP capability caps a response at 250 KB and a request at 120 KB: a plain
   LiteAPI city search returned 589,856 bytes and failed the run with `[8]ResourceExhausted`, while
-  `maxRatesPerHotel: 1` brings it to 3,023.
+  `maxRatesPerHotel: 1` brings it to 3,023. The rates search cannot be skipped: `prebook` requires
+  an `offerId`, only that search mints one, `GET /hotels/rates` is a `404`, and an `offerId` goes
+  stale in minutes.
   - Ticket:
     [14 — Enclave books through the supplier API](scratch/verification/issues/14-enclave-books-through-the-supplier-api.md)
   - Evidence:

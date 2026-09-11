@@ -128,9 +128,29 @@ the same hotel:
 API needs the response bounded in the request, because the handler never sees the body it is
 rejected for.
 
+## 6. The search cannot be skipped
+
+`prebook` takes an `offerId` and nothing else identifies a rate:
+
+```
+POST /rates/prebook  {"hotelId":"lp1beec","usePaymentSdk":false}
+400 {"error":{"code":4002,"description":"Key: 'PreBookRequest.OfferID' Error:Field validation for 'OfferID' failed on the 'required' tag"}}
+```
+
+Only `POST /hotels/rates` mints an `offerId`. There is no `GET` form of it: `GET /hotels/rates` with
+the same parameters in the query string returns `404`. `GET /data/hotel?hotelId=lp1beec` answers in
+57 ms with 52,262 bytes of static content and no rates.
+
+The Bid cannot carry an `offerId` either. Row V9 measured one going stale in minutes, and
+`bidDeadline` is two hours after creation.
+
+So the booking is three calls, not two, and the first of them costs 2,315 ms.
+
 ## Numbers to carry forward
 
 - `POST` with a body from `handlerInTee`: works, no new capability.
 - Three chained supplier calls: 7,650 ms, against a 10 s per-request timeout.
 - Duplicate write under a shared idempotency key: refused in 190 ms, one record.
 - HTTP response ceiling: 250 KB. Request ceiling 120 KB.
+- The rates search is mandatory: `prebook` needs an `offerId`, only that search mints one, and an
+  `offerId` goes stale in minutes.

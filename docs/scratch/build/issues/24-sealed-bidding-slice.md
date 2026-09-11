@@ -17,7 +17,7 @@ The cuts that make this runnable now, each one a ticket that stays open:
 - Prices come from `createFakeLiteApiClient`. The sandbox client stays out.
 - A local Hardhat node, not Arc testnet.
 
-What it does not cover: scoring, settlement, booking and the Receipt. Those are 05, 06, 13, 14.
+What it does not cover: scoring, settlement and the booking. Those are 05, 06, 13, 14.
 
 ## Acceptance criteria
 
