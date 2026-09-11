@@ -6,12 +6,18 @@ import { z } from "zod";
 import { sealedAuctionAbi } from "./abi.ts";
 import { runBidder } from "./bidder.ts";
 import { createArcClient } from "./chain.ts";
-import { bookingCredentialsSchema, loadAgentConfig, type AgentConfig } from "./config.ts";
+import {
+  bookingCredentialsSchema,
+  deploymentSchema,
+  loadAgentConfig,
+  type AgentConfig,
+  type Deployment,
+} from "./config.ts";
 import { createLocalSigner, type Signer } from "./signer.ts";
 import type { AuctionTerms, BidRunContext } from "./tools.ts";
 import { watchAuctions } from "./watcher.ts";
 
-export { loadAgentConfig, type AgentConfig } from "./config.ts";
+export { loadAgentConfig, type AgentConfig, type Deployment } from "./config.ts";
 export { createLocalSigner, type Signer } from "./signer.ts";
 export { submitBid, createTools, type AuctionTerms, type BidRunContext } from "./tools.ts";
 export { auctionTerms, watchAuctions } from "./watcher.ts";
@@ -29,6 +35,7 @@ type Secrets = z.infer<typeof environment>;
 /** What every auction this agent bids on shares: the wallet, the escrow and the booking keys. */
 interface Supplier {
   config: AgentConfig;
+  deployment: Deployment;
   rules: string;
   signer: Signer;
   usdc: `0x${string}`;
@@ -42,11 +49,11 @@ async function bidOn(supplier: Supplier, auction: AuctionTerms): Promise<void> {
     auction,
     hotel: supplier.config.hotel,
     signer: supplier.signer,
-    sealedAuction: supplier.config.sealedAuction,
+    sealedAuction: supplier.deployment.sealedAuction,
     usdc: supplier.usdc,
     stake: supplier.stake,
     enclavePublicKey: supplier.enclavePublicKey,
-    relayUrl: supplier.config.relayUrl,
+    relayUrl: supplier.deployment.relayUrl,
     booking: supplier.booking,
     priceRange: supplier.config.priceRange,
   };
@@ -62,6 +69,7 @@ async function main(): Promise<void> {
   }
 
   const secrets: Secrets = environment.parse(process.env);
+  const deployment = deploymentSchema.parse(process.env);
   const config = await loadAgentConfig(
     fileURLToPath(new URL(`../config/${name}.json`, import.meta.url)),
   );
@@ -72,8 +80,10 @@ async function main(): Promise<void> {
   console.log(`${config.name} at ${config.hotel.hotelName}, ${config.hotel.stars} stars`);
   console.log(`rules: ${rules}`);
 
-  const client = createArcClient(config.rpcUrl);
-  const contract = { address: config.sealedAuction, abi: sealedAuctionAbi } as const;
+  const client = createArcClient(deployment.rpcUrl);
+  const contract = { address: deployment.sealedAuction, abi: sealedAuctionAbi } as const;
+  // Read before the watcher starts, so an auction that opens during startup is still delivered.
+  const fromBlock = await client.getBlockNumber();
   const [usdc, enclavePublicKey, stake] = await Promise.all([
     client.readContract({ ...contract, functionName: "usdc" }),
     client.readContract({ ...contract, functionName: "enclavePublicKey" }),
@@ -82,10 +92,11 @@ async function main(): Promise<void> {
 
   const supplier: Supplier = {
     config,
+    deployment,
     rules,
     signer: createLocalSigner({
       privateKey: secrets.AGENT_PRIVATE_KEY as `0x${string}`,
-      rpcUrl: config.rpcUrl,
+      rpcUrl: deployment.rpcUrl,
     }),
     usdc,
     stake,
@@ -100,14 +111,16 @@ async function main(): Promise<void> {
   process.once("SIGINT", () => stopping.abort());
   process.once("SIGTERM", () => stopping.abort());
 
-  console.log(`${config.name}: listening to ${config.sealedAuction}`);
+  console.log(
+    `${config.name}: listening to ${deployment.sealedAuction} on ${deployment.rpcUrl} from block ${fromBlock}`,
+  );
 
   // A bid is not awaited here. One auction that takes twelve model turns must not hide the next
   // one, and one auction that fails must not stop the agent bidding on anything else.
   await watchAuctions(
     client,
-    config.sealedAuction,
-    { signal: stopping.signal },
+    deployment.sealedAuction,
+    { signal: stopping.signal, fromBlock },
     (auction) => {
       console.log(`${config.name}: bidding on ${auction.auctionId}`);
       void bidOn(supplier, auction).catch((error: Error) => {

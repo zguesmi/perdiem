@@ -14,8 +14,9 @@ The cuts that make this runnable now, each one a ticket that stays open:
   and 21 stay out.
 - The buyer is a plain viem account, not the Privy organization wallet. Ticket 11 stays out.
 - The suppliers sign with `createLocalSigner`. The Circle half of ticket 22 stays out.
-- Hotel identifiers come from `createFakeLiteApiClient`. The sandbox client stays out. The model
-  still prices from its own prompt, so this slice needs an `ANTHROPIC_API_KEY`.
+- The hotel is operator configuration in `agents/config/<name>.json`, per ticket 09. No supplier
+  catalogue is read. The model still prices from its own prompt, so this slice needs an
+  `ANTHROPIC_API_KEY`.
 - A local Hardhat node, not Arc testnet.
 
 What it does not cover: scoring, settlement and the booking. Those are 05, 06, 13, 14.

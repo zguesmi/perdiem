@@ -97,3 +97,23 @@ export const policySchema = z
   );
 
 export type Policy = z.infer<typeof policySchema>;
+
+/**
+ * The subset of the Policy that is public, as `SealedAuction.PublicRequirements` orders it.
+ * `maxPrice`, `tradeDown.requiredDiscountPercentage` and `preferences` are the private half and
+ * never appear here: the buyer emits this object, so a field added to it is a field every supplier
+ * reads.
+ */
+export interface PublicRequirements {
+  city: string;
+  checkin: string;
+  checkout: string;
+  minStars: number;
+  roomType: string;
+  numberOfRooms: number;
+  tradeDownStars: number;
+}
+
+export function publicRequirements(policy: Policy): PublicRequirements {
+  return { ...policy.hardRequirements, tradeDownStars: policy.tradeDown.stars };
+}
