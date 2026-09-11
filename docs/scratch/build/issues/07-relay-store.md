@@ -18,7 +18,7 @@ Not blocked: none of this depends on the Policy shape.
 
 - [x] `PUT` returns `201` on the first write for an auction and supplier pair, `409` on any later
       one, and `413` over 16 KiB.
-- [x] `GET` returns `[]` for an unknown auction, and entries ascending by supplier address.
+- [x] `GET` returns `[]` for an unknown auction, and the stored entries in arrival order.
 - [x] The body is stored as opaque bytes. Nothing parses the ciphertext and nothing knows a
       deadline.
 - [x] There is no authentication, no rate limit and no allowlist.

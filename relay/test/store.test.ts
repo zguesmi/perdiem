@@ -58,16 +58,17 @@ test("serves every sealed bid for an auction", async () => {
   assert.deepEqual(await response.json(), [{ supplier, ciphertext: sealedBid }]);
 });
 
-test("serves the sealed bids ascending by supplier address", async () => {
+test("serves the sealed bids in arrival order", async () => {
   const app = createRelayApp();
   await app.request(`/auctions/${auctionId}/bids/0xb0b`, { method: "PUT", body: "bob" });
   await put(app, sealedBid);
 
+
   const response = await app.request(`/auctions/${auctionId}/bids`);
 
   assert.deepEqual(await response.json(), [
-    { supplier, ciphertext: sealedBid },
     { supplier: "0xb0b", ciphertext: "bob" },
+    { supplier, ciphertext: sealedBid },
   ]);
 });
 

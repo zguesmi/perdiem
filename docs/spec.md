@@ -225,7 +225,7 @@ auction state.
 | Call                                        | Behaviour                                                                                                     |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `PUT /auctions/{auctionId}/bids/{supplier}` | Body is the raw ciphertext. `201` on the first write for that pair, `409` on any later one, `413` over 16 KiB |
-| `GET /auctions/{auctionId}/bids`            | `200` with `[{ supplier, ciphertext }]`, ascending by supplier address. `[]` for an unknown auction           |
+| `GET /auctions/{auctionId}/bids`            | `200` with `[{ supplier, ciphertext }]`, in arrival order. `[]` for an unknown auction                        |
 
 First write wins, because the commitment is already on chain: overwriting would only swap the bid
 behind a fixed commitment, which the Enclave then drops. No delete, no auction listing.
