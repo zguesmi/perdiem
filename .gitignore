@@ -9,4 +9,7 @@ node_modules/
 .pnpm-store/
 .pnpm-cache/
 
+# Hardhat Ignition's record of the local deployment.
+onchain/ignition/deployments/hardhat/
+
 !docs/evidence/*.log
