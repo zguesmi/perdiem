@@ -1,6 +1,6 @@
 # Remove the receipt phase from the contract
 
-Status: ready-for-agent Type: task Blocked by: none (can start immediately)
+Status: resolved Type: task Blocked by: none (can start immediately)
 
 Ticket 04 shipped a delivery phase the contract cannot check. `submitReceipt` accepts any `bytes32`
 from the winner and releases the Stake, so the proof costs a winner nothing to fabricate. The
@@ -27,16 +27,16 @@ changes every identifier. Any fixture that pins one has to be regenerated.
 
 ## Acceptance criteria
 
-- [ ] `submitReceipt`, `slash` and their state fields, deadlines, events and errors are gone.
-- [ ] `Settlement` carries `string bookingId`, and a settlement with a winner and an empty
+- [x] `submitReceipt`, `slash` and their state fields, deadlines, events and errors are gone.
+- [x] `Settlement` carries `string bookingId`, and a settlement with a winner and an empty
       `bookingId` reverts. One test states it.
-- [ ] `winner == address(0)` still settles with an empty `bookingId`, refunds the Payout Cap and
+- [x] `winner == address(0)` still settles with an empty `bookingId`, refunds the Payout Cap and
       every Stake, and finalizes.
-- [ ] The winner's Stake is refunded at settlement like every other Stake.
-- [ ] `AuctionFinalized` carries the booking id.
-- [ ] The auction record no longer carries `receiptDeadline`, `stakeReleased` or `stakeSlashed`, and
+- [x] The winner's Stake is refunded at settlement like every other Stake.
+- [x] `AuctionFinalized` carries the booking id.
+- [x] The auction record no longer carries `receiptDeadline`, `stakeReleased` or `stakeSlashed`, and
       any fixture pinning an `auctionId` is regenerated.
-- [ ] The four rows of "Every USDC in and out" in `docs/spec.md` are each a passing test.
+- [x] The four rows of "Every USDC in and out" in `docs/spec.md` are each a passing test.
 
 ## Comments
 

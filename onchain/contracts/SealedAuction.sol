@@ -42,6 +42,10 @@ contract SealedAuction {
      * `policyHash` and `bidsRoot` are the enclave's claim about what it scored. The contract holds
      * both values already and rejects the settlement when either disagrees, so an enclave that
      * loaded the wrong policy secret, or scored a subset of the commitments, cannot pay anyone.
+     *
+     * `bookingId` is the reference the enclave read back from the winning supplier's own API. It is
+     * emitted and stored nowhere, and a winner without one is rejected, so no payout exists without
+     * a booking. See `docs/adr/0006-the-enclave-books-with-supplier-credentials.md`.
      */
     struct Settlement {
         bytes32 auctionId;
@@ -49,12 +53,13 @@ contract SealedAuction {
         uint256 payout;
         bytes32 policyHash;
         bytes32 bidsRoot;
+        string bookingId;
     }
 
     /**
      * The auction record. Its keccak256 is the `auctionId`, so every field below is fixed at
-     * creation time and the identifier commits to all of them. `winner`, `payout`, `stakeReleased`
-     * and `stakeSlashed` are zero when the hash is taken and are written afterwards.
+     * creation time and the identifier commits to all of them. `winner` and `payout` are zero when
+     * the hash is taken and are written afterwards.
      */
     struct Auction {
         State state;
@@ -62,13 +67,10 @@ contract SealedAuction {
         uint64 createdAt;
         uint64 bidDeadline;
         uint64 finalizeDeadline;
-        uint64 receiptDeadline;
         bytes32 policyHash;
         uint256 payoutCap;
         address winner;
         uint256 payout;
-        bool stakeReleased;
-        bool stakeSlashed;
     }
 
     /// USDC a supplier locks when committing a bid.
@@ -85,9 +87,6 @@ contract SealedAuction {
 
     /// How long after creation a settlement may land before anyone can refund the auction.
     uint64 public constant FINALIZE_PERIOD = 4 hours;
-
-    /// How long after creation the winner may post a booking receipt.
-    uint64 public constant RECEIPT_PERIOD = 6 hours;
 
     /// A claim report, which moves an auction from `Bidding` to `Settling`.
     uint8 private constant ACTION_CLAIM = 1;
@@ -121,16 +120,13 @@ contract SealedAuction {
         address indexed buyer,
         uint64 createdAt,
         uint64 bidDeadline,
-        uint64 finalizeDeadline,
-        uint64 receiptDeadline
+        uint64 finalizeDeadline
     );
     event TermsPublished(bytes32 indexed auctionId, uint256 payoutCap, PublicRequirements requirements);
     event Committed(bytes32 indexed auctionId, address indexed supplier, bytes32 commitment);
     event AuctionClaimed(bytes32 indexed auctionId);
-    event AuctionFinalized(bytes32 indexed auctionId, address indexed winner, uint256 payout);
+    event AuctionFinalized(bytes32 indexed auctionId, address indexed winner, uint256 payout, string bookingId);
     event AuctionTimedOut(bytes32 indexed auctionId);
-    event ReceiptPosted(bytes32 indexed auctionId, address indexed winner, bytes32 receiptHash);
-    event StakeSlashed(bytes32 indexed auctionId, address indexed winner, address indexed buyer);
 
     error AuctionAlreadyExists();
     error OpenAuctionLimitReached();
@@ -148,9 +144,7 @@ contract SealedAuction {
     error PayoutWithoutWinner();
     error WinnerWithoutPayout();
     error WinnerNeverCommitted();
-    error NotWinner();
-    error DeliveryClosed();
-    error StakeAlreadySettled();
+    error MissingBookingId();
 
     modifier onlyForwarder() {
         if (msg.sender != forwarder) {
@@ -190,13 +184,10 @@ contract SealedAuction {
             createdAt: createdAt,
             bidDeadline: createdAt + BID_PERIOD,
             finalizeDeadline: createdAt + FINALIZE_PERIOD,
-            receiptDeadline: createdAt + RECEIPT_PERIOD,
             policyHash: policyHash,
             payoutCap: payoutCap,
             winner: address(0),
-            payout: 0,
-            stakeReleased: false,
-            stakeSlashed: false
+            payout: 0
         });
 
         auctionId = keccak256(abi.encode(opened));
@@ -208,9 +199,7 @@ contract SealedAuction {
 
         usdc.safeTransferFrom(msg.sender, address(this), payoutCap);
 
-        emit AuctionCreated(
-            auctionId, msg.sender, createdAt, opened.bidDeadline, opened.finalizeDeadline, opened.receiptDeadline
-        );
+        emit AuctionCreated(auctionId, msg.sender, createdAt, opened.bidDeadline, opened.finalizeDeadline);
         emit TermsPublished(auctionId, payoutCap, requirements);
     }
 
@@ -264,58 +253,6 @@ contract SealedAuction {
     }
 
     /**
-     * @notice Releases the winner's stake against a booking receipt, the keccak256 of the booking
-     * id. The winner only, before `receiptDeadline`.
-     */
-    function submitReceipt(bytes32 auctionId, bytes32 receiptHash) external {
-        Auction storage auction = auctions[auctionId];
-        if (auction.state != State.Finalized) {
-            revert BadState();
-        }
-        if (msg.sender != auction.winner || auction.winner == address(0)) {
-            revert NotWinner();
-        }
-        if (block.timestamp >= auction.receiptDeadline) {
-            revert DeliveryClosed();
-        }
-        if (auction.stakeReleased || auction.stakeSlashed) {
-            revert StakeAlreadySettled();
-        }
-
-        auction.stakeReleased = true;
-
-        usdc.safeTransfer(auction.winner, SUPPLIER_STAKE);
-
-        emit ReceiptPosted(auctionId, auction.winner, receiptHash);
-    }
-
-    /**
-     * @notice Pays the winner's stake to the buyer once `receiptDeadline` has passed with no
-     * receipt. Anyone may call it.
-     */
-    function slash(bytes32 auctionId) external {
-        Auction storage auction = auctions[auctionId];
-        if (auction.state != State.Finalized) {
-            revert BadState();
-        }
-        if (auction.winner == address(0)) {
-            revert NotWinner();
-        }
-        if (block.timestamp < auction.receiptDeadline) {
-            revert TooEarly();
-        }
-        if (auction.stakeReleased || auction.stakeSlashed) {
-            revert StakeAlreadySettled();
-        }
-
-        auction.stakeSlashed = true;
-
-        usdc.safeTransfer(auction.buyer, SUPPLIER_STAKE);
-
-        emit StakeSlashed(auctionId, auction.winner, auction.buyer);
-    }
-
-    /**
      * @notice Refunds the locked USDC and every stake once `finalizeDeadline` has passed with no
      * settlement. Anyone may call it. A liveness fallback, and only that.
      * @dev Any live state refunds, `Created` included. Without it the USDC of an auction nobody bid
@@ -334,7 +271,7 @@ contract SealedAuction {
         _closeAuction(auctionId);
 
         usdc.safeTransfer(auction.buyer, auction.payoutCap);
-        _refundStakes(auctionId, address(0));
+        _refundStakes(auctionId);
 
         emit AuctionTimedOut(auctionId);
     }
@@ -442,10 +379,10 @@ contract SealedAuction {
             revert WinnerNeverCommitted();
         } else if (settlement.payout == 0) {
             // The payout is the winning bid's price, and no bid asks zero. A settlement that names
-            // a winner and pays it nothing is therefore a bug upstream, and accepting it would keep
-            // that supplier's stake locked until it delivers a booking nobody paid for, or until
-            // the receipt deadline passes and the stake is slashed.
+            // a winner and pays it nothing is therefore a bug upstream.
             revert WinnerWithoutPayout();
+        } else if (bytes(settlement.bookingId).length == 0) {
+            revert MissingBookingId();
         }
 
         auction.state = State.Finalized;
@@ -457,9 +394,9 @@ contract SealedAuction {
             usdc.safeTransfer(settlement.winner, settlement.payout);
         }
         usdc.safeTransfer(auction.buyer, auction.payoutCap - settlement.payout);
-        _refundStakes(settlement.auctionId, settlement.winner);
+        _refundStakes(settlement.auctionId);
 
-        emit AuctionFinalized(settlement.auctionId, settlement.winner, settlement.payout);
+        emit AuctionFinalized(settlement.auctionId, settlement.winner, settlement.payout, settlement.bookingId);
     }
 
     /// Drops a terminal auction from the open list, so the scan only ever walks live ones.
@@ -474,13 +411,11 @@ contract SealedAuction {
         }
     }
 
-    /// The winner's stake stays in the escrow until a receipt releases it or a slash pays it out.
-    function _refundStakes(bytes32 auctionId, address winner) internal {
+    /// Every stake comes back, the winner's included: the stake binds a commitment, it pays nothing.
+    function _refundStakes(bytes32 auctionId) internal {
         address[] storage stakers = _committers[auctionId];
         for (uint256 i = 0; i < stakers.length; i++) {
-            if (stakers[i] != winner) {
-                usdc.safeTransfer(stakers[i], SUPPLIER_STAKE);
-            }
+            usdc.safeTransfer(stakers[i], SUPPLIER_STAKE);
         }
     }
 }

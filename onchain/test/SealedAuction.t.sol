@@ -7,8 +7,8 @@ import {SealedAuction} from "../contracts/SealedAuction.sol";
 import {MockUSDC} from "../contracts/mocks/MockUSDC.sol";
 
 /**
- * The whole `SealedAuction` state machine: escrow, the auction lifecycle, the settlement the
- * forwarder delivers, and what happens to the winner's stake afterwards.
+ * The whole `SealedAuction` state machine: escrow, the auction lifecycle and the settlement the
+ * forwarder delivers.
  *
  * The lifecycle runs first. Every later group covers one function, in the order the functions are
  * declared in the contract, and each group opens with the case that succeeds.
@@ -35,14 +35,13 @@ contract SealedAuctionTest is Test {
 
     uint64 internal constant BID_PERIOD = 2 hours;
     uint64 internal constant FINALIZE_PERIOD = 4 hours;
-    uint64 internal constant RECEIPT_PERIOD = 6 hours;
 
     uint8 internal constant ACTION_CLAIM = 1;
     uint8 internal constant ACTION_SETTLE = 2;
 
     bytes32 internal constant POLICY_HASH = keccak256("the policy");
     bytes32 internal constant ENCLAVE_PUBLIC_KEY = keccak256("the enclave x25519 public key");
-    bytes32 internal constant RECEIPT_HASH = keccak256("the booking id");
+    string internal constant BOOKING_ID = "lp-booking-1";
 
     /**
      * The three commitments below in arrival order, hashed with `abi.encodePacked`. Computed off
@@ -72,11 +71,11 @@ contract SealedAuctionTest is Test {
     }
 
     /**
-     * One auction from end to end: the buyer locks the cap, three suppliers commit, the forwarder
-     * claims and settles, and the winner posts a receipt. 750 plus three stakes go in; 440 to the
-     * winner, 310 to the buyer and every stake back come out.
+     * One auction from end to end: the buyer locks the cap, three suppliers commit, and the
+     * forwarder claims and settles. 750 plus three stakes go in; 440 to the winner, 310 to the
+     * buyer and every stake back come out.
      */
-    function test_auctionLifecycle_paysTheWinnerAndReleasesItsStake() public {
+    function test_auctionLifecycle_paysTheWinnerAndRefundsEveryStake() public {
         bytes32 auctionId = openAuction();
         assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP, "the escrow holds the cap");
 
@@ -91,21 +90,16 @@ contract SealedAuctionTest is Test {
         settle(winningSettlement(auctionId));
         assertEq(uint8(stateOf(auctionId)), uint8(SealedAuction.State.Finalized));
 
-        vm.prank(SUPPLIER_C);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-
         assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING + PAYOUT, "the winner is paid and its stake is back");
         assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP - PAYOUT, "the buyer keeps what the winner did not ask for");
         assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a losing stake is refunded");
         assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a losing stake is refunded");
         assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
-        assertTrue(stakeReleasedOn(auctionId));
-        assertFalse(stakeSlashedOn(auctionId));
     }
 
     function test_createAuction_recordsTheTerms() public {
         bytes32 auctionId = openAuction();
-        (SealedAuction.State state, address buyer,,,,, bytes32 policyHash, uint256 payoutCap,,,,) =
+        (SealedAuction.State state, address buyer,,,, bytes32 policyHash, uint256 payoutCap,,) =
             auction.auctions(auctionId);
 
         assertEq(uint8(state), uint8(SealedAuction.State.Created));
@@ -121,19 +115,16 @@ contract SealedAuctionTest is Test {
         assertEq(usdc.balanceOf(address(auction)), PAYOUT_CAP, "the escrow holds it");
     }
 
-    /// The buyer passes no deadline, so no auction can exist that is undeliverable or unslashable.
+    /// The buyer passes no deadline, so no auction can exist that is undeliverable.
     function test_createAuction_derivesTheDeadlinesFromTheBlockTimestamp() public {
         bytes32 auctionId = openAuction();
-        (,, uint64 createdAt, uint64 bidDeadline, uint64 finalizeDeadline, uint64 receiptDeadline,,,,,,) =
-            auction.auctions(auctionId);
+        (,, uint64 createdAt, uint64 bidDeadline, uint64 finalizeDeadline,,,,) = auction.auctions(auctionId);
 
         assertEq(createdAt, uint64(block.timestamp));
         assertEq(bidDeadline, createdAt + BID_PERIOD);
         assertEq(finalizeDeadline, createdAt + FINALIZE_PERIOD);
-        assertEq(receiptDeadline, createdAt + RECEIPT_PERIOD);
         assertEq(auction.BID_PERIOD(), BID_PERIOD);
         assertEq(auction.FINALIZE_PERIOD(), FINALIZE_PERIOD);
-        assertEq(auction.RECEIPT_PERIOD(), RECEIPT_PERIOD);
     }
 
     /// The identifier is the hash of the record, so one different term is one different auction.
@@ -257,11 +248,11 @@ contract SealedAuctionTest is Test {
 
         settle(winningSettlement(auctionId));
 
-        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING - SUPPLIER_STAKE + PAYOUT, "the winner is paid");
+        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING + PAYOUT, "the winner is paid and its stake is back");
         assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP - PAYOUT, "the buyer keeps the rest");
         assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a losing stake is refunded");
         assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING, "a losing stake is refunded");
-        assertEq(usdc.balanceOf(address(auction)), SUPPLIER_STAKE, "the escrow holds the winner's stake");
+        assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
         assertEq(uint8(stateOf(auctionId)), uint8(SealedAuction.State.Finalized));
     }
 
@@ -374,105 +365,22 @@ contract SealedAuctionTest is Test {
         settle(settlementOf(auctionId, SUPPLIER_C, 0));
     }
 
-    function test_submitReceipt_releasesTheWinnerStake() public {
-        bytes32 auctionId = finalizedAuction();
+    /// No booking id, no booking. Paying for one would pay for a stay nobody reserved.
+    function test_onReport_rejectsAWinnerWithNoBookingId() public {
+        bytes32 auctionId = claimedAuction();
+        SealedAuction.Settlement memory settlement = winningSettlement(auctionId);
+        settlement.bookingId = "";
 
-        vm.prank(SUPPLIER_C);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-
-        assertEq(usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING + PAYOUT, "the stake is back");
-        assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
-        assertTrue(stakeReleasedOn(auctionId));
+        vm.expectRevert(SealedAuction.MissingBookingId.selector);
+        settle(settlement);
     }
 
-    function test_submitReceipt_rejectsAnyoneButTheWinner() public {
-        bytes32 auctionId = finalizedAuction();
-
-        vm.prank(SUPPLIER_A);
-        vm.expectRevert(SealedAuction.NotWinner.selector);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-    }
-
-    function test_submitReceipt_rejectsAReceiptOnOrAfterTheReceiptDeadline() public {
-        bytes32 auctionId = finalizedAuction();
-        vm.warp(openedAt + RECEIPT_PERIOD);
-
-        vm.prank(SUPPLIER_C);
-        vm.expectRevert(SealedAuction.DeliveryClosed.selector);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-    }
-
-    function test_submitReceipt_rejectsASecondReceipt() public {
-        bytes32 auctionId = finalizedAuction();
-
-        vm.startPrank(SUPPLIER_C);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-        vm.expectRevert(SealedAuction.StakeAlreadySettled.selector);
-        auction.submitReceipt(auctionId, keccak256("another booking"));
-        vm.stopPrank();
-    }
-
-    function test_submitReceipt_rejectsAReceiptBeforeTheAuctionIsFinalized() public {
+    function test_onReport_settlementEmitsTheBookingId() public {
         bytes32 auctionId = claimedAuction();
 
-        vm.prank(SUPPLIER_C);
-        vm.expectRevert(SealedAuction.BadState.selector);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-    }
-
-    /// The winner never delivers, so its stake goes to the buyer.
-    function test_slash_paysTheWinnerStakeToTheBuyer() public {
-        bytes32 auctionId = finalizedAuction();
-        vm.warp(openedAt + RECEIPT_PERIOD);
-
-        vm.prank(STRANGER);
-        auction.slash(auctionId);
-
-        assertEq(
-            usdc.balanceOf(SUPPLIER_C), SUPPLIER_FUNDING - SUPPLIER_STAKE + PAYOUT, "the winner loses its stake"
-        );
-        assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP - PAYOUT + SUPPLIER_STAKE, "the buyer gets the stake");
-        assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING);
-        assertEq(usdc.balanceOf(SUPPLIER_B), SUPPLIER_FUNDING);
-        assertEq(usdc.balanceOf(address(auction)), 0, "the escrow is empty");
-        assertTrue(stakeSlashedOn(auctionId));
-        assertFalse(stakeReleasedOn(auctionId));
-    }
-
-    function test_slash_rejectsASlashBeforeTheReceiptDeadline() public {
-        bytes32 auctionId = finalizedAuction();
-
-        vm.expectRevert(SealedAuction.TooEarly.selector);
-        auction.slash(auctionId);
-    }
-
-    function test_slash_rejectsASlashAfterAReceipt() public {
-        bytes32 auctionId = finalizedAuction();
-        vm.prank(SUPPLIER_C);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-        vm.warp(openedAt + RECEIPT_PERIOD);
-
-        vm.expectRevert(SealedAuction.StakeAlreadySettled.selector);
-        auction.slash(auctionId);
-    }
-
-    function test_slash_rejectsASecondSlash() public {
-        bytes32 auctionId = finalizedAuction();
-        vm.warp(openedAt + RECEIPT_PERIOD);
-        auction.slash(auctionId);
-
-        vm.expectRevert(SealedAuction.StakeAlreadySettled.selector);
-        auction.slash(auctionId);
-    }
-
-    /// An auction with no winner refunded every stake at settlement, so there is nothing to slash.
-    function test_slash_rejectsAnAuctionWithNoWinner() public {
-        bytes32 auctionId = claimedAuction();
-        settle(noWinnerSettlement(auctionId));
-        vm.warp(openedAt + RECEIPT_PERIOD);
-
-        vm.expectRevert(SealedAuction.NotWinner.selector);
-        auction.slash(auctionId);
+        vm.expectEmit(true, true, false, true, address(auction));
+        emit SealedAuction.AuctionFinalized(auctionId, SUPPLIER_C, PAYOUT, BOOKING_ID);
+        settle(winningSettlement(auctionId));
     }
 
     /// The workflow never claimed the auction.
@@ -712,14 +620,6 @@ contract SealedAuctionTest is Test {
         auction.timeoutRefund(auctionId);
 
         assertTerminal(auctionId);
-
-        vm.warp(openedAt + RECEIPT_PERIOD);
-        vm.prank(SUPPLIER_C);
-        vm.expectRevert(SealedAuction.BadState.selector);
-        auction.submitReceipt(auctionId, RECEIPT_HASH);
-
-        vm.expectRevert(SealedAuction.BadState.selector);
-        auction.slash(auctionId);
     }
 
     /// @notice The public requirements under test: one double four-star room in Paris.
@@ -797,8 +697,11 @@ contract SealedAuctionTest is Test {
         return settlementOf(auctionId, SUPPLIER_C, PAYOUT);
     }
 
+    /// No eligible bid, so no booking either.
     function noWinnerSettlement(bytes32 auctionId) internal pure returns (SealedAuction.Settlement memory) {
-        return settlementOf(auctionId, address(0), 0);
+        SealedAuction.Settlement memory settlement = settlementOf(auctionId, address(0), 0);
+        settlement.bookingId = "";
+        return settlement;
     }
 
     function settlementOf(bytes32 auctionId, address winner, uint256 payout)
@@ -811,7 +714,8 @@ contract SealedAuctionTest is Test {
             winner: winner,
             payout: payout,
             policyHash: POLICY_HASH,
-            bidsRoot: BIDS_ROOT
+            bidsRoot: BIDS_ROOT,
+            bookingId: BOOKING_ID
         });
     }
 
@@ -828,20 +732,12 @@ contract SealedAuctionTest is Test {
     }
 
     function stateOf(bytes32 auctionId) internal view returns (SealedAuction.State state) {
-        (state,,,,,,,,,,,) = auction.auctions(auctionId);
-    }
-
-    function stakeReleasedOn(bytes32 auctionId) internal view returns (bool released) {
-        (,,,,,,,,,, released,) = auction.auctions(auctionId);
-    }
-
-    function stakeSlashedOn(bytes32 auctionId) internal view returns (bool slashed) {
-        (,,,,,,,,,,, slashed) = auction.auctions(auctionId);
+        (state,,,,,,,,) = auction.auctions(auctionId);
     }
 
     /// Every supplier whole, the buyer whole, and nothing left in the escrow.
     function assertEverythingReturned(bytes32 auctionId) internal view {
-        (,,,,,,,,, uint256 payout,,) = auction.auctions(auctionId);
+        (,,,,,,,, uint256 payout) = auction.auctions(auctionId);
 
         assertEq(usdc.balanceOf(BUYER), PAYOUT_CAP, "the buyer gets the cap back");
         assertEq(usdc.balanceOf(SUPPLIER_A), SUPPLIER_FUNDING, "a stake is refunded");
