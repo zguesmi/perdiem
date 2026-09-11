@@ -101,12 +101,27 @@ refuses it. The cost of that: the ranges are a guard on one auction, not a full 
 ## Wallets
 
 Each agent signs with one signer behind a three-member interface: the address, an EIP-712 signature
-over the `Bid` type, and a contract write. Today the only implementation is `createLocalSigner`, a
-viem externally owned account reading `AGENT_PRIVATE_KEY`. `createCircleAgentSigner` is the demo
-path and is not written yet.
+over the `Bid` type, and a contract write. `AGENT_SIGNER` picks the implementation:
+
+| `AGENT_SIGNER` | What signs                                                |
+| -------------- | --------------------------------------------------------- |
+| `circle`       | a Circle Agent Stack wallet, at `CIRCLE_WALLET_ADDRESS`   |
+| `local`        | a viem externally owned account, from `AGENT_PRIVATE_KEY` |
 
 The bid signature and the chain calls come from the same address, because `commit` pulls the stake
 from the caller and the enclave checks that the bid's signer staked.
+
+`createCircleAgentSigner` drives the Circle CLI. The CLI is the whole client: it authenticates as a
+Circle user with a session opened by an email one-time code, every wallet endpoint it calls is
+user-scoped, and it accepts no API key. An operator runs `circle wallet login <email> --testnet`
+once per agent and the session lasts 28 days.
+
+The wallet is an ERC-4337 smart contract account, so its signature recovers to the account's owner
+key and never to the wallet. The enclave binds the two with ERC-1271, and the address above is the
+wallet, because that is what stakes, wins and gets paid.
+
+`createLocalSigner` needs no Circle account, so the bid flow and its tests run without one. It is
+the default.
 
 ## Configuration and environment
 
@@ -119,7 +134,9 @@ the environment.
 | `ARC_RPC_URL`            | the chain, over HTTP                                |
 | `SEALED_AUCTION_ADDRESS` | the escrow, written by the local deploy script      |
 | `RELAY_URL`              | where the sealed bid is posted                      |
-| `AGENT_PRIVATE_KEY`      | this agent's wallet. One per process                |
+| `AGENT_SIGNER`           | `circle` or `local`. Defaults to `local`            |
+| `CIRCLE_WALLET_ADDRESS`  | the Circle wallet, when `AGENT_SIGNER=circle`       |
+| `AGENT_PRIVATE_KEY`      | the local key, when `AGENT_SIGNER=local`            |
 | `ANTHROPIC_API_KEY`      | the model that prices the bid                       |
 | `BOOKING_URL`            | the supplier's own booking API, sealed into the bid |
 | `BOOKING_API_KEY`        | the key that opens it, sealed into the bid          |

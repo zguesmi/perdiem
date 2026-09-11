@@ -2,7 +2,8 @@ import { createWalletClient, type Abi, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { BID_TYPES, bidDomain, bidMessage, type Bid } from "../../shared/bid.ts";
-import { arc, arcTransport, createArcClient } from "./chain.ts";
+import { arc, arcTransport, assertMined, createArcClient } from "./chain.ts";
+import { createCircleAgentSigner } from "./circle.ts";
 
 /**
  * Everything an agent needs from its wallet, and nothing else. Three members: who it is, how it
@@ -23,6 +24,17 @@ export interface Signer {
     functionName: string;
     args: readonly unknown[];
   }): Promise<`0x${string}`>;
+}
+
+/** Which wallet an agent signs with. The environment picks one; no caller names an implementation. */
+export type Wallet =
+  | { kind: "local"; privateKey: `0x${string}` }
+  | { kind: "circle"; address: `0x${string}` };
+
+export function createSigner(wallet: Wallet, rpcUrl: string): Signer {
+  return wallet.kind === "circle"
+    ? createCircleAgentSigner({ address: wallet.address, rpcUrl })
+    : createLocalSigner({ privateKey: wallet.privateKey, rpcUrl });
 }
 
 /**
@@ -63,14 +75,7 @@ export function createLocalSigner(options: {
         functionName: call.functionName,
         args: [...call.args],
       });
-      // viem resolves on a revert rather than throwing. Unchecked, a reverted `commit` reads as a
-      // success, the sealed bid goes to the relay with no commitment behind it, and the enclave
-      // drops it in silence.
-      const receipt = await reader.waitForTransactionReceipt({ hash });
-      if (receipt.status !== "success") {
-        throw new Error(`${call.functionName} reverted on chain`);
-      }
-      return hash;
+      return assertMined(reader, hash, call.functionName);
     },
   };
 }
