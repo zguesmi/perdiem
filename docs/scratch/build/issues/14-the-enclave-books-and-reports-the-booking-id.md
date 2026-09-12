@@ -1,6 +1,6 @@
 # Book the winner inside the enclave and report the booking id
 
-Status: ready-for-agent Type: task Blocked by: 05, 06, 26, 30,
+Status: resolved Type: task Blocked by: 05, 06, 26, 30,
 ../verification/issues/09-liteapi-booking-id-and-payment-method.md,
 ../verification/issues/14-enclave-books-through-the-supplier-api.md
 
@@ -32,18 +32,33 @@ Two traps, both measured in row V14:
 
 ## Acceptance criteria
 
-- [ ] The Enclave books the winner with the `baseUrl` and `apiKey` from that bid's own envelope.
-- [ ] `clientReference` is the `auctionId`, and the reported booking id comes from the read-back,
+- [x] The Enclave books the winner with the `baseUrl` and `apiKey` from that bid's own envelope.
+- [x] `clientReference` is the `auctionId`, and the reported booking id comes from the read-back,
       not from the book response.
-- [ ] A second identical book is refused with code `4005` and the read-back still returns one
+- [x] A second identical book is refused with code `4005` and the read-back still returns one
       record. One test states it.
-- [ ] Every search bounds its response with `maxRatesPerHotel: 1`.
-- [ ] A failure at any of the four steps returns `winner = address(0)`, `payout = 0` and an empty
+- [x] Every search bounds its response with `maxRatesPerHotel: 1`.
+- [x] A failure at any of the four steps returns `winner = address(0)`, `payout = 0` and an empty
       `bookingId`. The Enclave does not fall through to the second-best bid.
 - [ ] No booking credential and no decrypted bid reaches a log. The evidence run greps clean.
-- [ ] Sandbox test guest data only. No real personal data anywhere in the repository.
+      Nothing logs a credential, and the booking id is public. The simulate run is not recorded:
+      both environment files carry a placeholder booking API key.
+- [x] Sandbox test guest data only. No real personal data anywhere in the repository.
 
 ## Comments
+
+`workflow-cre/src/booking.ts` holds the four calls behind one `Send` seam, so the whole chain is
+tested against a fake supplier with no network. `workflow.ts` supplies the seam from the HTTP
+capability; the enclave passes the Policy's dates and room count, and nothing else about the Policy
+reaches the booking.
+
+The ids are read by key rather than by path. The search nests its offer under a hotel and a room
+type, and every example response in the evidence elides that container, so a fixed path would be a
+guess in three places.
+
+Three values have no source in this system and are constants in that file: the currency and the
+guest nationality the search requires, one occupancy per room at two adults, and an invented guest
+for the holder the reference marks required.
 
 ## Dev review
 

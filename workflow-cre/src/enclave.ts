@@ -2,6 +2,7 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { hexToBytes, keccak256 } from "viem";
 
 import { bidCommitment, bidDigest, bidHash, bidsRoot } from "../../shared/bid.ts";
+import type { Policy } from "../../shared/policy.ts";
 import type { Settlement } from "../../shared/report.ts";
 import { openSealedBid, type SealedBidPayload } from "../../shared/sealed-bid.ts";
 import { openSealedPolicy } from "../../shared/sealed-policy.ts";
@@ -37,7 +38,7 @@ export interface EnclaveInputs {
     signature: `0x${string}`,
   ) => boolean;
   /** Books the winner against its own API and returns the booking reference, or "" on a failure. */
-  book: (payload: SealedBidPayload) => string;
+  book: (payload: SealedBidPayload, stay: Policy["hardRequirements"]) => string;
 }
 
 export interface EnclaveResult {
@@ -72,7 +73,7 @@ export function runEnclave(inputs: EnclaveInputs): EnclaveResult {
 
   // No booking, no payout. The enclave does not fall through to the second best bid: the cap and
   // every stake go back instead.
-  const bookingId = won === undefined ? "" : inputs.book(won);
+  const bookingId = won === undefined ? "" : inputs.book(won, policy.hardRequirements);
   const paid = bookingId !== "";
 
   return {

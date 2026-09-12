@@ -14,6 +14,7 @@ import { z } from "zod";
 
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { encodeClaimReport, encodeSettlementReport } from "../../shared/report.ts";
+import { book, type BookingRequest } from "./booking.ts";
 import { runEnclave } from "./enclave.ts";
 
 export const configSchema = z.object({
@@ -152,6 +153,32 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
     return text(response);
   };
 
+  /**
+   * The booking seam. It hands back the body whatever the status, and an empty body for a call
+   * that did not complete at all: a refused or failed call carries no booking id, and no booking
+   * id is the only answer the booking needs. A throw here would leave the auction in `Settling`
+   * until `timeoutRefund` instead of settling on no winner, which refunds the same USDC hours
+   * earlier.
+   */
+  const sendBooking = (request: BookingRequest): string => {
+    try {
+      return text(
+        httpClient
+          .sendRequest(runtime, {
+            url: request.url,
+            method: request.method,
+            multiHeaders: Object.fromEntries(
+              Object.entries(request.headers).map(([name, value]) => [name, { values: [value] }]),
+            ),
+            ...(request.body === undefined ? {} : { body: new TextEncoder().encode(request.body) }),
+          })
+          .result(),
+      );
+    } catch {
+      return "";
+    }
+  };
+
   const sealedPolicy = get(`/policies/${policyHash}`);
 
   if (sealedPolicy === undefined) {
@@ -204,9 +231,7 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
         return false;
       }
     },
-    // The booking a payout pays for is not wired yet. Until it is, the enclave reports no winner,
-    // which is the path a failed booking takes: the payout cap and every stake go back.
-    book: () => "",
+    book: (payload, stay) => book(sendBooking, payload, stay, auctionId),
   });
 
   runtime.log(`bids scored=${scored} dropped=${dropped}`);
