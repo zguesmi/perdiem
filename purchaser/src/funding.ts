@@ -46,6 +46,9 @@ export type Funder = (
  * Above the ceiling the key quorum approves: the travel manager and finance both sign the request.
  * At or below it the wallet's spend policy is the whole authorization, so the list is normally
  * empty. The cap is known before any request leaves, so the choice is made once per auction.
+ *
+ * A quorum with no keys is refused rather than reported. Privy would sign on the spend policy
+ * alone and the page would show two approvals that nobody gave.
  */
 export function signingKeys(options: {
   payoutCap: bigint;
@@ -54,6 +57,11 @@ export function signingKeys(options: {
   quorumKeys: readonly string[];
 }): { keys: readonly string[]; quorumSigned: boolean } {
   const quorumSigned = options.payoutCap > options.quorumCeiling;
+
+  if (quorumSigned && options.quorumKeys.length === 0) {
+    throw new Error("a payout cap above the ceiling needs quorum keys to sign it");
+  }
+
   return { keys: quorumSigned ? options.quorumKeys : options.serverKeys, quorumSigned };
 }
 

@@ -9,8 +9,8 @@ const PRIVY_API = "https://api.privy.io/v1";
  * One transaction as the Privy REST API takes it. Snake case and hex are the wire format, not a
  * preference: the spend policy reads these field names out of the request.
  *
- * `chain_id` is a number because a policy condition compares it numerically. Everything that can
- * exceed `Number.MAX_SAFE_INTEGER` is hex, so no amount is rounded on the way out.
+ * `chain_id` and `nonce` are numbers because both are small enough to be exact ones. Everything
+ * that can exceed `Number.MAX_SAFE_INTEGER` is hex, so no amount is rounded on the way out.
  */
 export interface PrivyTransaction {
   readonly to: `0x${string}`;
@@ -113,9 +113,14 @@ export function createPrivyWallet(options: PrivyOptions): PrivyWallet {
 
   return {
     address() {
-      address ??= call(`${PRIVY_API}/wallets/${options.walletId}`).then(
-        (answer) => walletAnswer.parse(answer).address,
-      );
+      // Cleared on rejection: a cached failure would outlive the blip that caused it and refuse
+      // every later funding attempt until the process restarts.
+      address ??= call(`${PRIVY_API}/wallets/${options.walletId}`)
+        .then((answer) => walletAnswer.parse(answer).address)
+        .catch((reason: unknown) => {
+          address = undefined;
+          throw reason;
+        });
       return address;
     },
 

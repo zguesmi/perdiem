@@ -92,10 +92,11 @@ export function createPurchaserApp({ intentAgent, funder, payoutCap }: Purchaser
       return context.json({ error: "the policy does not match the schema" }, 422);
     }
 
-    // The payout is the winning bid's price, and no eligible bid exceeds the maximum price. A cap
-    // below it would let a legitimate winner be rejected by the contract at settlement.
-    if (BigInt(policy.data.maxPrice) > payoutCap) {
-      return context.json({ error: "the payout cap does not cover the policy's maximum price" }, 422);
+    // The cap has to sit strictly above the maximum price. Below it, a legitimate winner is
+    // rejected by the contract at settlement; equal to it, `TermsPublished` emits the cap and every
+    // supplier reads the maximum price the policy exists to keep private.
+    if (BigInt(policy.data.maxPrice) >= payoutCap) {
+      return context.json({ error: "the payout cap does not sit above the maximum price" }, 422);
     }
 
     const policyHash = hashPolicy(policy.data);
