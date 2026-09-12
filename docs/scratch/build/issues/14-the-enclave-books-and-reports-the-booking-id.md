@@ -41,7 +41,7 @@ Two traps, both measured in row V14:
 - [x] A failure at any of the four steps returns `winner = address(0)`, `payout = 0` and an empty
       `bookingId`. The Enclave does not fall through to the second-best bid.
 - [x] No booking credential and no decrypted bid reaches a log. The evidence run greps clean.
-- [x] Sandbox test guest data only. No real personal data anywhere in the repository.
+- [x] No guest data at all. The API books without a holder or guests, so nothing is invented.
 
 ## Comments
 
@@ -55,8 +55,11 @@ type, and every example response in the evidence elides that container, so a fix
 guess in three places.
 
 Three values have no source in this system and are constants in that file: the currency and the
-guest nationality the search requires, one occupancy per room at two adults, and an invented guest
-for the holder the reference marks required.
+guest nationality the search requires, and one occupancy per room at two adults.
+
+The booking names no traveller. The reference marks `holder` and `guests` required and the API books
+without either, measured against the sandbox: only `payment` is enforced, and a book without it
+fails with code `5000`. A buyer states a trip, never a person, so there is nobody to name.
 
 ### The run
 
@@ -64,7 +67,7 @@ for the holder the reference marks required.
 one auction, three sealed bids, then `cre workflow simulate`.
 
 - `bids scored=3 dropped decrypt=0 signature=0 commitment=0`.
-- The winner's booking at the supplier API: `3fqGeQSKx`, `CONFIRMED`, Hôtel Dame des Arts,
+- The winner's booking at the supplier API: `NvqEFr87F`, `CONFIRMED`, Hôtel Dame des Arts,
   2026-10-12 to 2026-10-14. Read back by `clientReference`, which is the `auctionId`.
 - The log greps clean for the policy, the maximum price, the preferences, the enclave private key,
   any decrypted bid and the booking key.

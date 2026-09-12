@@ -40,17 +40,6 @@ const GUEST_NATIONALITY = "US";
 const ADULTS_PER_ROOM = 2;
 
 /**
- * The reference marks a holder and a guest required. Nobody in this system supplies one: the buyer
- * states a trip, never a traveller. Invented, and belonging to nobody.
- */
-const GUEST = {
-  firstName: "Ada",
-  lastName: "Tester",
-  email: "sandbox.guest@example.com",
-  phone: "+15550100",
-} as const;
-
-/**
  * The four calls. `""` for a failure at any of them, which is the settlement paying nobody: no
  * winner, no payout, and every stake back. There is no fall-through to the second-best bid.
  */
@@ -110,12 +99,13 @@ export function book(
   // lands and any repeat is refused. What the write answered is thrown away on purpose: the id
   // that leaves the enclave comes from the read below, so a retried run and a re-fired cron tick
   // agree on the same bytes.
+  //
+  // No holder and no guests. The reference marks both required and the API books without either,
+  // and a buyer states a trip, never a traveller, so this system has nobody to name.
   call("/rates/book", {
     prebookId,
     clientReference: auctionId,
     payment: { method: PAYMENT_METHOD },
-    holder: GUEST,
-    guests: [{ occupancyNumber: 1, ...GUEST }],
   });
 
   return find(call(`/bookings?clientReference=${auctionId}`), "bookingId") ?? "";

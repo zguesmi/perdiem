@@ -105,6 +105,20 @@ test("carries the offer the search minted into the prebook, and its id into the 
   assert.equal(bodyOf(sent, 2).prebookId, "pre_1");
 });
 
+test("names no traveller, because the buyer states a trip and never a person", () => {
+  const { sent, send } = supplier();
+
+  book(send, payload, stay, AUCTION_ID);
+
+  // The reference marks a holder and guests required. The API books without either, so nothing
+  // here invents a person.
+  assert.deepEqual(Object.keys(bodyOf(sent, 2)).sort(), [
+    "clientReference",
+    "payment",
+    "prebookId",
+  ]);
+});
+
 test("keys the booking on the auction, so a repeated run books nothing twice", () => {
   const { sent, send } = supplier();
 
