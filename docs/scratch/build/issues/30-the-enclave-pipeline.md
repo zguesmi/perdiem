@@ -7,7 +7,7 @@ booking, ticket 13 captures the simulation evidence. Everything between the cron
 `writeReport` is this ticket, and nothing downstream runs without it.
 
 `workflow-cre/src/workflow.ts` is still the template stub: it logs `enclave reached` and returns
-`no auction pending`.
+`No pending auction`.
 
 ## The sequence
 
@@ -72,7 +72,7 @@ stub already declares, and adapts `shared/bid.ts`'s `Bid` to the one scoring tak
   expands no variable inside a config file and the contract address changes on every deploy.
 - Step 11 is a seam: `book` returns an empty booking id, which reports no winner and refunds
   everything. Ticket 14 closes it.
-- `cre workflow simulate` runs against Arc testnet and returns `no auction pending`, so the chain
+- `cre workflow simulate` runs against Arc testnet and returns `No pending auction`, so the chain
   read and the config are proven end to end. A run with bids on chain is ticket 13.
 - `pnpm run config` and `pnpm run simulate` take a network, default `arcTestnet`, and read
   `.env.<network>`. The CRE chain name stays `arc-testnet` either way: the local node runs with

@@ -63,7 +63,7 @@ $ pnpm --dir workflow-cre simulate
 Running trigger trigger=cron-trigger@1.0.0
 [USER LOG] enclave reached
 ✓ Workflow Simulation Result:
-"no auction pending"
+"No pending auction"
 ```
 
 ### The files the CLI owns
