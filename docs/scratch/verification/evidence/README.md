@@ -11,6 +11,8 @@ the file.
 - `simulate-<date>.log` — one full `cre workflow simulate` run, per
   `docs/scratch/build/issues/13-real-cre-simulation-evidence.md`.
 - One file per closed verification ticket, named after the ticket.
+- `privy-spend-policy-and-quorum.md` — the buyer's spend policy and key quorum, per
+  `docs/scratch/build/issues/11-privy-funding-with-quorum.md`.
 
 ## Before committing a log
 
