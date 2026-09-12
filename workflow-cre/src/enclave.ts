@@ -41,12 +41,15 @@ export interface EnclaveInputs {
   book: (payload: SealedBidPayload, stay: Policy["hardRequirements"]) => string;
 }
 
+/** Why a sealed bid never reached scoring. Counted, never attached to a bid. */
+export type DropReason = "decrypt" | "signature" | "commitment";
+
 export interface EnclaveResult {
   settlement: Settlement;
   /** Sealed bids that decrypted, verified and reached scoring. */
   scored: number;
-  /** Sealed bids dropped, for any reason. A reason would name a bid, so none is reported. */
-  dropped: number;
+  /** How many bids each failure dropped. A count names no bid, and a silent drop is undebuggable. */
+  dropped: Record<DropReason, number>;
 }
 
 export function runEnclave(inputs: EnclaveInputs): EnclaveResult {
@@ -59,10 +62,15 @@ export function runEnclave(inputs: EnclaveInputs): EnclaveResult {
     ]),
   );
 
+  const dropped: Record<DropReason, number> = { decrypt: 0, signature: 0, commitment: 0 };
   const opened = inputs.sealedBids.flatMap((ciphertext) => {
     const payload = verified(ciphertext, committed, inputs);
 
-    return payload === null ? [] : [payload];
+    if (typeof payload === "string") {
+      dropped[payload] += 1;
+      return [];
+    }
+    return [payload];
   });
 
   const { winner, payout } = settle(
@@ -88,16 +96,16 @@ export function runEnclave(inputs: EnclaveInputs): EnclaveResult {
       bookingId,
     },
     scored: opened.length,
-    dropped: inputs.sealedBids.length - opened.length,
+    dropped,
   };
 }
 
 /**
- * One sealed bid, decrypted and checked against what its supplier put on chain. `null` for any
- * failure: a body that is not hex, a wrong key, a flipped byte, another auction's envelope, a
- * signature that is not the supplier's, or a commitment that is not the one the stake was placed
- * behind. The relay takes anybody's bytes, so a blob that is not an envelope at all drops like the
- * rest rather than ending the run.
+ * One sealed bid, decrypted and checked against what its supplier put on chain. A reason instead of
+ * a payload for any failure: a body that is not hex, a wrong key, a flipped byte, another auction's
+ * envelope, a signature that is not the supplier's, or a commitment that is not the one the stake
+ * was placed behind. The relay takes anybody's bytes, so a blob that is not an envelope at all
+ * drops like the rest rather than ending the run.
  *
  * Only decryption is caught. A signature check that cannot complete throws, because dropping a bid
  * there would pay the runner-up and nothing on chain undoes that.
@@ -106,7 +114,7 @@ function verified(
   ciphertext: string,
   committed: ReadonlyMap<string, `0x${string}` | undefined>,
   inputs: EnclaveInputs,
-): SealedBidPayload | null {
+): SealedBidPayload | DropReason {
   let payload: SealedBidPayload;
 
   try {
@@ -116,7 +124,7 @@ function verified(
       inputs.auctionId,
     );
   } catch {
-    return null;
+    return "decrypt";
   }
 
   const { bid, salt, signature } = payload;
@@ -126,9 +134,13 @@ function verified(
     recoverSigner(digest, signature) === bid.supplier.toLowerCase() ||
     inputs.isValidSignature(bid.supplier, digest, signature);
 
-  return signed && bidCommitment(bidHash(bid), salt) === committed.get(bid.supplier.toLowerCase())
-    ? payload
-    : null;
+  if (!signed) {
+    return "signature";
+  }
+  if (bidCommitment(bidHash(bid), salt) !== committed.get(bid.supplier.toLowerCase())) {
+    return "commitment";
+  }
+  return payload;
 }
 
 /**

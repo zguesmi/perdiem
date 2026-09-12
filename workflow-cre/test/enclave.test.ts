@@ -124,7 +124,7 @@ test("the second cheapest bid wins, and the settlement carries its booking", asy
   const { settlement, scored, dropped } = runEnclave(inputsFor(payloads));
 
   assert.equal(scored, 3);
-  assert.equal(dropped, 0);
+  assert.deepEqual(dropped, { decrypt: 0, signature: 0, commitment: 0 });
   assert.deepEqual(settlement, {
     auctionId: AUCTION_ID,
     winner: winner.account.address,
@@ -174,7 +174,7 @@ test("drops a bid whose signature belongs to nobody", async () => {
   const { settlement, scored, dropped } = runEnclave(inputsFor([good, forged]));
 
   assert.equal(scored, 1);
-  assert.equal(dropped, 1);
+  assert.equal(dropped.signature, 1);
   assert.equal(settlement.winner, winner.account.address);
 });
 
@@ -186,7 +186,7 @@ test("drops a bid whose commitment is not the one on chain", async () => {
   );
 
   assert.equal(scored, 1);
-  assert.equal(dropped, 1);
+  assert.equal(dropped.commitment, 1);
   assert.equal(settlement.winner, runnerUp.account.address);
 });
 
@@ -201,7 +201,7 @@ test("drops a bid nobody can decrypt", async () => {
   );
 
   assert.equal(scored, 1);
-  assert.equal(dropped, 1);
+  assert.equal(dropped.decrypt, 1);
 });
 
 test("a signature check that cannot complete stops the settlement", async () => {
@@ -232,7 +232,7 @@ test("drops a relay body that is not an envelope at all", async () => {
   );
 
   assert.equal(scored, 1);
-  assert.equal(dropped, 1);
+  assert.equal(dropped.decrypt, 1);
   assert.equal(settlement.winner, winner.account.address);
 });
 
@@ -294,6 +294,6 @@ test("drops the cheapest bid the buyer's trade-down rule refuses", async () => {
 
   // Both bids verify: eligibility is scoring's business, not the envelope's.
   assert.equal(scored, 2);
-  assert.equal(dropped, 0);
+  assert.deepEqual(dropped, { decrypt: 0, signature: 0, commitment: 0 });
   assert.equal(settlement.winner, winner.account.address);
 });

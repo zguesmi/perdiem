@@ -40,9 +40,7 @@ Two traps, both measured in row V14:
 - [x] Every search bounds its response with `maxRatesPerHotel: 1`.
 - [x] A failure at any of the four steps returns `winner = address(0)`, `payout = 0` and an empty
       `bookingId`. The Enclave does not fall through to the second-best bid.
-- [ ] No booking credential and no decrypted bid reaches a log. The evidence run greps clean.
-      Nothing logs a credential, and the booking id is public. The simulate run is not recorded:
-      both environment files carry a placeholder booking API key.
+- [x] No booking credential and no decrypted bid reaches a log. The evidence run greps clean.
 - [x] Sandbox test guest data only. No real personal data anywhere in the repository.
 
 ## Comments
@@ -59,6 +57,37 @@ guess in three places.
 Three values have no source in this system and are constants in that file: the currency and the
 guest nationality the search requires, one occupancy per room at two adults, and an invented guest
 for the holder the reference marks required.
+
+### The run
+
+`docs/scratch/verification/evidence/simulate-2026-09-12.log`. A local node, the relay, three agents,
+one auction, three sealed bids, then `cre workflow simulate`.
+
+- `bids scored=3 dropped decrypt=0 signature=0 commitment=0`.
+- The winner's booking at the supplier API: `3fqGeQSKx`, `CONFIRMED`, Hôtel Dame des Arts,
+  2026-10-12 to 2026-10-14. Read back by `clientReference`, which is the `auctionId`.
+- The log greps clean for the policy, the maximum price, the preferences, the enclave private key,
+  any decrypted bid and the booking key.
+
+Five things the run found, all fixed here:
+
+- `scripts/sealed-bidding.ts` never put the sealed policy at the relay, so the enclave had nothing
+  to open.
+- `z.url()` on `bookingUrl` needs the `URL` global, which the enclave's runtime does not carry.
+  Every envelope decrypted and then failed validation, and all three bids dropped in silence.
+- The relay read sent no HTTP method: `[3]InvalidArgument: http method cannot be empty`.
+- The agent prompt never carried `tradeDownStars`, so the three-star supplier read `minStars: 4` and
+  declined to bid at all.
+- `lp1beec` has no availability on the policy's dates, so the winner could not be booked. The hotel
+  is configuration: that agent now sells `lp51fe7`, and is named after it.
+
+One count became three, by reason, because a silent drop is undebuggable and a reason names no bid.
+
+Not covered by this run: the two reports never reach the chain on a local node. The CRE simulator
+calls `0x6e9ee680ef59ef64aa8c7371279c27e496b5edc1`, which holds the mock forwarder on Arc testnet
+and nothing at all locally, so both writes are a no-op `eth_call` the workflow reads as success and
+the auction stays in `Bidding`. Settlement on chain needs Arc testnet, or that forwarder on the
+local node.
 
 ## Dev review
 

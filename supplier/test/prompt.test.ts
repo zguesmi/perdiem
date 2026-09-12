@@ -31,6 +31,15 @@ test("the system prompt states what the model has to derive and never the answer
   assert.doesNotMatch(prompt, /2 nights|autumn/i);
 });
 
+test("the system prompt carries the star level the buyer also takes", () => {
+  const prompt = systemPrompt(rules, auction, hotel);
+
+  // A supplier below `minStars` has no reason to bid without it. The discount the buyer requires
+  // stays private, so the star level is stated and the percentage never is.
+  assert.match(prompt, /also take, for a discount it does not publish: 3/);
+  assert.doesNotMatch(prompt, /requiredDiscountPercentage|30 ?%/);
+});
+
 test("the system prompt teaches no cryptography", () => {
   const prompt = systemPrompt(rules, auction, hotel);
 

@@ -10,7 +10,15 @@
  * `TermsPublished` and never derive an identifier. `scripts/demo-sealed-bidding.sh` starts them.
  */
 import assert from "node:assert/strict";
-import { createPublicClient, createWalletClient, erc20Abi, http, parseEventLogs } from "viem";
+import {
+  bytesToHex,
+  createPublicClient,
+  createWalletClient,
+  erc20Abi,
+  hexToBytes,
+  http,
+  parseEventLogs,
+} from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 
@@ -20,6 +28,7 @@ import { arc } from "../shared/chain.ts";
 import { hashPolicy } from "../shared/policy-hash.ts";
 import { publicRequirements } from "../shared/policy.ts";
 import { referencePolicy } from "../shared/reference-policy.ts";
+import { sealPolicy } from "../shared/sealed-policy.ts";
 
 /**
  * USDC the buyer locks, in minor units. It is padded above the policy's maximum price of 520, so
@@ -64,6 +73,20 @@ async function send(call: {
 
 const policyHash = hashPolicy(referencePolicy);
 console.log(`policy hash        ${policyHash}`);
+
+// Before the auction, never after: the enclave fetches the policy by the hash the chain carries,
+// and an auction whose policy never arrived pays nobody and refunds on timeout.
+const enclavePublicKey = await reader.readContract({
+  address: sealedAuction,
+  abi: sealedAuctionAbi,
+  functionName: "enclavePublicKey",
+});
+const stored = await fetch(`${environment.RELAY_URL}/policies/${policyHash}`, {
+  method: "PUT",
+  body: bytesToHex(sealPolicy(referencePolicy, hexToBytes(enclavePublicKey), policyHash)),
+});
+assert.equal(stored.status, 201, `the relay answered ${stored.status} for the sealed policy`);
+console.log(`sealed policy      201 at ${environment.RELAY_URL}/policies/${policyHash}`);
 
 const approved = await send({
   address: environment.USDC_ADDRESS,

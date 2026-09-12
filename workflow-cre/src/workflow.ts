@@ -142,7 +142,9 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
 
   /** `undefined` on 404, which is the relay saying it holds nothing under that key. */
   const get = (path: string): string | undefined => {
-    const response = httpClient.sendRequest(runtime, { url: `${relayUrl}${path}` }).result();
+    const response = httpClient
+      .sendRequest(runtime, { url: `${relayUrl}${path}`, method: "GET" })
+      .result();
 
     if (response.statusCode === 404) {
       return undefined;
@@ -234,7 +236,9 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
     book: (payload, stay) => book(sendBooking, payload, stay, auctionId),
   });
 
-  runtime.log(`bids scored=${scored} dropped=${dropped}`);
+  runtime.log(
+    `bids scored=${scored} dropped decrypt=${dropped.decrypt} signature=${dropped.signature} commitment=${dropped.commitment}`,
+  );
   write(encodeSettlementReport(settlement));
 
   return `settled ${auctionId}`;

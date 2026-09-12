@@ -127,7 +127,7 @@ services:
       ARC_RPC_URL: http://node:8545
       RELAY_URL: http://relay:8787
       AGENT_KEY_VARIABLE: SUPPLIER_3_PRIVATE_KEY
-    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "grands-voyageurs-agent"]
+    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "dame-des-arts-agent"]
 
   # The page runs in a browser on the host, so it keeps the URLs the environment file names.
   ui:

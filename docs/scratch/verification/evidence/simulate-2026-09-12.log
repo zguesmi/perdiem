@@ -1,0 +1,35 @@
+Initializing...
+Loading settings...
+! Using default private key for chain write simulation. To use your own key, set CRE_ETH_PRIVATE_KEY in your .env file or system environment.
+Checking RPC connectivity...
+Compiling workflow...
+✓ Workflow compiled
+✓ Simulation limits enabled
+  HTTP: req=120kb resp=250kb timeout=10s | ConfHTTP: req=125kb resp=500kb timeout=1m30s | Consensus obs=25kb | ChainWrite evm_report=50kb evm_gas=10000000 solana_report=265b solana_cu=300000 | WASM binary=100mb compressed=20mb
+  Binary hash: 5d65dedbed22cc096bcf0fb412c3087f0b951d3a17ba55aa044f00b49a91029d
+  Config hash: bfdd9709782104d0654848ea486923241833c4129c95c36d7d31b046e5906c57
+! Secret "ENCLAVE_PRIVATE_KEY" uses itself as the env var name — this is fragile and may cause confusion. Consider using a distinct env var name (e.g. "CRE_ENCLAVE_PRIVATE_KEY").
+2026-09-12T20:39:40Z [SIMULATION] Simulator Initialized
+
+2026-09-12T20:39:40Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+╭────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trigger requested TEE Execution your trigger will run in one of the following Tees:                │
+│     - AWS Nitro in us-west-2                                                                       │
+│ The simulator is not a real TEE, and is meant to debug.                                            │
+│ Do not use it for sensitive information.                                                           │
+│ During real execution, user logs for this trigger will not be visible, and will not leave the TEE. │
+│ They are presented in the simulator for debugging only.                                            │
+│                                                                                                    │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+2026-09-12T20:39:50Z [USER LOG] bids scored=3 dropped decrypt=0 signature=0 commitment=0
+
+✓ Workflow Simulation Result:
+"settled 0x9366aa9aa62022cb5cdbd4a42b5976441804b26ca5180a544b34358765d8464f"
+
+2026-09-12T20:39:50Z [SIMULATION] Execution finished signal received
+2026-09-12T20:39:50Z [SIMULATION] Skipping WorkflowEngineV2
+
+⚠️  Update available! You’re running 1.32.0, but 1.33.0 is the latest.
+Run `cre update` or visit https://github.com/smartcontractkit/cre-cli/releases to upgrade.
+
