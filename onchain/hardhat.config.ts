@@ -45,7 +45,7 @@ export default defineConfig({
       chainType: "l1",
       chainId: 5042002,
       url: "https://rpc.testnet.arc.io",
-      accounts: [configVariable("ARC_PRIVATE_KEY")],
+      accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
     },
   },
 });
