@@ -64,5 +64,5 @@ accepts a settlement from that address alone.
 
 ### Arc testnet
 
-Not wired up. `hardhat.config.ts` has the network and reads `ARC_PRIVATE_KEY`, and Arc has a real
-USDC, so a deployment there takes a different module from the local one.
+Not wired up. `hardhat.config.ts` has the network and reads `DEPLOYER_PRIVATE_KEY`, and Arc has a
+real USDC, so a deployment there takes a different module from the local one.
