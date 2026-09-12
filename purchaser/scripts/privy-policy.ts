@@ -52,11 +52,11 @@ const onArc = {
 
 const policy = {
   version: "1.0",
-  name: "Perdiem buyer funding",
+  name: "Hotel booking conditions",
   chain_type: "ethereum",
   rules: [
     {
-      name: "Approve the escrow to pull the payout cap",
+      name: "Allow only auction contract to transfer USDC",
       method: "eth_signTransaction",
       conditions: [
         onArc,
@@ -72,7 +72,7 @@ const policy = {
       action: "ALLOW",
     },
     {
-      name: "Open an auction within the funded payout cap",
+      name: "Open an auction within the budget",
       method: "eth_signTransaction",
       conditions: [
         onArc,
