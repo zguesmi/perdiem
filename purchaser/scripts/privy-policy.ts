@@ -129,7 +129,7 @@ if (command === "create") {
     client.estimateGas({ account: buyer, to: usdc, data }),
   ]);
 
-  const refused = await wallet
+  const signed = await wallet
     .signTransaction(
       {
         to: usdc,
@@ -144,9 +144,20 @@ if (command === "create") {
       },
       [],
     )
-    .then((signed) => `NOT REFUSED, the policy signed it: ${signed}`, String);
+    .then(
+      (rlp) => rlp,
+      (refusal: unknown) => {
+        console.log(String(refusal));
+        return undefined;
+      },
+    );
 
-  console.log(refused);
+  // The refusal is the result this script exists for, so signing is the failure. Exiting zero on
+  // it would let a policy that allows any spender pass for a policy that refuses one.
+  if (signed !== undefined) {
+    console.error(`NOT REFUSED. The policy signed an approve to a spender it never named: ${signed}`);
+    process.exit(1);
+  }
 } else {
   console.error("usage: privy-policy.ts create|probe");
   process.exit(1);
