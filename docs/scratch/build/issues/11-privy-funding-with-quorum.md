@@ -85,7 +85,9 @@ Settled by the run:
 Left:
 
 - A mined funding run. Both buyer wallets hold 1 USDC and the smallest derived cap is 250 USDC, so
-  `POST /confirm` needs a faucet.
+  `POST /confirm` needs a faucet. No Privy-signed transaction has reached Arc through the purchaser
+  service. The deployment and the gas transfers were broadcast from the deployer key by Hardhat and
+  by viem, and the one quorum-signed transfer on chain was broadcast by curl during the V6 run.
 - The page has to call `POST /confirm` and show `quorumSigned`.
 
 ## Dev review
