@@ -106,7 +106,7 @@ pnpm --dir workflow-cre simulate    # cre workflow simulate against the staging 
 ## Status
 
 The scaffolding runs and the handler is a placeholder: it logs that the enclave was reached and
-reports no pending auction. The scoring rule is stubbed, with the demo table as a red test.
+reports no pending auction. The scoring rule is implemented and the demo table is green.
 
 Evidence rule: a fake runner may execute the handler while it is being built. Only
 `cre workflow simulate` produces the logs in `docs/scratch/verification/evidence/`.
