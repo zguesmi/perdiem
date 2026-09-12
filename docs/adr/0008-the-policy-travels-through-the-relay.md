@@ -34,6 +34,11 @@ The purchaser service uploads before it funds. An upload that fails answers the 
 opens no auction, because an auction whose Policy the enclave cannot fetch pays nobody and refunds
 on timeout.
 
+A `409` counts as uploaded. The Policy Hash is deterministic, so a confirm retried after a funding
+failure re-derives it, and the relay is first-write-wins: refusing there would lock the buyer out of
+their own Policy until the relay restarts. Cost: a hash somebody wrote to first yields an auction
+that refunds on timeout rather than a 502 the buyer sees at once.
+
 Anyone can fetch the ciphertext and count the policies. No maximum price and no preference leaks,
 because only the enclave holds the private key. Same exposure the sealed bids already have, and the
 same hardening applies.

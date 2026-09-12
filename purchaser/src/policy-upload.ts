@@ -15,7 +15,12 @@ export function createPolicyUploader(relayUrl: string): PolicyUploader {
       body: bytesToHex(envelope),
     });
 
-    if (response.status !== 201) {
+    // `409` means this hash already carries a ciphertext, which a retried confirm produces every
+    // time: the hash is deterministic, and the relay is first-write-wins. Treated as done, because
+    // whatever sits there only opens as a policy hashing to this hash, and the enclave checks that.
+    // Cost: a hash somebody poisoned before the buyer uploaded yields an auction that refunds on
+    // timeout rather than a 502 the buyer sees at once.
+    if (response.status !== 201 && response.status !== 409) {
       throw new Error(`the relay refused the sealed policy with ${response.status}`);
     }
   };

@@ -59,8 +59,8 @@ because the approval is the first of the two transactions and a cap only on `cre
 let it mine before the refusal. `POST /confirm` answers `422` with Privy's own message and the cap
 it tried, so the buyer lowers the price and confirms again.
 
-What this service is not: it does not score bids, does not book anything, holds no bids, and never
-reads the relay.
+What this service is not: it does not score bids, does not book anything, and holds no bids. It
+writes one thing to the relay, the sealed policy, and reads nothing back.
 
 ## Commands
 
@@ -84,8 +84,6 @@ ANTHROPIC_API_KEY=... pnpm --filter @perdiem/purchaser check:intent "two nights 
 The server listens on port 8788. Set `PURCHASER_PORT` to move it.
 
 ## Status
-
-`POST /confirm` does not upload the Policy as a workflow secret yet.
 
 The ceiling is a per-signer override policy on one wallet, not a quorum threshold. That path is
 documented by Privy and has not been run: what is verified is a policy-only wallet signing with no

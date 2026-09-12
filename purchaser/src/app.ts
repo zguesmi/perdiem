@@ -112,9 +112,12 @@ export function createPurchaserApp({
 
     // Before the auction, never after: the enclave fetches the policy by the hash the chain
     // carries, and an auction whose policy never arrived pays nobody and refunds on timeout.
+    const envelope = sealPolicy(policy.data, enclavePublicKey, policyHash);
     try {
-      await uploadPolicy(policyHash, sealPolicy(policy.data, enclavePublicKey, policyHash));
-    } catch {
+      await uploadPolicy(policyHash, envelope);
+    } catch (reason) {
+      // The message, not the error: a stack from this path can carry the policy that failed.
+      console.error(`the sealed policy did not reach the relay: ${(reason as Error).message}`);
       return context.json({ error: "the sealed policy did not reach the relay" }, 502);
     }
 
