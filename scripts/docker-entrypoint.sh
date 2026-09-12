@@ -30,10 +30,16 @@ if [ -n "$given_relay_url" ]; then
   export RELAY_URL="$given_relay_url"
 fi
 
-# One image serves the three supplier agents, and each signs with a different key. The variable
-# names the entry in the file this agent signs with.
+# One image serves the three supplier agents, and each signs as itself. The variable names the
+# entry in the file this agent signs with: a private key for a local signer, a wallet address for a
+# Circle one. Two agents sharing either would share an address, and `commit` is once per address,
+# so the first would succeed and the rest revert.
 if [ -n "${AGENT_KEY_VARIABLE-}" ]; then
   eval "export AGENT_PRIVATE_KEY=\"\${$AGENT_KEY_VARIABLE-}\""
+fi
+
+if [ -n "${AGENT_WALLET_VARIABLE-}" ]; then
+  eval "export CIRCLE_WALLET_ADDRESS=\"\${$AGENT_WALLET_VARIABLE-}\""
 fi
 
 exec "$@"

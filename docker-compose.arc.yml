@@ -1,0 +1,142 @@
+# The stack against Arc testnet: the relay, the purchaser service, the three supplier agents and
+# the page.
+#
+#   docker compose -f docker-compose.arc.yml up --build
+#
+# It is a separate file rather than an override of `docker-compose.yml`, because an override adds
+# and replaces and cannot remove: the local file's services wait on a deployment container, and
+# there is nothing to deploy here. `SEALED_AUCTION_ADDRESS` in `.env.arcTestnet` names a contract
+# that is already on chain, and Arc's RPC URL is the same inside the network and outside it, so no
+# service overrides it.
+#
+# Reachable from outside: the relay on 8787, the purchaser on 8788 and the page on 5173. The relay
+# needs a public HTTPS address, because the CRE workflow calls it from Chainlink's nodes and not
+# from this host; terminate TLS in front of these ports and name that host in `RELAY_URL` and
+# `UI_ALLOWED_HOSTS`.
+#
+# Not here: the CRE workflow, which needs the `cre` binary.
+
+name: perdiem-arc
+
+x-environment-file: &environment-file
+  type: bind
+  source: ./.env.arcTestnet
+  target: /app/.env.arcTestnet
+  read_only: true
+
+# Every service reads the Arc file rather than the local one. `scripts/docker-entrypoint.sh` loads
+# whatever `ENV_FILE` names.
+x-environment: &environment
+  ENV_FILE: /app/.env.arcTestnet
+
+# The Circle CLI holds the agent's session, opened once with `circle wallet login <email>
+# --testnet` and good for 28 days. An agent signs by running the CLI, so the session has to be on
+# the host before the containers start. Writable, because the CLI refreshes the session in place.
+x-circle-session: &circle-session
+  type: bind
+  source: ${HOME}/.circle-cli
+  target: /root/.circle-cli
+
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: relay/Dockerfile
+    image: perdiem/relay
+    environment: *environment
+    ports:
+      - "8787:8787"
+    volumes:
+      - *environment-file
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/auctions/0x0/bids').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  purchaser:
+    build:
+      context: .
+      dockerfile: purchaser/Dockerfile
+    image: perdiem/purchaser
+    environment: *environment
+    ports:
+      - "8788:8788"
+    volumes:
+      - *environment-file
+
+  # Three agents, one image. The name is the argument; the wallet is the entry in `.env.arcTestnet`
+  # that `AGENT_WALLET_VARIABLE` names. One wallet each: `commit` is once per address, so two
+  # agents behind one wallet place one commitment and revert the other.
+  supplier-astoria:
+    build:
+      context: .
+      dockerfile: supplier/Dockerfile
+    image: perdiem/supplier
+    depends_on:
+      relay:
+        condition: service_healthy
+    environment:
+      <<: *environment
+      RELAY_URL: http://relay:8787
+      AGENT_WALLET_VARIABLE: SUPPLIER_1_WALLET_ADDRESS
+    volumes:
+      - *environment-file
+      - *circle-session
+    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "hotel-astoria-agent"]
+
+  supplier-victoria:
+    build:
+      context: .
+      dockerfile: supplier/Dockerfile
+    image: perdiem/supplier
+    depends_on:
+      relay:
+        condition: service_healthy
+    environment:
+      <<: *environment
+      RELAY_URL: http://relay:8787
+      AGENT_WALLET_VARIABLE: SUPPLIER_2_WALLET_ADDRESS
+    volumes:
+      - *environment-file
+      - *circle-session
+    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "victoria-palace-agent"]
+
+  supplier-voyageurs:
+    build:
+      context: .
+      dockerfile: supplier/Dockerfile
+    image: perdiem/supplier
+    depends_on:
+      relay:
+        condition: service_healthy
+    environment:
+      <<: *environment
+      RELAY_URL: http://relay:8787
+      AGENT_WALLET_VARIABLE: SUPPLIER_3_WALLET_ADDRESS
+    volumes:
+      - *environment-file
+      - *circle-session
+    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "grands-voyageurs-agent"]
+
+  # The page runs in a browser, so it keeps the public URLs the environment file names. Vite
+  # refuses a request whose `Host` header it does not know, and a public deployment is reached by
+  # its own name, so that name goes in `UI_ALLOWED_HOSTS`.
+  ui:
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
+    image: perdiem/ui
+    environment:
+      <<: *environment
+      UI_ALLOWED_HOSTS: ${UI_ALLOWED_HOSTS-}
+    ports:
+      - "5173:5173"
+    volumes:
+      - *environment-file
