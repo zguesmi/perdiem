@@ -10,15 +10,16 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
 
 ## Acceptance criteria
 
-- [x] The organization wallet signs `createAuction` on Arc testnet, and the transaction hash appears
-      on the page.
+- [ ] The organization wallet signs `createAuction` on Arc testnet, and the transaction hash appears
+      on the page. Signed and mined; the page renders the hash but has not been opened in a browser.
 - [x] The spend policy has two `ALLOW` rules, both reading the calldata with
       `field_source: ethereum_calldata` and the contract ABI: `approve(spender, value)` on the USDC
       ERC-20 with `spender` equal to `SealedAuction`, and `createAuction(...)` on `SealedAuction`
       with the Payout Cap within the ceiling. Every rule pins `chain_id` to 5042002 and uses
       `method: eth_signTransaction`.
 - [x] A refused `approve` to another spender is captured as evidence.
-- [x] A Payout Cap under the 500 ceiling passes on the policy alone. That is the path the tests use.
+- [ ] A Payout Cap under the 500 ceiling passes on the policy alone. That is the path the tests use.
+      Proven at a 25 USDC cap, with `PAYOUT_CAP_BUCKET` lowered for the run. Not at the 250 bucket.
 - [ ] The 750 Payout Cap fires the two-signer key quorum, and both approvals show in the UI. The
       ceiling picks between two wallets: one with no owner, authorized by the spend policy alone at
       or under 500, and one owned by a 2-of-2 key quorum above it. A Privy wallet has a single

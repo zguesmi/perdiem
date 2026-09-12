@@ -38,6 +38,8 @@ export interface PurchaserOptions {
   payoutCapBucket: bigint;
   /** The deployment's X25519 public half, read from `SealedAuction`. The buyer seals to it. */
   enclavePublicKey: Uint8Array;
+  /** The one origin the page is served from. Any other origin is refused before the request. */
+  pageOrigin: string;
 }
 
 /** A candidate that fails validation buys exactly one more model call. Then the request fails. */
@@ -73,13 +75,14 @@ export function createPurchaserApp({
   uploadPolicy,
   payoutCapBucket,
   enclavePublicKey,
+  pageOrigin,
 }: PurchaserOptions): Hono {
   const app = new Hono();
 
-  // The buyer drives both routes from a page on another origin. There is nothing to protect with
-  // an origin check: the service holds no cookie and no session, so a request from anywhere is the
-  // same request. The Privy spend policy is what bounds what it can sign.
-  app.use("/*", cors({ origin: "*", allowMethods: ["POST"] }));
+  // The page is on another origin, and one origin is named rather than all of them. The service's
+  // authority is ambient: it holds the Privy keys, so any page the buyer visits could otherwise
+  // fund an auction against a policy it wrote, and win it from its own supplier wallet.
+  app.use("/*", cors({ origin: pageOrigin, allowMethods: ["POST"] }));
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
   app.post("/intent", async (context) => {

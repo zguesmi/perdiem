@@ -15,6 +15,8 @@ import { PolicyRefusedError } from "../src/privy.ts";
 /** 250 USDC. The reference policy's 520 maximum price rounds up to a 750 cap, as the demo does. */
 const payoutCapBucket = 250_000_000n;
 
+const pageOrigin = "http://localhost:5173";
+
 const funded: Funding = {
   auctionId: `0x${"a1".repeat(32)}`,
   approveHash: `0x${"b2".repeat(32)}`,
@@ -61,6 +63,7 @@ function service(intentAgent: IntentAgent, fund: Funder = funder()) {
     uploadPolicy: async () => {},
     payoutCapBucket,
     enclavePublicKey: x25519.getPublicKey(x25519.utils.randomSecretKey()),
+    pageOrigin,
   });
 }
 
@@ -214,6 +217,7 @@ test("seals the policy to the enclave and uploads it before it opens the auction
     uploadPolicy,
     payoutCapBucket,
     enclavePublicKey: x25519.getPublicKey(enclavePrivateKey),
+    pageOrigin,
   });
   const response = await post(app, "/confirm", { policy: referencePolicy });
 
@@ -237,6 +241,7 @@ test("opens no auction when the sealed policy does not reach the relay", async (
     },
     payoutCapBucket,
     enclavePublicKey: x25519.getPublicKey(x25519.utils.randomSecretKey()),
+    pageOrigin,
   });
 
   const response = await post(app, "/confirm", { policy: referencePolicy });
@@ -245,13 +250,24 @@ test("opens no auction when the sealed policy does not reach the relay", async (
   assert.deepEqual(fund.funded(), []);
 });
 
-test("answers a browser on another origin", async () => {
+test("answers the page, which is served from another origin", async () => {
   // The page is served by Vite and the service by Node, so every buyer request is cross-origin.
   const response = await service(stub(answer())).request("/intent", {
     method: "OPTIONS",
-    headers: { origin: "http://localhost:5173", "access-control-request-method": "POST" },
+    headers: { origin: pageOrigin, "access-control-request-method": "POST" },
   });
 
-  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  assert.equal(response.headers.get("access-control-allow-origin"), pageOrigin);
   assert.match(response.headers.get("access-control-allow-methods") ?? "", /POST/);
+});
+
+test("refuses a page the buyer did not open the desk from", async () => {
+  // The service holds the Privy keys, so a page that could reach it could fund an auction against
+  // a policy it wrote and win that auction from its own supplier wallet.
+  const response = await service(stub(answer())).request("/intent", {
+    method: "OPTIONS",
+    headers: { origin: "https://elsewhere.test", "access-control-request-method": "POST" },
+  });
+
+  assert.equal(response.headers.get("access-control-allow-origin"), null);
 });

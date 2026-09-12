@@ -22,6 +22,10 @@ reads. Intent parsing runs on `claude-opus-5`. Set `INTENT_MODEL` to move it. Th
 reads a buyer's sentence at runtime, which is a different fact from the model used to build the
 project.
 
+`PAGE_ORIGIN` is the one origin the service answers. It holds the buyer's Privy keys, so its
+authority is ambient: any page the buyer visits that could reach these routes could fund an auction
+against a policy it wrote, and win that auction from its own supplier wallet.
+
 The model client is injected into `createPurchaserApp`, so every test drives the service with a
 canned answer and no network. Nothing in `pnpm test` calls a model or costs money.
 

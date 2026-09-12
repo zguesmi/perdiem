@@ -44,7 +44,10 @@ No transaction was produced. The refusal reaches the buyer as an answer, not a f
 ## 3. The page can reach the service cross-origin
 
 `OPTIONS /confirm` from `http://localhost:5173`: HTTP 204,
-`access-control-allow-origin: *`, `access-control-allow-methods: POST`.
+`access-control-allow-origin: http://localhost:5173`, `access-control-allow-methods: POST`.
+
+That run allowed every origin. The service was narrowed to the one origin afterwards, and a test
+asserts that any other origin gets no allow header.
 
 ## Not covered
 

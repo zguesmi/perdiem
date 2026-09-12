@@ -31,6 +31,8 @@ const environment = z
     ARC_RPC_URL: z.url(),
     SEALED_AUCTION_ADDRESS: addressSchema,
     RELAY_URL: z.url(),
+    /** The one origin the page is served from. The service refuses a request from any other. */
+    PAGE_ORIGIN: z.url(),
     /**
      * The step the payout cap is rounded up to, and the largest cap the spend policy will sign.
      * Both in USDC minor units. Privy refuses a `createAuction` above the maximum.
@@ -73,6 +75,7 @@ const app = createPurchaserApp({
   uploadPolicy: createPolicyUploader(environment.RELAY_URL),
   enclavePublicKey: hexToBytes(enclavePublicKey),
   payoutCapBucket: environment.PAYOUT_CAP_BUCKET,
+  pageOrigin: environment.PAGE_ORIGIN,
   funder: createFunder({
     wallet: organizationWallet(environment.PRIVY_WALLET_ID),
     quorumWallet: organizationWallet(environment.PRIVY_QUORUM_WALLET_ID),
