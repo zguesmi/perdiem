@@ -13,16 +13,15 @@ import localDeployment from "../ignition/modules/Local.ts";
  *
  * ```sh
  * npx hardhat node                                        # one terminal
- * npx hardhat run scripts/deploy.ts --network localhost   # another
+ * npx hardhat run scripts/deploy.ts --network localhost   # another, writing .env.localhost
  * ```
  *
- * Run it twice and the second run deploys nothing: the enclave key is reused from `.env`, and
- * Ignition recognises the deployment it already recorded.
+ * Run it twice and the second run deploys nothing: the enclave key is reused from the environment
+ * file, and Ignition recognises the deployment it already recorded.
  */
 
-/** The repository root, where `.env` lives. `import.meta.dirname` is `onchain/scripts`. */
+/** The repository root, where the environment files live. `import.meta.dirname` is `onchain/scripts`. */
 const ROOT = path.resolve(import.meta.dirname, "../..");
-const ENV_PATH = path.join(ROOT, ".env");
 
 /**
  * The forwarder the Chainlink CRE simulator sends reports from. `SealedAuction` accepts a
@@ -40,7 +39,7 @@ const DEPLOYMENT_ID = "hardhat";
 const USDC_DECIMALS = 6;
 const X25519_KEY_LENGTH = 32;
 
-/** Each account the deployment funds, and the `.env` variable holding its address. */
+/** Each account the deployment funds, and the environment variable holding its address. */
 const ACCOUNT_VARIABLES = {
   buyer: "BUYER_ADDRESS",
   supplier1: "SUPPLIER_1_ADDRESS",
@@ -52,15 +51,15 @@ function readAddress(variable: string): `0x${string}` {
   const value = process.env[variable];
 
   if (value === undefined || !isAddress(value)) {
-    throw new Error(`${variable} is missing from .env, or is not an Ethereum address`);
+    throw new Error(`${variable} is missing from ${ENV_FILE}, or is not an Ethereum address`);
   }
 
   return value;
 }
 
 /**
- * Rewrites `.env` in place, one assignment at a time. Replacing the file would cost the operator
- * every private key in it.
+ * Rewrites the environment file in place, one assignment at a time. Replacing the file would cost
+ * the operator every private key in it.
  */
 async function updateEnvFile(values: Record<string, string>): Promise<void> {
   let text = await readFile(ENV_PATH, "utf8").catch(() => "");
@@ -79,6 +78,12 @@ async function updateEnvFile(values: Record<string, string>): Promise<void> {
 
   await writeFile(ENV_PATH, text);
 }
+
+// The connection comes first, because the network it names is the environment file this run reads
+// and writes. One file per network keeps a local deployment from overwriting a testnet one.
+const connection = await network.create();
+const ENV_FILE = `.env.${connection.networkName}`;
+const ENV_PATH = path.join(ROOT, ENV_FILE);
 
 process.loadEnvFile(ENV_PATH);
 
@@ -104,10 +109,8 @@ if (enclavePrivateKey.length !== X25519_KEY_LENGTH) {
 
 if (stored === undefined || stored === "") {
   await updateEnvFile({ ENCLAVE_PRIVATE_KEY: Buffer.from(enclavePrivateKey).toString("base64") });
-  console.log("Generated an enclave keypair. The private half is in .env.");
+  console.log(`Generated an enclave keypair. The private half is in ${ENV_FILE}.`);
 }
-
-const connection = await network.create();
 
 for (const address of Object.values(accounts)) {
   await connection.provider.request({ method: "hardhat_setBalance", params: [address, GAS_GRANT] });
@@ -141,8 +144,8 @@ const { usdc, sealedAuction } = await connection.ignition.deploy(localDeployment
   displayUi: true,
 });
 
-// The addresses reach every other package through `.env`, the same two variables an Arc deployment
-// fills in. Ignition's record under `ignition/deployments/` stays the deployment history, and
+// The addresses reach every other package through the environment file, the same two variables an
+// Arc deployment fills in. Ignition's record under `ignition/deployments/` stays the deployment history, and
 // nothing outside `onchain/` reads it.
 await updateEnvFile({
   SEALED_AUCTION_ADDRESS: sealedAuction.address,
@@ -153,4 +156,4 @@ await updateEnvFile({
 console.log();
 console.log(`SealedAuction  ${sealedAuction.address}`);
 console.log(`USDC           ${usdc.address}`);
-console.log("Addresses written to .env.");
+console.log(`Addresses written to ${ENV_FILE}.`);
