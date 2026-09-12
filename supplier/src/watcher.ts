@@ -4,9 +4,6 @@ import type { PublicRequirements } from "../../shared/policy.ts";
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import type { AuctionTerms } from "./tools.ts";
 
-/** How long the watcher waits between two reads of the chain. */
-const POLL_MILLISECONDS = 1_000;
-
 /**
  * The watcher never calls the model. It listens to `SealedAuction`, hands every new auction to the
  * bidder, and keeps listening for the life of the process.
@@ -26,13 +23,12 @@ const POLL_MILLISECONDS = 1_000;
 export async function watchAuctions(
   client: PublicClient,
   sealedAuction: `0x${string}`,
-  options: { signal?: AbortSignal; fromBlock: bigint; pollMilliseconds?: number },
+  options: { signal?: AbortSignal; fromBlock: bigint; pollMilliseconds: number },
   onAuction: (auction: AuctionTerms) => void,
 ): Promise<void> {
   // A reorg can repeat a log. Bidding twice costs a second stake and reverts on chain, so an
   // auction fires once per process.
   const seen = new Set<string>();
-  const pollMilliseconds = options.pollMilliseconds ?? POLL_MILLISECONDS;
   let nextBlock = options.fromBlock;
 
   while (options.signal?.aborted !== true) {
@@ -67,7 +63,7 @@ export async function watchAuctions(
       console.error(`watch: ${(error as Error).message}`);
     }
 
-    await sleep(pollMilliseconds, options.signal);
+    await sleep(options.pollMilliseconds, options.signal);
   }
 }
 

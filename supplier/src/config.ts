@@ -48,17 +48,29 @@ export async function loadAgentConfig(path: string): Promise<AgentConfig> {
  * The RPC URL is an `http://` or `https://` endpoint. The agent watches `TermsPublished` by
  * reading `eth_getLogs` over a range it tracks itself, so it needs neither `eth_subscribe` nor
  * `eth_newFilter`.
+ *
+ * The poll interval is an environment variable because it belongs to the endpoint rather than to
+ * the agent: a private node takes the default, and a shared one answers three agents at a second
+ * apiece with `rate limit exceeded`. A rate-limited poll costs nothing but time, because the
+ * watcher advances its block only on a read that succeeded.
  */
 export const deploymentSchema = z
   .object({
     ARC_RPC_URL: z.url(),
     SEALED_AUCTION_ADDRESS: addressSchema,
     RELAY_URL: z.url(),
+    // An environment file carries a variable it has no value for as an empty string, which coerces
+    // to zero, so empty means absent.
+    WATCH_POLL_MILLISECONDS: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.coerce.number().int().positive().default(1_000),
+    ),
   })
   .transform((environment) => ({
     rpcUrl: environment.ARC_RPC_URL,
     sealedAuction: environment.SEALED_AUCTION_ADDRESS,
     relayUrl: environment.RELAY_URL,
+    pollMilliseconds: environment.WATCH_POLL_MILLISECONDS,
   }));
 
 export type Deployment = z.infer<typeof deploymentSchema>;
@@ -82,7 +94,12 @@ export const walletSchema = z
       .string()
       .regex(/^0x[0-9a-fA-F]{64}$/)
       .optional(),
-    CIRCLE_WALLET_ADDRESS: addressSchema.optional(),
+    // An environment file carries a variable it has no value for as an empty string, and a local
+    // signer never fills this one in, so empty means absent.
+    CIRCLE_WALLET_ADDRESS: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      addressSchema.optional(),
+    ),
   })
   .transform((environment, ctx): Wallet => {
     if (environment.AGENT_SIGNER === "circle") {

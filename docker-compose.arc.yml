@@ -1,0 +1,118 @@
+# The stack against Arc testnet. `docker compose -f docker-compose.arc.yml up --build`.
+#
+# A separate file rather than an override of `docker-compose.yml`, because an override cannot
+# remove: there is no node and nothing to deploy here. `SEALED_AUCTION_ADDRESS` in `.env.arcTestnet`
+# names a contract that is already on chain.
+#
+# The relay needs a public HTTPS address, because the CRE workflow calls it from Chainlink's nodes.
+# Terminate TLS in front of these ports and name that host in `RELAY_URL` and `UI_ALLOWED_HOSTS`.
+#
+# Not here: the CRE workflow, which needs the `cre` binary.
+
+name: perdiem-arc
+
+x-environment-file: &environment-file
+  type: bind
+  source: ./.env.arcTestnet
+  target: /app/.env.arcTestnet
+  read_only: true
+
+x-environment: &environment
+  ENV_FILE: /app/.env.arcTestnet
+
+# The Circle CLI session, opened on the host with `circle wallet login <email> --testnet`. Writable,
+# because the CLI refreshes it in place.
+x-circle-session: &circle-session
+  type: bind
+  source: ${HOME}/.circle-cli
+  target: /root/.circle-cli
+
+# One wallet each: `commit` is once per address, so two agents behind one wallet place one
+# commitment and revert the other. They poll five times slower than the default, because Arc's
+# public endpoint answers three agents polling every second with `rate limit exceeded`.
+x-supplier: &supplier
+  build:
+    context: .
+    dockerfile: supplier/Dockerfile
+  image: perdiem/supplier
+  depends_on:
+    relay:
+      condition: service_healthy
+  volumes:
+    - *environment-file
+    - *circle-session
+
+x-supplier-environment: &supplier-environment
+  <<: *environment
+  RELAY_URL: http://relay:8787
+  WATCH_POLL_MILLISECONDS: 5000
+
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: relay/Dockerfile
+    image: perdiem/relay
+    environment: *environment
+    ports:
+      - "8787:8787"
+    volumes:
+      - *environment-file
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/auctions/0x0/bids').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  purchaser:
+    build:
+      context: .
+      dockerfile: purchaser/Dockerfile
+    image: perdiem/purchaser
+    environment: *environment
+    ports:
+      - "8788:8788"
+    volumes:
+      - *environment-file
+
+  supplier-astoria:
+    <<: *supplier
+    environment:
+      <<: *supplier-environment
+      AGENT_WALLET_VARIABLE: SUPPLIER_1_WALLET_ADDRESS
+    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "hotel-astoria-agent"]
+
+  supplier-victoria:
+    <<: *supplier
+    environment:
+      <<: *supplier-environment
+      AGENT_WALLET_VARIABLE: SUPPLIER_2_WALLET_ADDRESS
+    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "victoria-palace-agent"]
+
+  supplier-voyageurs:
+    <<: *supplier
+    environment:
+      <<: *supplier-environment
+      AGENT_WALLET_VARIABLE: SUPPLIER_3_WALLET_ADDRESS
+    command: ["pnpm", "--filter", "@perdiem/supplier", "start", "grands-voyageurs-agent"]
+
+  # Vite refuses a request whose `Host` header it does not know, so a public deployment names its
+  # own host in `UI_ALLOWED_HOSTS`.
+  ui:
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
+    image: perdiem/ui
+    environment:
+      <<: *environment
+      UI_ALLOWED_HOSTS: ${UI_ALLOWED_HOSTS-}
+    ports:
+      - "5173:5173"
+    volumes:
+      - *environment-file

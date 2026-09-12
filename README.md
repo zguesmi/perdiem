@@ -58,6 +58,28 @@ Run the services for the demo, one terminal each:
 | `pnpm --filter @perdiem/purchaser dev` | the purchaser service | 8788, `PURCHASER_PORT` |
 | `pnpm --filter @perdiem/ui dev`        | the demo page         | 5173                   |
 
+## The whole stack in containers
+
+```sh
+cp .env.localhost.example .env.localhost   # fill in ANTHROPIC_API_KEY and the booking credentials
+docker compose up --build
+```
+
+Eight containers: a node with the contracts on it, a one-shot deployment, the relay, the purchaser
+service, the three supplier agents and the page. Published on 8545, 8787, 8788 and 5173.
+
+`.env.localhost` is bind-mounted into every container, and the deployment writes the contract
+addresses into it. Everything downstream waits for that container to exit, so no service starts
+against an address that does not exist yet.
+
+Not in it: the CRE workflow, which needs the `cre` binary, and the buyer. Open an auction against
+the running stack from the repository root:
+
+```sh
+set -a; source .env.localhost; set +a
+npx tsx scripts/sealed-bidding.ts
+```
+
 ## The sealed bidding slice
 
 One script runs the first half of the flow on a local node and stops at the last sealed bid:

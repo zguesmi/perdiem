@@ -34,6 +34,13 @@ export default defineConfig({
       type: "edr-simulated",
       chainType: "op",
     },
+    // The node a local deployment targets. It is the loopback address when the node and the deploy
+    // run on one machine, and a service name when each runs in its own container.
+    localhost: {
+      type: "http",
+      chainType: "l1",
+      url: process.env.DOCKER_LOCALHOST_URL ?? "http://127.0.0.1:8545",
+    },
     sepolia: {
       type: "http",
       chainType: "l1",
