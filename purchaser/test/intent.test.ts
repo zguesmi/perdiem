@@ -244,3 +244,14 @@ test("opens no auction when the sealed policy does not reach the relay", async (
   assert.equal(response.status, 502);
   assert.deepEqual(fund.funded(), []);
 });
+
+test("answers a browser on another origin", async () => {
+  // The page is served by Vite and the service by Node, so every buyer request is cross-origin.
+  const response = await service(stub(answer())).request("/intent", {
+    method: "OPTIONS",
+    headers: { origin: "http://localhost:5173", "access-control-request-method": "POST" },
+  });
+
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  assert.match(response.headers.get("access-control-allow-methods") ?? "", /POST/);
+});

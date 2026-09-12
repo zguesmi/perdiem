@@ -75,6 +75,7 @@ export type Config = {
   rpcUrl: string;
   sealedAuction: Address;
   relayUrl: string;
+  purchaserUrl: string;
   explorerUrl?: string;
   fromBlock: bigint;
 };
@@ -102,6 +103,7 @@ export function readConfig(env: Record<string, string | undefined>): Config {
     rpcUrl: required("VITE_ARC_RPC_URL"),
     sealedAuction: required("VITE_SEALED_AUCTION_ADDRESS") as Address,
     relayUrl: required("VITE_RELAY_URL").replace(/\/$/, ""),
+    purchaserUrl: required("VITE_PURCHASER_URL").replace(/\/$/, ""),
     // Optional: a local node has no explorer, and a hash is still readable as plain text.
     explorerUrl: env.VITE_EXPLORER_URL?.replace(/\/$/, ""),
     // Optional: a long-lived deployment does not want every poll walking the whole chain.

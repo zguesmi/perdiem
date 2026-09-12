@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { cors } from "hono/cors";
 import { z } from "zod";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
@@ -74,6 +75,11 @@ export function createPurchaserApp({
   enclavePublicKey,
 }: PurchaserOptions): Hono {
   const app = new Hono();
+
+  // The buyer drives both routes from a page on another origin. There is nothing to protect with
+  // an origin check: the service holds no cookie and no session, so a request from anywhere is the
+  // same request. The Privy spend policy is what bounds what it can sign.
+  app.use("/*", cors({ origin: "*", allowMethods: ["POST"] }));
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
   app.post("/intent", async (context) => {
