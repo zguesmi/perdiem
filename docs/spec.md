@@ -285,7 +285,8 @@ Inside the Enclave. Deterministic integer arithmetic.
 1. Decrypt, check the signature by `ecrecover` then ERC-1271, check the commitment. Drop any
    failure; log counts only.
 2. Eligibility, per bid:
-   - city, checkin, checkout, roomType and numberOfRooms equal the hard requirements.
+   - city, checkin, checkout, roomType and numberOfRooms equal the hard requirements. Not
+     implemented.
    - `price <= maxPrice`.
    - `stars >= minStars`, **or** the Trade-Down applies: `stars == tradeDown.stars` and
      `price * 100 <= cheapestEligibleAtMinStars * (100 - tradeDown.requiredDiscountPercentage)`.
@@ -300,6 +301,19 @@ Inside the Enclave. Deterministic integer arithmetic.
 
 `maxPrice` is the same for every bid, so it cannot change the ranking. It stays in the formula
 because it makes scores positive and readable during the demo.
+
+What `workflow-cre/src/scoring.ts` implements today, and why the first eligibility rule is not part
+of it:
+
+- Eligibility is `price <= maxPrice`, then `stars >= minStars` or the Trade-Down.
+- The Bid carries no city, checkin or checkout, so those three cannot be compared at all.
+- `roomType` and `numberOfRooms` are members of the Bid, but a supplier's model writes them in its
+  own words. A byte-exact comparison drops an honest bid after its Stake is locked, and a dropped
+  bid is silent.
+- The auction binds the bid instead: the signature covers one `auctionId`, that identifier commits
+  to the Policy Hash, and the Enclave books the Policy's dates whatever the bid says.
+- Scoring reads five members of the Bid: `supplier`, `stars`, `price`, `refundable` and
+  `breakfastIncluded`.
 
 ### Booking
 
