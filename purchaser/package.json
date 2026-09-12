@@ -3,10 +3,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc --project tsconfig.build.json",
-    "start": "node dist/purchaser/src/index.js",
+    "start": "tsx src/index.ts",
     "test": "tsx --test 'test/**/*.test.ts'",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:intent": "tsx scripts/check-intent.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

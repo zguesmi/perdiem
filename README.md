@@ -13,7 +13,7 @@ Built with [Claude Code](https://claude.com/claude-code), model Claude Opus 5 (`
 with the `mattpocock-skills` plugin for the spec-hardening session. Idea development and research
 were done on claude.ai.
 
-Full account, phase by phase: [`docs/ai/README.md`](docs/ai/README.md).
+Full account, phase by phase: [`docs/README.md`](docs/README.md).
 
 ## Setup
 
