@@ -11,7 +11,7 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
 ## Acceptance criteria
 
 - [ ] The organization wallet signs `createAuction` on Arc testnet, and the transaction hash appears
-      on the page.
+      on the page. Signed and mined; the page renders the hash but has not been opened in a browser.
 - [x] The spend policy has two `ALLOW` rules, both reading the calldata with
       `field_source: ethereum_calldata` and the contract ABI: `approve(spender, value)` on the USDC
       ERC-20 with `spender` equal to `SealedAuction`, and `createAuction(...)` on `SealedAuction`
@@ -19,11 +19,12 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
       `method: eth_signTransaction`.
 - [x] A refused `approve` to another spender is captured as evidence.
 - [ ] A Payout Cap under the 500 ceiling passes on the policy alone. That is the path the tests use.
+      Proven at a 25 USDC cap, with `PAYOUT_CAP_BUCKET` lowered for the run. Not at the 250 bucket.
 - [ ] The 750 Payout Cap fires the two-signer key quorum, and both approvals show in the UI. The
       ceiling picks between two wallets: one with no owner, authorized by the spend policy alone at
       or under 500, and one owned by a 2-of-2 key quorum above it. A Privy wallet has a single
       owner, so a per-signer override on one wallet is not available.
-- [ ] The purchaser service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
+- [x] The purchaser service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
       broadcast on Arc.
 
 ## Comments
@@ -89,6 +90,27 @@ Left:
   service. The deployment and the gas transfers were broadcast from the deployer key by Hardhat and
   by viem, and the one quorum-signed transfer on chain was broadcast by curl during the V6 run.
 - The page has to call `POST /confirm` and show `quorumSigned`.
+
+### 2026-09-12 — the page funds an auction, and the funding mined
+
+The page calls both routes. `New auction` takes one sentence, `POST /intent` answers with the
+summary, and the buyer confirms it. `POST /confirm` returns the funding, and the Funding panel names
+who authorized it and shows the `approve` hash beside the `createAuction` hash already read from
+`AuctionCreated`.
+
+The purchaser service answers a cross-origin `POST`, because the page and the service are two
+origins.
+
+First funding to reach Arc through the service. Evidence:
+`docs/scratch/verification/evidence/privy-funding-mined-on-arc.md`.
+
+- A 25 USDC cap funded on the spend policy alone. Both transactions mined.
+- An 825 USDC cap was refused with `policy_violation` before anything was signed.
+- `PAYOUT_CAP_BUCKET` was 25 USDC for the run, not 250. The buyer wallet holds 54 USDC and no faucet
+  was reachable.
+
+Left: the quorum path on a mined transaction. It needs 500 USDC in the quorum wallet. The page also
+has not been driven in a browser; no browser was available.
 
 ## Dev review
 

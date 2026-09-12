@@ -60,3 +60,31 @@ section h2 {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
 }
+
+textarea {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: inherit;
+  font: inherit;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  resize: vertical;
+  width: 100%;
+}
+
+button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  margin-right: 0.5rem;
+  padding: 0.4rem 0.9rem;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

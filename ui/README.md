@@ -1,9 +1,14 @@
 # @perdiem/ui
 
-One page, five panels, read top to bottom during the demo:
+One page. **New auction** takes the buyer's sentence: `POST /intent` on the purchaser service
+answers with a summary, and confirming it calls `POST /confirm`, which hashes the policy, seals it
+to the relay and funds the auction.
+
+Then five panels, read top to bottom during the demo:
 
 1. **Intent** — the policy hash and the public requirements, from `TermsPublished`.
-2. **Funding** — buyer, payout cap, both deadlines, the `createAuction` transaction.
+2. **Funding** — buyer, payout cap, both deadlines, who authorized the spend, and both funding
+   transactions.
 3. **Bids** — one row per on-chain commitment, with the size of its ciphertext at the relay.
 4. **Enclave** — state, bids root, and the claim transaction.
 5. **Settlement** — winner, payout, refund, booking id, and the settling transaction.
@@ -28,9 +33,10 @@ starts the same way:
 set -a; source .env.localhost; set +a
 ```
 
-`VITE_ARC_RPC_URL`, `VITE_SEALED_AUCTION_ADDRESS` and `VITE_RELAY_URL` are required. The page names
-the missing one rather than rendering blank. `VITE_EXPLORER_URL` and `VITE_FROM_BLOCK` are optional;
-leave the explorer empty on a local node and hashes render as plain text.
+`VITE_ARC_RPC_URL`, `VITE_SEALED_AUCTION_ADDRESS`, `VITE_RELAY_URL` and `VITE_PURCHASER_URL` are
+required. The page names the missing one rather than rendering blank. `VITE_EXPLORER_URL` and
+`VITE_FROM_BLOCK` are optional; leave the explorer empty on a local node and hashes render as plain
+text.
 
 Only the `VITE_` prefix keeps the seven private keys in that same file out of the bundle. Never name
 a secret `VITE_`, and never set `envPrefix` in `vite.config.ts`.

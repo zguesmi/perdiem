@@ -3,6 +3,12 @@ import type { Hex } from "viem";
 
 import "./App.css";
 import {
+  confirmPolicy,
+  parseIntent,
+  type Draft,
+  type Funding as FundingAnswer,
+} from "./purchaser.ts";
+import {
   createClient,
   explorerLink,
   formatTime,
@@ -40,6 +46,7 @@ export default function App() {
   const { config } = configuration;
   const [auction, setAuction] = useState<AuctionView | null>();
   const [readError, setReadError] = useState<string>();
+  const [funding, setFunding] = useState<FundingAnswer>();
   const error = configuration.error ?? readError;
 
   useEffect(() => {
@@ -86,6 +93,8 @@ export default function App() {
 
       {error && <p className="error">{error}</p>}
 
+      {config && <Desk config={config} onFunded={setFunding} />}
+
       {config && auction === undefined && !error && <p className="note">Reading the chain…</p>}
       {config && auction === null && (
         <p className="note">No auction yet. The page shows the newest one as soon as it opens.</p>
@@ -97,7 +106,11 @@ export default function App() {
             Auction <code>{short(auction.auctionId)}</code>, state <strong>{auction.state}</strong>
           </p>
           <Intent config={config} auction={auction} />
-          <Funding config={config} auction={auction} />
+          <Funding
+            config={config}
+            auction={auction}
+            funding={funding?.auctionId === auction.auctionId ? funding : undefined}
+          />
           <Bids config={config} auction={auction} />
           <Enclave config={config} auction={auction} />
           <Settlement config={config} auction={auction} />
@@ -108,6 +121,87 @@ export default function App() {
 }
 
 type PanelProps = { config: Config; auction: AuctionView };
+
+/**
+ * The buyer's half of the page: one sentence in, a funded auction out.
+ *
+ * Two steps and not one, because the policy the service hashed is the policy the buyer read. The
+ * summary is prose the model wrote and nothing downstream reads it; the policy behind it goes back
+ * to `/confirm` byte for byte, and that is what gets hashed.
+ */
+function Desk({ config, onFunded }: { config: Config; onFunded: (funding: FundingAnswer) => void }) {
+  const [intent, setIntent] = useState("");
+  const [draft, setDraft] = useState<Draft>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const run = async (work: () => Promise<void>): Promise<void> => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await work();
+    } catch (cause) {
+      setError((cause as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section>
+      <h2>New auction</h2>
+      <p className="note">
+        One sentence. The service parses it, you approve what it read, and only then is anything
+        hashed or funded.
+      </p>
+
+      <textarea
+        value={intent}
+        rows={3}
+        disabled={busy || draft !== undefined}
+        placeholder="Two nights in Paris from 12 October, four stars, up to 520 USDC. Refundable and breakfast are worth paying for."
+        onChange={(event) => setIntent(event.target.value)}
+      />
+
+      {draft ? (
+        <>
+          <p className="field">
+            <span className="label">Parsed</span>
+            <span>{draft.summary}</span>
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                onFunded(await confirmPolicy(config.purchaserUrl, draft.policy));
+                setDraft(undefined);
+                setIntent("");
+              })
+            }
+          >
+            {busy ? "Funding…" : "Confirm and fund"}
+          </button>
+          <button type="button" disabled={busy} onClick={() => setDraft(undefined)}>
+            Start again
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          disabled={busy || intent.trim() === ""}
+          onClick={() =>
+            void run(async () => setDraft(await parseIntent(config.purchaserUrl, intent)))
+          }
+        >
+          {busy ? "Reading…" : "Read the request"}
+        </button>
+      )}
+
+      {error && <p className="error">{error}</p>}
+    </section>
+  );
+}
 
 /** The policy hash and the requirements every supplier may see. Never the policy itself. */
 function Intent({ config, auction }: PanelProps) {
@@ -134,7 +228,11 @@ function Intent({ config, auction }: PanelProps) {
 }
 
 /** What the buyer locked in escrow, and the call that locked it. */
-function Funding({ config, auction }: PanelProps) {
+function Funding({
+  config,
+  auction,
+  funding,
+}: PanelProps & { funding?: FundingAnswer }) {
   return (
     <Panel
       title="Funding"
@@ -144,6 +242,19 @@ function Funding({ config, auction }: PanelProps) {
       <Field label="Payout cap" value={formatUsdc(auction.payoutCap)} />
       <Field label="Bidding closes" value={formatTime(auction.bidDeadline)} />
       <Field label="Refundable after" value={formatTime(auction.finalizeDeadline)} />
+      {funding && (
+        <>
+          <Field
+            label="Authorized by"
+            value={
+              funding.quorumSigned
+                ? "The spend policy and the two-signer key quorum"
+                : "The spend policy alone"
+            }
+          />
+          <TransactionLink config={config} label="approve" hash={funding.approveHash} />
+        </>
+      )}
       <TransactionLink config={config} label="createAuction" hash={auction.createdTransaction} />
     </Panel>
   );

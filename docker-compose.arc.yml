@@ -7,6 +7,10 @@
 # The relay needs a public HTTPS address, because the CRE workflow calls it from Chainlink's nodes.
 # Terminate TLS in front of these ports and name that host in `RELAY_URL` and `UI_ALLOWED_HOSTS`.
 #
+# The page and the purchaser service are two public origins, so a public deployment also names its
+# own host in `PURCHASER_URL`, which the browser resolves, and in `PAGE_ORIGIN`, which is the only
+# origin the service answers.
+#
 # Not here: the CRE workflow, which needs the `cre` binary.
 
 name: perdiem-arc

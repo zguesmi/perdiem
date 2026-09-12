@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { cors } from "hono/cors";
 import { z } from "zod";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
@@ -37,6 +38,8 @@ export interface PurchaserOptions {
   payoutCapBucket: bigint;
   /** The deployment's X25519 public half, read from `SealedAuction`. The buyer seals to it. */
   enclavePublicKey: Uint8Array;
+  /** The one origin the page is served from. Any other origin is refused before the request. */
+  pageOrigin: string;
 }
 
 /** A candidate that fails validation buys exactly one more model call. Then the request fails. */
@@ -72,8 +75,14 @@ export function createPurchaserApp({
   uploadPolicy,
   payoutCapBucket,
   enclavePublicKey,
+  pageOrigin,
 }: PurchaserOptions): Hono {
   const app = new Hono();
+
+  // The page is on another origin, and one origin is named rather than all of them. The service's
+  // authority is ambient: it holds the Privy keys, so any page the buyer visits could otherwise
+  // fund an auction against a policy it wrote, and win it from its own supplier wallet.
+  app.use("/*", cors({ origin: pageOrigin, allowMethods: ["POST"] }));
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
   app.post("/intent", async (context) => {
