@@ -1,0 +1,22 @@
+import { bytesToHex } from "viem";
+
+/**
+ * Puts the sealed policy at the relay, under the hash the auction will commit to.
+ *
+ * The relay is blind, so this sends bytes and nothing else. First write wins, so a hash already
+ * uploaded answers `409` and the buyer never opens a second auction behind it.
+ */
+export type PolicyUploader = (policyHash: `0x${string}`, envelope: Uint8Array) => Promise<void>;
+
+export function createPolicyUploader(relayUrl: string): PolicyUploader {
+  return async (policyHash, envelope) => {
+    const response = await fetch(`${relayUrl}/policies/${policyHash}`, {
+      method: "PUT",
+      body: bytesToHex(envelope),
+    });
+
+    if (response.status !== 201) {
+      throw new Error(`the relay refused the sealed policy with ${response.status}`);
+    }
+  };
+}

@@ -1,7 +1,6 @@
 # Seal the Policy to the enclave and serve it from the relay
 
-Status: ready-for-agent Type: task Blocked by:
-../verification/issues/13-can-the-enclave-reach-the-relay.md
+Status: resolved Type: task Blocked by: ../verification/issues/13-can-the-enclave-reach-the-relay.md
 
 Today the Policy is a workflow secret. That has three costs:
 
@@ -51,19 +50,28 @@ ticket runs beside ticket 06.
 
 ## Acceptance criteria
 
-- [ ] An ADR records why the Policy travels through the relay rather than the Vault DON, and why it
+- [x] An ADR records why the Policy travels through the relay rather than the Vault DON, and why it
       is keyed by Policy Hash.
-- [ ] `shared/` seals and opens a Policy envelope under its own domain, with a test that a bid
+- [x] `shared/` seals and opens a Policy envelope under its own domain, with a test that a bid
       envelope fails to open as a Policy and the reverse.
-- [ ] A test shows a Policy whose bytes changed in flight fails `hashPolicy` against the committed
+- [x] A test shows a Policy whose bytes changed in flight fails `hashPolicy` against the committed
       hash.
-- [ ] The relay serves both routes, with tests for first write wins, the size cap and the unknown
+- [x] The relay serves both routes, with tests for first write wins, the size cap and the unknown
       hash.
-- [ ] `POST /confirm` seals and uploads before `createAuction`, and uploads no workflow secret.
-- [ ] `secrets.yaml` names only `ENCLAVE_PRIVATE_KEY`, and `POLICY` leaves both `.env` examples.
-- [ ] `docs/spec.md` states the new path in place of the workflow secret.
+- [x] `POST /confirm` seals and uploads before `createAuction`, and uploads no workflow secret.
+- [x] `secrets.yaml` names only `ENCLAVE_PRIVATE_KEY`, and `POLICY` leaves both `.env` examples.
+- [x] `docs/spec.md` states the new path in place of the workflow secret.
 
 ## Comments
+
+Shipped. `shared/envelope.ts` now holds the one scheme, and `sealed-bid.ts` and `sealed-policy.ts`
+are its two domains. `openSealedPolicy` checks `hashPolicy` against the committed hash itself, so
+ticket 30 calls one function.
+
+`POST /confirm` uploads before it funds. An upload that fails answers 502 and opens no auction.
+
+The purchaser service reads `SealedAuction.enclavePublicKey()` once at start and needs `RELAY_URL`.
+Both Compose files point it at `http://relay:8787`.
 
 ## Dev review
 

@@ -63,7 +63,6 @@ test("serves the sealed bids in arrival order", async () => {
   await app.request(`/auctions/${auctionId}/bids/0xb0b`, { method: "PUT", body: "bob" });
   await put(app, sealedBid);
 
-
   const response = await app.request(`/auctions/${auctionId}/bids`);
 
   assert.deepEqual(await response.json(), [
@@ -77,4 +76,51 @@ test("serves an empty list for an unknown auction", async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), []);
+});
+
+// The sealed policy. Same blindness, same first-write-wins rule, keyed by the policy hash the
+// buyer put on chain before the auction existed.
+
+const policyHash = `0x${"ab".repeat(32)}`;
+const sealedPolicy = "sealed-policy-ciphertext";
+
+function putPolicy(app: Hono, body: string) {
+  return app.request(`/policies/${policyHash}`, { method: "PUT", body });
+}
+
+test("accepts the buyer's first sealed policy", async () => {
+  const response = await putPolicy(createRelayApp(), sealedPolicy);
+
+  assert.equal(response.status, 201);
+});
+
+test("refuses a second sealed policy under the same hash", async () => {
+  const app = createRelayApp();
+  await putPolicy(app, sealedPolicy);
+
+  const response = await putPolicy(app, "a-different-ciphertext");
+
+  assert.equal(response.status, 409);
+});
+
+test("refuses a sealed policy over the sixteen kibibyte cap", async () => {
+  const response = await putPolicy(createRelayApp(), "x".repeat(16 * 1024 + 1));
+
+  assert.equal(response.status, 413);
+});
+
+test("serves the sealed policy as the bytes it was given", async () => {
+  const app = createRelayApp();
+  await putPolicy(app, sealedPolicy);
+
+  const response = await app.request(`/policies/${policyHash}`);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), sealedPolicy);
+});
+
+test("answers 404 for a policy hash it never saw", async () => {
+  const response = await createRelayApp().request(`/policies/0xff`);
+
+  assert.equal(response.status, 404);
 });

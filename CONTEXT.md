@@ -21,7 +21,7 @@ is readable. _Avoid_: TEE handler, secure worker
 **Intent**: The buyer's need, written as one English sentence. _Avoid_: Prompt, request, query
 
 **Policy**: The structured private ruleset derived from an Intent. Never leaves the buyer except as
-a hash and as a workflow secret. _Avoid_: Rules, criteria, preferences object
+a hash and as a Sealed Policy. _Avoid_: Rules, criteria, preferences object
 
 **Policy Hash**: The keccak256 of the canonically encoded Policy, committed on chain before any Bid
 exists.
@@ -37,6 +37,9 @@ the Stake. _Avoid_: Commitment hash, sealed hash
 
 **Sealed Bid**: The Bid, its salt and its signature, encrypted to the enclave's public key and
 stored at the relay. _Avoid_: Envelope, blob, ciphertext
+
+**Sealed Policy**: The Policy encrypted to the enclave's public key and stored at the relay under
+its Policy Hash. _Avoid_: Policy secret, policy blob
 
 **Bids Root**: The keccak256 over every on-chain Bid Commitment for an auction, sorted. Built inside
 the enclave, over all commitments, including any whose Sealed Bid never arrived.
