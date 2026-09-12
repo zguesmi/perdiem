@@ -1,6 +1,6 @@
 # List each transaction under its step
 
-Status: ready-for-agent Type: task Blocked by: 02
+Status: ready-for-agent Type: task Blocked by: 03
 
 Transaction hashes sit at the bottom of five panels, so no reader can see the auction as a sequence
 of on-chain writes. The stepper is where that sequence belongs.
@@ -24,5 +24,9 @@ A new transaction appears within one poll, with no reload and no page jump.
 - [ ] A commit that lands during the demo appears within one poll interval.
 - [ ] A step with no transaction yet says so in one short line.
 - [ ] The transaction hashes the panels used to show are gone from the panels.
+
+## Design
+
+The rules the page is built to: `docs/scratch/ui/spec.md`.
 
 ## Comments
