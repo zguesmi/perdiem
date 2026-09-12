@@ -73,6 +73,22 @@ pnpm --filter @perdiem/purchaser typecheck   # tsc --noEmit
 pnpm --filter @perdiem/purchaser start       # tsx src/index.ts
 ```
 
+The funding flow is checked against a local node, because Privy is a remote service and signs for
+Arc alone. A local account stands in for the organization wallet; everything else is real — the
+calldata, the two nonces, the gas estimates, the broadcast, the receipts and the identifier read
+back from `AuctionCreated`. It also asserts that a refused signature broadcasts nothing and leaves
+no allowance behind.
+
+```sh
+cd onchain && npx hardhat node --chain-id 5042002       # one terminal
+npx hardhat run scripts/deploy.ts --network localhost    # another
+set -a; source .env.localhost; set +a
+pnpm --filter @perdiem/purchaser check:funding
+```
+
+What it cannot check: Privy's transaction field names, the spend policy rule shape, the refusal body
+and the key quorum. Those need a live app.
+
 The prompt itself is checked by hand, against the real model. It costs money, so it is a script and
 not a test. Run it after any change to `prompts/intent.md` or the Policy schema:
 
