@@ -76,10 +76,10 @@ export function authorizationSignature(
 
   // Privy hands the key out with a scheme prefix. Trimming it here keeps the operator from having
   // to edit a secret before pasting it.
-  const der = Buffer.from(authorizationKey.replace(/^wallet-auth:/, ""), "base64");
-  const key = createPrivateKey({ key: der, format: "der", type: "pkcs8" });
+  const privateKeyBytes = Buffer.from(authorizationKey.replace(/^wallet-auth:/, ""), "base64");
+  const signingKey = createPrivateKey({ key: privateKeyBytes, format: "der", type: "pkcs8" });
 
-  return sign("sha256", Buffer.from(payload, "utf8"), key).toString("base64");
+  return sign("sha256", Buffer.from(payload, "utf8"), signingKey).toString("base64");
 }
 
 export interface PrivyOptions {
