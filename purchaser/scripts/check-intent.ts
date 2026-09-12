@@ -8,7 +8,7 @@
  *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/purchaser check:intent "two nights in Rome…"
  */
 import { createPurchaserApp } from "../src/app.ts";
-import { createCompleter } from "../src/intent.ts";
+import { createIntentAgent } from "../src/intent.ts";
 
 const defaultIntent =
   "Two nights in Paris from 12 October 2026, one double room, 4 stars or better, " +
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
   console.log(`model: ${model}`);
   console.log(`intent: ${intent}\n`);
 
-  const app = createPurchaserApp({ completer: createCompleter(model) });
+  const app = createPurchaserApp({ intentAgent: createIntentAgent(model) });
   const response = await app.request("/intent", {
     method: "POST",
     headers: { "content-type": "application/json" },

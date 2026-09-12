@@ -2,14 +2,14 @@ import { readFile } from "node:fs/promises";
 import Anthropic from "@anthropic-ai/sdk";
 
 /**
- * The seam between the buyer's sentence and the model. A completer produces one candidate answer
- * and owns nothing else: validation and the retry belong to the service, so the route tests drive
+ * The seam between the buyer's sentence and the model. An intent agent produces one candidate
+ * answer and owns nothing else: validation and the retry belong to the service, so the tests drive
  * it with a canned answer and no network.
  *
- * The return is `unknown` on purpose. A completer typed to return a valid answer would make the
+ * The return is `unknown` on purpose. An agent typed to return a valid answer would make the
  * validation it is tested against unreachable.
  */
-export type Completer = (
+export type IntentAgent = (
   intent: string,
   /** Why the previous candidate was rejected. Set on the retry only. */
   rejection?: string,
@@ -22,7 +22,7 @@ const promptPath = new URL("../prompts/intent.md", import.meta.url);
  * the artefact an operator reads and edits, and because it is what a reviewer checks the Policy
  * schema against.
  */
-export function createCompleter(model: string): Completer {
+export function createIntentAgent(model: string): IntentAgent {
   const client = new Anthropic();
 
   return async (intent, rejection) => {

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
-import type { Completer } from "./intent.ts";
+import type { IntentAgent } from "./intent.ts";
 
 /**
  * The purchaser service is the buyer's side of the desk. It does two things and no more:
@@ -17,7 +17,7 @@ export interface PurchaserOptions {
    * the routes build themselves, so the tests hand the service a canned answer and exercise the
    * validation, the retry and the hashing without a key, a network or a bill.
    */
-  completer: Completer;
+  intentAgent: IntentAgent;
 }
 
 /** A candidate that fails validation buys exactly one more model call. Then the request fails. */
@@ -32,7 +32,7 @@ const confirmRequest = z.object({ policy: z.unknown() }).strict();
  * The summary is shown and then dropped. Only the Policy is canonicalized and hashed, so nothing
  * the model wrote in prose can change what reaches the chain.
  */
-const candidate = z.object({ policy: policySchema, summary: z.string().min(1) }).strict();
+const answerValidator = z.object({ policy: policySchema, summary: z.string().min(1) }).strict();
 
 /**
  * A body that is not JSON throws inside `context.req.json()`, which Hono answers with a 500. The
@@ -47,7 +47,7 @@ async function body(context: Context): Promise<unknown> {
   }
 }
 
-export function createPurchaserApp({ completer }: PurchaserOptions): Hono {
+export function createPurchaserApp({ intentAgent }: PurchaserOptions): Hono {
   const app = new Hono();
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
@@ -62,7 +62,7 @@ export function createPurchaserApp({ completer }: PurchaserOptions): Hono {
     let rejection: string | undefined;
 
     for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
-      const answer = candidate.safeParse(await completer(request.data.intent, rejection));
+      const answer = answerValidator.safeParse(await intentAgent(request.data.intent, rejection));
       if (answer.success) {
         return context.json(answer.data);
       }

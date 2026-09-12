@@ -2,7 +2,7 @@ import { serve } from "@hono/node-server";
 import { z } from "zod";
 
 import { createPurchaserApp } from "./app.ts";
-import { createCompleter } from "./intent.ts";
+import { createIntentAgent } from "./intent.ts";
 
 const environment = z
   .object({
@@ -12,7 +12,7 @@ const environment = z
   })
   .parse(process.env);
 
-const app = createPurchaserApp({ completer: createCompleter(environment.INTENT_MODEL) });
+const app = createPurchaserApp({ intentAgent: createIntentAgent(environment.INTENT_MODEL) });
 
 serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
   console.log(`Purchaser service listening on http://localhost:${info.port}`);

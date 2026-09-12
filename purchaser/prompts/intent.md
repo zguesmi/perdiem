@@ -47,13 +47,13 @@ Every field is required, and no other field is allowed.
 
 ### Dates
 
-Both dates come from the sentence and from nowhere else. Write them as `YYYY-MM-DD`.
+Both dates come from the sentence and from nowhere else. Write them as `YYYY-MM-DD`. You are not
+told today's date.
 
-You are not told today's date, and you must not guess one. The buyer confirms these dates and the
-Policy is then hashed onto a public ledger, where a year nobody typed cannot be corrected. So when
-the sentence names no year, or names a month and a day you cannot place, produce no Policy at all:
-answer `{}`. A rejected sentence costs the buyer one more sentence. A wrong year costs them the
-booking.
+### Missing information
+
+Answer `{}` when the sentence leaves a required field with no value and no rule above supplies one.
+The Policy is hashed onto a public ledger, where a value nobody typed cannot be corrected.
 
 ### You do the conversion, not the buyer
 

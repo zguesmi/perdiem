@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { referencePolicy, makePolicy } from "../../shared/reference-policy.ts";
 import { createPurchaserApp } from "../src/app.ts";
-import type { Completer } from "../src/intent.ts";
+import type { IntentAgent } from "../src/intent.ts";
 
 const intent =
   "Paris, 12 to 14 October 2026, one double room, 4 star minimum, at most 520 USDC. " +
@@ -18,11 +18,11 @@ function answer(policy: unknown = referencePolicy, text: string = summary): unkn
 }
 
 /** Answers with each candidate in turn, and records how many calls the service actually made. */
-function stub(...candidates: unknown[]): Completer & { calls: () => number } {
+function stub(...candidates: unknown[]): IntentAgent & { calls: () => number } {
   let calls = 0;
-  const completer = async (): Promise<unknown> => candidates[calls++ % candidates.length];
+  const intentAgent = async (): Promise<unknown> => candidates[calls++ % candidates.length];
 
-  return Object.assign(completer, { calls: () => calls });
+  return Object.assign(intentAgent, { calls: () => calls });
 }
 
 async function post(
@@ -40,65 +40,65 @@ async function post(
 }
 
 test("turns one sentence into a policy the buyer can read", async () => {
-  const completer = stub(answer());
-  const response = await post(createPurchaserApp({ completer }), "/intent", { intent });
+  const intentAgent = stub(answer());
+  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
 
   assert.equal(response.status, 200);
   assert.deepEqual(response.body.policy, referencePolicy);
   assert.equal(response.body.summary, summary);
-  assert.equal(completer.calls(), 1);
+  assert.equal(intentAgent.calls(), 1);
 });
 
 test("rejects an answer that carries no summary for the buyer", async () => {
   // The buyer approves what they read, so a policy with nothing to read is not an answer.
-  const completer = stub({ policy: referencePolicy });
-  const response = await post(createPurchaserApp({ completer }), "/intent", { intent });
+  const intentAgent = stub({ policy: referencePolicy });
+  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
 
   assert.equal(response.status, 422);
 });
 
 test("retries a candidate that fails the schema exactly once", async () => {
-  const completer = stub(answer(makePolicy({ hardRequirements: { minStars: 9 } })), answer());
-  const response = await post(createPurchaserApp({ completer }), "/intent", { intent });
+  const intentAgent = stub(answer(makePolicy({ hardRequirements: { minStars: 9 } })), answer());
+  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
 
   assert.equal(response.status, 200);
-  assert.equal(completer.calls(), 2);
+  assert.equal(intentAgent.calls(), 2);
 });
 
 test("tells the retry what was wrong with the first answer", async () => {
   // A byte-identical second call reproduces a deterministic failure and pays for it twice.
   const rejections: (string | undefined)[] = [];
   let call = 0;
-  const completer: Completer = async (_intent, rejection) => {
+  const intentAgent: IntentAgent = async (_intent, rejection) => {
     rejections.push(rejection);
     return call++ === 0 ? answer(makePolicy({ hardRequirements: { minStars: 9 } })) : answer();
   };
 
-  await post(createPurchaserApp({ completer }), "/intent", { intent });
+  await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
 
   assert.equal(rejections[0], undefined);
   assert.match(String(rejections[1]), /minStars/);
 });
 
 test("gives up after the second failure, and hashes nothing", async () => {
-  const completer = stub(answer(makePolicy({ currency: "EUR" })));
-  const response = await post(createPurchaserApp({ completer }), "/intent", { intent });
+  const intentAgent = stub(answer(makePolicy({ currency: "EUR" })));
+  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
 
   assert.equal(response.status, 422);
-  assert.equal(completer.calls(), 2);
+  assert.equal(intentAgent.calls(), 2);
   assert.equal(response.body.policy, undefined);
 });
 
 test("rejects a fractional price rather than rounding it", async () => {
   // Rounding would silently change the number the buyer is about to commit to on chain.
-  const completer = stub(answer(makePolicy({ maxPrice: 520_000_000.5 })));
-  const response = await post(createPurchaserApp({ completer }), "/intent", { intent });
+  const intentAgent = stub(answer(makePolicy({ maxPrice: 520_000_000.5 })));
+  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
 
   assert.equal(response.status, 422);
 });
 
 test("rejects a body that is not JSON rather than failing", async () => {
-  const app = createPurchaserApp({ completer: stub(answer()) });
+  const app = createPurchaserApp({ intentAgent: stub(answer()) });
 
   for (const path of ["/intent", "/confirm"]) {
     const response = await app.request(path, {
@@ -112,7 +112,7 @@ test("rejects a body that is not JSON rather than failing", async () => {
 });
 
 test("hashes the confirmed policy the same way every other package does", async () => {
-  const response = await post(createPurchaserApp({ completer: stub(answer()) }), "/confirm", {
+  const response = await post(createPurchaserApp({ intentAgent: stub(answer()) }), "/confirm", {
     policy: referencePolicy,
   });
 
@@ -126,7 +126,7 @@ test("hashes the confirmed policy the same way every other package does", async 
 });
 
 test("refuses to hash a policy that does not match the schema", async () => {
-  const response = await post(createPurchaserApp({ completer: stub(answer()) }), "/confirm", {
+  const response = await post(createPurchaserApp({ intentAgent: stub(answer()) }), "/confirm", {
     policy: makePolicy({ preferences: { refundable: -1 } }),
   });
 
