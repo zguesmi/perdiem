@@ -17,4 +17,4 @@ COPY shared/ shared/
 COPY ui/ ui/
 EXPOSE 5173
 ENTRYPOINT ["entrypoint"]
-CMD ["pnpm", "--filter", "@perdiem/ui", "dev", "--host", "0.0.0.0"]
+CMD ["pnpm", "--filter", "@perdiem/ui", "dev"]

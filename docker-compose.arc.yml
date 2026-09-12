@@ -74,6 +74,9 @@ services:
   # Three agents, one image. The name is the argument; the wallet is the entry in `.env.arcTestnet`
   # that `AGENT_WALLET_VARIABLE` names. One wallet each: `commit` is once per address, so two
   # agents behind one wallet place one commitment and revert the other.
+  #
+  # They watch the chain five times slower than the default, because Arc's public endpoint answers
+  # three agents polling every second with `rate limit exceeded`.
   supplier-astoria:
     build:
       context: .
@@ -85,6 +88,7 @@ services:
     environment:
       <<: *environment
       RELAY_URL: http://relay:8787
+      WATCH_POLL_MILLISECONDS: 5000
       AGENT_WALLET_VARIABLE: SUPPLIER_1_WALLET_ADDRESS
     volumes:
       - *environment-file
@@ -102,6 +106,7 @@ services:
     environment:
       <<: *environment
       RELAY_URL: http://relay:8787
+      WATCH_POLL_MILLISECONDS: 5000
       AGENT_WALLET_VARIABLE: SUPPLIER_2_WALLET_ADDRESS
     volumes:
       - *environment-file
@@ -119,6 +124,7 @@ services:
     environment:
       <<: *environment
       RELAY_URL: http://relay:8787
+      WATCH_POLL_MILLISECONDS: 5000
       AGENT_WALLET_VARIABLE: SUPPLIER_3_WALLET_ADDRESS
     volumes:
       - *environment-file

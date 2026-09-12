@@ -120,7 +120,7 @@ async function main(): Promise<void> {
   await watchAuctions(
     client,
     deployment.sealedAuction,
-    { signal: stopping.signal, fromBlock },
+    { signal: stopping.signal, fromBlock, pollMilliseconds: deployment.pollMilliseconds },
     (auction) => {
       console.log(`${config.name}: bidding on ${auction.auctionId}`);
       void bidOn(supplier, auction).catch((error: Error) => {
