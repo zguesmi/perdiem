@@ -244,6 +244,11 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
   runtime.log(
     `ScoredBids:${scored}, droppedBids:${droppedBids} (decrypt=${dropped.decrypt}, signature=${dropped.signature} commitment=${dropped.commitment})`,
   );
+  runtime.log(
+    settlement.bookingId === ""
+      ? `No booking for auction: ${auctionId}`
+      : `Applied booking: ${auctionId} bookingId=${settlement.bookingId}`,
+  );
   write(encodeSettlementReport(settlement));
   runtime.log(`Settled auction: ${auctionId}`);
 
