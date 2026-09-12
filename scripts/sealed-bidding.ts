@@ -15,7 +15,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 
 import { addressSchema } from "../shared/bid.ts";
-import { arc } from "../agents/src/chain.ts";
+import { arc } from "../supplier/src/chain.ts";
 import { hashPolicy } from "../shared/policy-hash.ts";
 import { publicRequirements } from "../shared/policy.ts";
 import { referencePolicy } from "../shared/reference-policy.ts";

@@ -29,7 +29,7 @@ externally owned account holding a demo key. The Arc track asks for Circle Agent
 
 ## The three demo prices are unverified
 
-`agents/scripts/check-demo-prices.ts` checks 330, 400 and 440 against the reference auction. It is a
+`supplier/scripts/check-demo-prices.ts` checks 330, 400 and 440 against the reference auction. It is a
 script, not a test, because no test in this repository calls a model. No run has been recorded.
 
 ## A price range covers one auction shape
@@ -39,7 +39,7 @@ auction prices below the range and `submitBid` refuses it.
 
 ## An Anthropic outage means no bid
 
-The model is the only pricing path. `agents/src/rate-plan.ts` was deleted with its deterministic
+The model is the only pricing path. `supplier/src/rate-plan.ts` was deleted with its deterministic
 fallback.
 
 ## The payout cap bounds the maximum price from above

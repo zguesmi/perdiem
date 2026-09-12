@@ -66,7 +66,7 @@ async function bidOn(supplier: Supplier, auction: AuctionTerms): Promise<void> {
 async function main(): Promise<void> {
   const name = process.argv[2];
   if (!name) {
-    throw new Error("usage: agent <name>, where agents/config/<name>.json exists");
+    throw new Error("usage: agent <name>, where supplier/config/<name>.json exists");
   }
 
   const secrets: Secrets = environment.parse(process.env);

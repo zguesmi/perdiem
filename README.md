@@ -20,7 +20,7 @@ Full account, phase by phase: [`docs/ai/README.md`](docs/ai/README.md).
 Requires Node 22 or later and pnpm 12.3.4 (`corepack enable` picks up the pinned version).
 
 ```sh
-pnpm install                  # the workspace: packages/*, onchain, requisition, relay, agents, web
+pnpm install                  # the workspace: packages/*, onchain, requisition, relay, supplier, web
 pnpm --dir workflow install   # workflow/ is outside the workspace and installs on its own
 cp .env.example .env
 ```

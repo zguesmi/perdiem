@@ -2,7 +2,7 @@ packages:
   - "onchain"
   - "requisition"
   - "relay"
-  - "agents"
+  - "supplier"
   - "web"
 
 # workflow/ is deliberately absent. The Chainlink CRE CLI generates and regenerates its own

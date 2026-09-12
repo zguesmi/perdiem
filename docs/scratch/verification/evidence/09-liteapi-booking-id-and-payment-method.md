@@ -245,7 +245,7 @@ booking again.
 
 ## 6. What `LiteApiClient` is missing
 
-`agents/src/lite-api/client.ts` cannot carry this answer as it stands:
+`supplier/src/lite-api/client.ts` cannot carry this answer as it stands:
 
 - `prebook(rateId)` passes the wrong identifier. Prebook takes the offer's `offerId`, and `Rate` has
   no field for it.

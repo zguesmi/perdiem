@@ -1,4 +1,4 @@
-# @perdiem/agents
+# @perdiem/supplier
 
 Three supplier agents, one codebase, one configuration and one prompt each. Each agent is a Claude
 tool-calling loop: an operator starts it with one sentence of business rules, the model reads the
@@ -147,10 +147,10 @@ the environment.
 Run from the repository root, after `pnpm install`.
 
 ```sh
-pnpm --filter @perdiem/agents test                          # tsx --test, no network
-pnpm --filter @perdiem/agents typecheck                     # tsc --noEmit
-pnpm --filter @perdiem/agents start grands-voyageurs-agent  # one agent
-pnpm --filter @perdiem/agents check:prices                  # calls the model, costs money
+pnpm --filter @perdiem/supplier test                          # tsx --test, no network
+pnpm --filter @perdiem/supplier typecheck                     # tsc --noEmit
+pnpm --filter @perdiem/supplier start grands-voyageurs-agent  # one agent
+pnpm --filter @perdiem/supplier check:prices                  # calls the model, costs money
 ```
 
 No test calls a model or a hotel supplier. `check:prices` does: it runs all three agents against the

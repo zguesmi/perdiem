@@ -5,7 +5,7 @@
  * relay are stubbed: nothing is signed on Arc and nothing is stored. Run it after any change to a
  * prompt, a price range or the system prompt.
  *
- *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/agents check:prices
+ *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/supplier check:prices
  */
 import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

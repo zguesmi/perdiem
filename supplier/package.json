@@ -1,5 +1,5 @@
 {
-  "name": "@perdiem/agents",
+  "name": "@perdiem/supplier",
   "version": "0.0.0",
   "description": "Three supplier agents, one codebase. A model prices one bid; two tools fetch hotels and bind it.",
   "private": true,

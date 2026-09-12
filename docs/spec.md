@@ -45,7 +45,7 @@ not compared with the bid price, and no cancellation path exists.
 | -------------- | ---------------------------------------------------------------------------- |
 | `onchain/`     | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
 | `workflow/`    | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
-| `agents/`      | Three supplier agents. A model prices, one tool executes                     |
+| `supplier/`    | Three supplier agents. A model prices, one tool executes                     |
 | `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding            |
 | `relay/`       | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
 | `web/`         | One page, five panels                                                        |
@@ -496,7 +496,7 @@ The model derives two things from the auction rather than the prompt: nights fro
 February, named in the system prompt so nothing guesses.
 
 The hotel is configuration, not a decision. An operator reads the supplier's catalogue once and
-writes the identifier, the name and the star level into `agents/config/<name>.json`. Any valid
+writes the identifier, the name and the star level into `supplier/config/<name>.json`. Any valid
 identifier is acceptable. The Enclave books against it, so it has to exist, and nothing else about
 it is scored. Cost: a new supplier needs an operator to look one up.
 
