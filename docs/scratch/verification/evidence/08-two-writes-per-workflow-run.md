@@ -4,7 +4,7 @@ Run date: 2026-09-09. Answers `docs/scratch/verification/issues/08-two-writes-pe
 and row V8 of `docs/decisions.md`.
 
 CRE CLI `v1.32.0`, `@chainlink/cre-sdk` 1.20.0, template `hello-confidential-workflows-ts`, solc
-0.8.34. The project was scaffolded in a scratch directory, not in `workflow/`, so nothing in the
+0.8.34. The project was scaffolded in a scratch directory, not in `workflow-cre/`, so nothing in the
 repo depends on it. One throwaway receiver was deployed to Arc testnet. The signing key was
 `BUYER_PRIVATE_KEY`, supplied to the CLI as `CRE_ETH_PRIVATE_KEY`, and is never printed here.
 

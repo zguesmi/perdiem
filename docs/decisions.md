@@ -25,8 +25,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   `ERR_NO_TYPESCRIPT`; `tsx` runs the same `node:test` API. Ran both.
 - pnpm 12 allows install scripts through `allowBuilds:` in `pnpm-workspace.yaml`, not
   `onlyBuiltDependencies`. pnpm wrote the key itself.
-- `pnpm install` inside `workflow/` installs the root workspace unless `workflow/` has its own
-  `pnpm-workspace.yaml`. Ran it.
+- `pnpm install` inside `workflow-cre/` installs the root workspace unless `workflow-cre/` has its
+  own `pnpm-workspace.yaml`. Ran it.
 
 ## Arc testnet
 
@@ -52,7 +52,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   policy-only fallback.
   - Ticket:
     [06 — Privy server wallets on Arc](scratch/verification/issues/06-privy-server-wallets-on-arc.md)
-  - Evidence: [06 — Privy server wallets on Arc testnet](scratch/verification/evidence/06-privy-server-wallets-on-arc.md)
+  - Evidence:
+    [06 — Privy server wallets on Arc testnet](scratch/verification/evidence/06-privy-server-wallets-on-arc.md)
 
 ## Chainlink CRE
 
@@ -63,7 +64,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   anyway. `arc-testnet` is in the chain-selectors registry, selector `3034092155422581607`.
   - Ticket:
     [01 — CRE simulate writes to Arc](scratch/verification/issues/01-cre-simulate-writes-to-arc.md)
-  - Evidence: [01 — CRE simulate writing to Arc testnet](scratch/verification/evidence/01-cre-simulate-writes-to-arc.md)
+  - Evidence:
+    [01 — CRE simulate writing to Arc testnet](scratch/verification/evidence/01-cre-simulate-writes-to-arc.md)
 - V2 — `handlerInTee` reads the chain and calls confidential HTTP in simulation. The Enclave builds
   the Bids Root itself, the preferred path. `EVMClient.callContract` is typed for `Runtime`, so the
   `TeeRuntime` goes through a cast; the cast costs nothing, because `TeeRuntimeImpl.callCapability`
@@ -84,7 +86,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   `@hpke/core` does not.
   - Ticket:
     [03 — Enclave decrypts sealed bids](scratch/verification/issues/03-enclave-decrypts-sealed-bids.md)
-  - Evidence: [03 — The enclave decrypts a sealed bid](scratch/verification/evidence/03-enclave-decrypts-sealed-bids.md)
+  - Evidence:
+    [03 — The enclave decrypts a sealed bid](scratch/verification/evidence/03-enclave-decrypts-sealed-bids.md)
 - V4 — `secrets.yaml` maps a secret id to an environment variable name and holds no values, and
   `-e .env` is required for the CLI to resolve them. The limit is 131,072 bytes per secret and it is
   the operating system's, not CRE's: 131,100 characters fail the build with `E2BIG`. The canonical
@@ -92,7 +95,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   Vault DON path is unverified, because `cre secrets create` needs deploy access.
   - Ticket:
     [04 — Workflow secrets in simulation](scratch/verification/issues/04-workflow-secrets-in-simulation.md)
-  - Evidence: [04 — Workflow secrets in simulation](scratch/verification/evidence/04-workflow-secrets-in-simulation.md)
+  - Evidence:
+    [04 — Workflow secrets in simulation](scratch/verification/evidence/04-workflow-secrets-in-simulation.md)
 - V8 — one workflow run makes two `writeReport` calls to the same contract, both `TxStatus.SUCCESS`,
   both under one `workflowExecutionId`, and the second sees the state the first committed:
   `writeReport` blocks until its transaction is mined, about 1.4 seconds each on Arc testnet. So the

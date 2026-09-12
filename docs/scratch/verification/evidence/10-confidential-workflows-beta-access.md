@@ -3,7 +3,7 @@
 Run date: 2026-09-09. Answers `docs/scratch/verification/issues/10-confidential-workflows-beta-access.md`
 and row V10 of `docs/decisions.md`.
 
-CRE CLI `v1.32.0`. The project was scaffolded in a scratch directory, not in `workflow/`, so nothing
+CRE CLI `v1.32.0`. The project was scaffolded in a scratch directory, not in `workflow-cre/`, so nothing
 in the repo depends on it.
 
 ## 1. The account has no deploy access

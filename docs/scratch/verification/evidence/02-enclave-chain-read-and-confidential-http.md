@@ -5,7 +5,7 @@ Run date: 2026-09-09. Answers
 `docs/decisions.md`.
 
 CRE CLI `v1.32.0`, template `hello-confidential-workflows-ts`. The project was scaffolded in a
-scratch directory, not in `workflow/`, so nothing in the repo depends on it. One throwaway contract
+scratch directory, not in `workflow-cre/`, so nothing in the repo depends on it. One throwaway contract
 was deployed to Arc testnet. Both `@chainlink/cre-sdk` 1.18.0, the version the template pins, and
 1.20.0, the current release, were run.
 

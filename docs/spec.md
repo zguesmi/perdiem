@@ -41,15 +41,15 @@ not compared with the bid price, and no cancellation path exists.
 
 ## Architecture
 
-| Directory      | What it is                                                                   |
-| -------------- | ---------------------------------------------------------------------------- |
-| `onchain/`     | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
-| `workflow/`    | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
-| `supplier/`    | Three supplier agents. A model prices, one tool executes                     |
-| `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding            |
-| `relay/`       | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
-| `web/`         | One page, five panels                                                        |
-| `shared/`      | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
+| Directory       | What it is                                                                   |
+| --------------- | ---------------------------------------------------------------------------- |
+| `onchain/`      | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
+| `workflow-cre/` | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
+| `supplier/`     | Three supplier agents. A model prices, one tool executes                     |
+| `requisition/`  | The buyer's service: intent parsing, policy commit, Privy funding            |
+| `relay/`        | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
+| `web/`          | One page, five panels                                                        |
+| `shared/`       | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
 
 ### Flow
 
@@ -339,7 +339,7 @@ units.
 | C   | 4     | 440   | yes        | yes       | Score 80 + 50 + 40 = **170. Wins**                                                     |
 
 Payout 440, refund 310. All three Stakes come back at settlement. This table is a test in
-`workflow/`.
+`workflow-cre/`.
 
 ### Every USDC in and out
 

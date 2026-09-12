@@ -1,5 +1,5 @@
 {
-  "name": "@perdiem/workflow",
+  "name": "@perdiem/workflow-cre",
   "version": "0.0.0",
   "description": "The Chainlink CRE workflow. Scoring happens inside the confidential handler and nowhere else.",
   "private": true,

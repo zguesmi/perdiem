@@ -4,7 +4,7 @@ Run date: 2026-09-09. Answers `docs/scratch/verification/issues/01-cre-simulate-
 and row V1 of `docs/decisions.md`.
 
 CRE CLI `v1.32.0`, `@chainlink/cre-sdk` 1.20.0. The project was scaffolded in a scratch directory,
-not in `workflow/`, so nothing in the repo depends on it. Five throwaway receiver contracts were
+not in `workflow-cre/`, so nothing in the repo depends on it. Five throwaway receiver contracts were
 deployed to Arc testnet to isolate the forwarder's behaviour.
 
 The signing key was `BUYER_PRIVATE_KEY`, supplied to the CLI as `CRE_ETH_PRIVATE_KEY`. It is never

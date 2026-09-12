@@ -34,10 +34,10 @@ jobs:
       - run: pnpm --recursive --filter '!@perdiem/onchain' --if-present lint
       - run: pnpm --recursive --filter '!@perdiem/onchain' --if-present test
 
-      # workflow/ is deliberately outside the workspace: the Chainlink CRE CLI owns its manifest.
-      - run: pnpm --dir workflow install --frozen-lockfile
-      - run: pnpm --dir workflow typecheck
-      - run: pnpm --dir workflow test
+      # workflow-cre/ is deliberately outside the workspace: the Chainlink CRE CLI owns its manifest.
+      - run: pnpm --dir workflow-cre install --frozen-lockfile
+      - run: pnpm --dir workflow-cre typecheck
+      - run: pnpm --dir workflow-cre test
 
   contracts:
     name: Contracts

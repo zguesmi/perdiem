@@ -24,9 +24,9 @@ location of the importer.
 
 ## Why not a package
 
-`workflow/` cannot be a workspace member: the Chainlink CRE CLI owns its `package.json` and
+`workflow-cre/` cannot be a workspace member: the Chainlink CRE CLI owns its `package.json` and
 overwrites entries it did not write. A package therefore had to reach it through a `file:`
-dependency, which pnpm hard-links, so `workflow/` kept seeing a stale copy until someone re-ran
+dependency, which pnpm hard-links, so `workflow-cre/` kept seeing a stale copy until someone re-ran
 `pnpm install` inside it. A relative import has no copy to go stale.
 
 Verified against `cre workflow build` (CLI 1.32.0): a relative import that leaves the CRE project

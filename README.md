@@ -21,7 +21,7 @@ Requires Node 22 or later and pnpm 12.3.4 (`corepack enable` picks up the pinned
 
 ```sh
 pnpm install                  # the workspace: packages/*, onchain, requisition, relay, supplier, web
-pnpm --dir workflow install   # workflow/ is outside the workspace and installs on its own
+pnpm --dir workflow-cre install   # workflow-cre/ is outside the workspace and installs on its own
 cp .env.example .env
 ```
 
@@ -36,11 +36,11 @@ pnpm typecheck   # type-check every package
 pnpm lint        # lint every package that has a lint script
 ```
 
-`workflow/` is not a workspace member, so the recursive scripts skip it. Run it directly:
+`workflow-cre/` is not a workspace member, so the recursive scripts skip it. Run it directly:
 
 ```sh
-pnpm --dir workflow test
-pnpm --dir workflow typecheck
+pnpm --dir workflow-cre test
+pnpm --dir workflow-cre typecheck
 ```
 
 One package at a time:

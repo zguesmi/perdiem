@@ -145,4 +145,4 @@ blockers. The RFC's construction is still worth copying by hand, which is what p
   V4.
 - `@noble/hashes` was pinned to 1.8.0 to match `@noble/curves` 1.9.6. `viem` 2.34.0 pulls
   `@noble/hashes` 2.2.0, where `sha256` moved to `@noble/hashes/sha2`. The import paths in
-  `workflow/` need to match whichever pair the workspace resolves.
+  `workflow-cre/` need to match whichever pair the workspace resolves.

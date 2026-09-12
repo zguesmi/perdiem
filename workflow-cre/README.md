@@ -1,4 +1,4 @@
-# @perdiem/workflow
+# @perdiem/workflow-cre
 
 The Chainlink CRE workflow. A cron trigger asks the chain whether an auction is ready, the workflow
 claims it with `startSettling`, and the confidential handler does the rest.
@@ -30,8 +30,8 @@ It also carries its own `pnpm-workspace.yaml`, which stops pnpm walking up to th
 Without it, `pnpm install` here silently installs the root workspace instead of this package:
 
 ```sh
-pnpm --dir workflow install
-pnpm --dir workflow test
+pnpm --dir workflow-cre install
+pnpm --dir workflow-cre test
 ```
 
 One requirement survives the CLI regenerating `tsconfig.json`: it must set
@@ -44,9 +44,9 @@ One requirement survives the CLI regenerating `tsconfig.json`: it must set
 This package is outside the pnpm workspace, so the root scripts skip it and it installs on its own.
 
 ```sh
-pnpm --dir workflow install
-pnpm --dir workflow test        # tsx --test over test/**/*.test.ts
-pnpm --dir workflow typecheck   # tsc --noEmit
+pnpm --dir workflow-cre install
+pnpm --dir workflow-cre test        # tsx --test over test/**/*.test.ts
+pnpm --dir workflow-cre typecheck   # tsc --noEmit
 ```
 
 There is no build script yet, because the CRE scaffolding is not generated. Once it is, the
