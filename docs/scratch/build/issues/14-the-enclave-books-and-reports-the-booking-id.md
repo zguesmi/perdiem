@@ -1,6 +1,6 @@
 # Book the winner inside the enclave and report the booking id
 
-Status: ready-for-agent Type: task Blocked by: 05, 06, 26,
+Status: ready-for-agent Type: task Blocked by: 05, 06, 26, 30,
 ../verification/issues/09-liteapi-booking-id-and-payment-method.md,
 ../verification/issues/14-enclave-books-through-the-supplier-api.md
 

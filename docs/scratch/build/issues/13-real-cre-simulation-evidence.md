@@ -1,6 +1,6 @@
 # Swap the fake handler runner for the real CRE and capture the evidence
 
-Status: ready-for-human Type: task Blocked by: 05, 06, 12
+Status: ready-for-human Type: task Blocked by: 05, 06, 12, 30
 
 A fake runner may execute the handler while it is being built. Only `cre workflow simulate` produces
 the logs in `docs/scratch/verification/evidence/`. This ticket is the moment that swap happens, and

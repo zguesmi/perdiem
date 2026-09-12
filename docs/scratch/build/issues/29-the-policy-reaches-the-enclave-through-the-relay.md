@@ -31,7 +31,7 @@ what comes back against it. A swapped Policy fails the check; a Vault DON secret
   workflow secret.
 - The enclave fetches by the `policyHash` it read from the chain, opens the envelope, and checks
   `hashPolicy(policy) === policyHash`. Any failure means no settlement, and the auction refunds
-  through `timeoutRefund`.
+  through `timeoutRefund`. That read is ticket 30, not this one.
 - `secrets.yaml` keeps `ENCLAVE_PRIVATE_KEY` alone. That one is per deployment, which is what a
   workflow secret fits.
 
@@ -41,6 +41,13 @@ already have, and the same hardening applies.
 
 A buyer that creates an auction and never uploads gets no settlement. That is the relay-is-down path
 and it ends in the same refund.
+
+## Scope boundary
+
+The producer half only: the envelope in `shared/`, the two relay routes, the upload in
+`POST /confirm`, the secret that goes away, and the documents. Ticket 30 owns the enclave read and
+the hash check, and it is blocked by this one. Nothing in `workflow-cre/` changes here, so this
+ticket runs beside ticket 06.
 
 ## Acceptance criteria
 
