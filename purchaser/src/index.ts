@@ -26,8 +26,12 @@ const environment = z
 
     ARC_RPC_URL: z.url(),
     SEALED_AUCTION_ADDRESS: addressSchema,
-    /** USDC minor units. Padded above the policy's maximum price, which stays off the chain. */
-    PAYOUT_CAP: z.coerce.bigint().positive(),
+    /**
+     * The step the payout cap is rounded up to, and the largest cap the spend policy will sign.
+     * Both in USDC minor units. Privy refuses a `createAuction` above the maximum.
+     */
+    PAYOUT_CAP_BUCKET: z.coerce.bigint().positive(),
+    MAX_PAYOUT_CAP: z.coerce.bigint().positive(),
 
     PRIVY_APP_ID: z.string().min(1),
     PRIVY_APP_SECRET: z.string().min(1),
@@ -47,12 +51,12 @@ const wallet = createPrivyWallet({
 
 const app = createPurchaserApp({
   intentAgent: createIntentAgent(environment.INTENT_MODEL),
-  payoutCap: environment.PAYOUT_CAP,
+  payoutCapBucket: environment.PAYOUT_CAP_BUCKET,
   funder: createFunder({
     wallet,
     rpcUrl: environment.ARC_RPC_URL,
     sealedAuction: environment.SEALED_AUCTION_ADDRESS,
-    payoutCap: environment.PAYOUT_CAP,
+    maxPayoutCap: environment.MAX_PAYOUT_CAP,
     quorumCeiling: environment.PRIVY_QUORUM_CEILING,
     serverKeys: environment.PRIVY_SERVER_KEYS,
     quorumKeys: environment.PRIVY_QUORUM_KEYS,

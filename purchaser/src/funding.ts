@@ -25,8 +25,8 @@ export interface FunderOptions {
   wallet: PrivyWallet;
   rpcUrl: string;
   sealedAuction: `0x${string}`;
-  /** USDC minor units the buyer locks. It bounds the payout and hides the policy's maximum price. */
-  payoutCap: bigint;
+  /** The largest cap the spend policy will sign. Privy refuses anything above it. */
+  maxPayoutCap: bigint;
   /** At or below this many USDC minor units the spend policy authorizes alone. */
   quorumCeiling: bigint;
   /** Authorization keys for a payout cap at or under the ceiling. Empty means the policy alone. */
@@ -38,7 +38,22 @@ export interface FunderOptions {
 export type Funder = (
   policyHash: `0x${string}`,
   requirements: PublicRequirements,
+  payoutCap: bigint,
 ) => Promise<Funding>;
+
+/**
+ * The cap for one policy: the next whole bucket strictly above its maximum price.
+ *
+ * Strictly, so a maximum price that lands on a bucket boundary is padded to the next one. The cap
+ * is emitted in `TermsPublished`, and a cap equal to the maximum price publishes the ceiling the
+ * policy exists to keep private.
+ *
+ * The bucket is what the cap leaks: a reader learns which band the maximum price falls in and
+ * nothing sharper. A cap derived by adding a fixed pad would leak the price exactly.
+ */
+export function payoutCapFor(maxPrice: bigint, bucket: bigint): bigint {
+  return (maxPrice / bucket + 1n) * bucket;
+}
 
 /**
  * Who authorizes this funding, decided by the payout cap and nothing else.
@@ -75,9 +90,12 @@ export function signingKeys(options: {
 export function createFunder(options: FunderOptions): Funder {
   const client = createPublicClient({ chain: arc(options.rpcUrl), transport: http(options.rpcUrl) });
 
-  const { keys: authorizationKeys, quorumSigned } = signingKeys(options);
+  // The cap is per-auction now, so the signer is chosen per call. The largest cap the spend policy
+  // allows still settles at startup whether a quorum can ever be needed.
+  signingKeys({ ...options, payoutCap: options.maxPayoutCap });
 
-  return async (policyHash, requirements) => {
+  return async (policyHash, requirements, payoutCap) => {
+    const { keys: authorizationKeys, quorumSigned } = signingKeys({ ...options, payoutCap });
     const from = await options.wallet.address();
     const usdc = await client.readContract({
       address: options.sealedAuction,
@@ -123,7 +141,7 @@ export function createFunder(options: FunderOptions): Funder {
       encodeFunctionData({
         abi: usdcAbi,
         functionName: "approve",
-        args: [options.sealedAuction, options.payoutCap],
+        args: [options.sealedAuction, payoutCap],
       }),
     );
 
@@ -132,7 +150,7 @@ export function createFunder(options: FunderOptions): Funder {
       encodeFunctionData({
         abi: sealedAuctionAbi,
         functionName: "createAuction",
-        args: [policyHash, requirements, options.payoutCap],
+        args: [policyHash, requirements, payoutCap],
       }),
     );
 

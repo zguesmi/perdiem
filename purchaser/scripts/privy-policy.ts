@@ -17,6 +17,10 @@ import { createPrivyWallet } from "../src/privy.ts";
  * Both rules read the calldata rather than the destination address. A rule on the destination
  * alone would allow any call to the USDC token, an `approve` to a different spender included, and
  * that one approval is enough to drain the wallet.
+ *
+ * Both also cap the amount. The approval is the first of the two transactions, so a cap only on
+ * `createAuction` would let the approval mine before the refusal, leaving a standing allowance
+ * behind a confirmation the organization turned down.
  */
 const environment = z
   .object({
@@ -25,7 +29,7 @@ const environment = z
     PRIVY_WALLET_ID: z.string().min(1),
     ARC_RPC_URL: z.url(),
     SEALED_AUCTION_ADDRESS: addressSchema,
-    PAYOUT_CAP: z.coerce.bigint().positive(),
+    MAX_PAYOUT_CAP: z.coerce.bigint().positive(),
   })
   .parse(process.env);
 
@@ -68,6 +72,13 @@ const policy = {
           operator: "eq",
           value: environment.SEALED_AUCTION_ADDRESS,
         },
+        {
+          field_source: "ethereum_calldata",
+          field: "approve.value",
+          abi: usdcAbi,
+          operator: "lte",
+          value: String(environment.MAX_PAYOUT_CAP),
+        },
       ],
       action: "ALLOW",
     },
@@ -87,7 +98,7 @@ const policy = {
           field: "createAuction.payoutCap",
           abi: sealedAuctionAbi,
           operator: "lte",
-          value: String(environment.PAYOUT_CAP),
+          value: String(environment.MAX_PAYOUT_CAP),
         },
       ],
       action: "ALLOW",
@@ -121,7 +132,7 @@ if (command === "create") {
   const data = encodeFunctionData({
     abi: usdcAbi,
     functionName: "approve",
-    args: [`0x${"de".repeat(20)}`, environment.PAYOUT_CAP],
+    args: [`0x${"de".repeat(20)}`, environment.MAX_PAYOUT_CAP],
   });
   const [nonce, fees, gas] = await Promise.all([
     client.getTransactionCount({ address: buyer, blockTag: "pending" }),
