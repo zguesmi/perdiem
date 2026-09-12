@@ -9,8 +9,8 @@ business rules. The model reads the auction terms, applies the rules, and submit
 An agent never books. It seals its booking credentials into the envelope, per ticket 26, and the
 Enclave books the winner. The agent's work ends at `bidDeadline`.
 
-Delete `supplier/src/rate-plan.ts` and `supplier/test/rate-plan.test.ts`. The model prices now, and a
-second pricing path nobody exercises is worse than none.
+Delete `supplier/src/rate-plan.ts` and `supplier/test/rate-plan.test.ts`. The model prices now, and
+a second pricing path nobody exercises is worse than none.
 
 ## Shape
 
@@ -109,8 +109,8 @@ signer interface and `createLocalSigner` ship here instead, so the bid flow runs
 `createCircleAgentSigner` and the address-identity test it asks for.
 
 The three demo prices are checked by `supplier/scripts/check-demo-prices.ts`, run with
-`pnpm --filter @perdiem/supplier check:prices`. It is a script and not a test, because no test in this
-repository calls a model. The run is under Dev review.
+`pnpm --filter @perdiem/supplier check:prices`. It is a script and not a test, because no test in
+this repository calls a model. The run is under Dev review.
 
 `supplier/src/lite-api/` is gone with the rate plan. Every function in it threw, the agent never
 books, and the hotel is now configuration.

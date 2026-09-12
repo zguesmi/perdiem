@@ -29,8 +29,8 @@ externally owned account holding a demo key. The Arc track asks for Circle Agent
 
 ## The three demo prices are unverified
 
-`supplier/scripts/check-demo-prices.ts` checks 330, 400 and 440 against the reference auction. It is a
-script, not a test, because no test in this repository calls a model. No run has been recorded.
+`supplier/scripts/check-demo-prices.ts` checks 330, 400 and 440 against the reference auction. It is
+a script, not a test, because no test in this repository calls a model. No run has been recorded.
 
 ## A price range covers one auction shape
 

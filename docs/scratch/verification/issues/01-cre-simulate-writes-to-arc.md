@@ -31,8 +31,7 @@ got the same address, so it is a constant for the chain and can be a constructor
 `3034092155422581607`. `--allow-unknown-chains` is not needed. The RPC goes in `project.yaml` as
 `chain-name: arc-testnet`.
 
-Evidence:
-[01 — CRE simulate writing to Arc testnet](../evidence/01-cre-simulate-writes-to-arc.md).
+Evidence: [01 — CRE simulate writing to Arc testnet](../evidence/01-cre-simulate-writes-to-arc.md).
 
 ### Three things the spec did not account for
 

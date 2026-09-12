@@ -31,7 +31,8 @@ Record the answer and the chosen path in `docs/decisions.md`.
 - [x] Row V13 records the host name the handler must use, whether outbound hosts are restricted, and
       whether plain HTTP is permitted.
 - [x] The chosen path is recorded, with the fallbacks that were rejected and why.
-- [x] A handler fetching from the relay is in `docs/scratch/verification/evidence/`, or the failure is.
+- [x] A handler fetching from the relay is in `docs/scratch/verification/evidence/`, or the failure
+      is.
 
 ## Comments
 

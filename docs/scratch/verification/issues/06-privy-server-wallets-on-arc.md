@@ -10,7 +10,8 @@ policy-only, and the README has to say so rather than imply a quorum that does n
 
 - [x] Row V6 is answered on all three questions: signing on the Arc chain id, custom chain ids in
       policy rules, key quorums on the free tier.
-- [x] A signed transaction from a server wallet on Arc testnet is in `docs/scratch/verification/evidence/`.
+- [x] A signed transaction from a server wallet on Arc testnet is in
+      `docs/scratch/verification/evidence/`.
 - [x] If quorums are unavailable, the fallback is recorded and build ticket 11 is updated.
 
 ## Comments
@@ -23,4 +24,5 @@ the signed RLP to `ARC_RPC_URL` itself.
 A 2-of-2 key quorum was created and enforced on the app in use, so no policy-only fallback is needed
 and build ticket 11 stands as written.
 
-Evidence and the exact requests: `docs/scratch/verification/evidence/06-privy-server-wallets-on-arc.md`.
+Evidence and the exact requests:
+`docs/scratch/verification/evidence/06-privy-server-wallets-on-arc.md`.

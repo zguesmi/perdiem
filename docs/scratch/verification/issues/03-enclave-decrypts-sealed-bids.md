@@ -12,7 +12,8 @@ Confirm which crypto library the enclave runtime exposes beyond hashing.
 ## Acceptance criteria
 
 - [x] Row V3 is answered, naming the crypto the enclave runtime exposes beyond hashing.
-- [x] A sealed box decrypted inside the handler is in `docs/scratch/verification/evidence/`, or the failure is.
+- [x] A sealed box decrypted inside the handler is in `docs/scratch/verification/evidence/`, or the
+      failure is.
 - [x] A no answer produces a written decision on the reveal deadline, not silence. The answer is
       yes, so `docs/adr/0001-no-reveal-phase.md` stands unchanged.
 

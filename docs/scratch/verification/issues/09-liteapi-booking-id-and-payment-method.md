@@ -8,8 +8,8 @@ response and whatever the UI displays beside the on-chain hash.
 ## Acceptance criteria
 
 - [x] Row V9 is answered with the booking id field name and the sandbox payment method string.
-- [x] One prebook and one book response are saved in `docs/scratch/verification/evidence/`, with sandbox test guest data
-      only.
+- [x] One prebook and one book response are saved in `docs/scratch/verification/evidence/`, with
+      sandbox test guest data only.
 - [x] The id is confirmed stable between the booking response and any later read.
 
 ## Comments

@@ -22,8 +22,8 @@ every one of them is unverified against rows V2 and V13, which are `GET` only:
       run against.
 - [x] It records whether a deterministic idempotency key collapses duplicate writes, with the
       observed refusal.
-- [x] One full simulation run lands in `docs/scratch/verification/evidence/`, with no API key and no guest data beyond
-      the invented sandbox values.
+- [x] One full simulation run lands in `docs/scratch/verification/evidence/`, with no API key and no
+      guest data beyond the invented sandbox values.
 
 ## Answer
 

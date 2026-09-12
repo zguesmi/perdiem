@@ -32,4 +32,5 @@ at `cre workflow simulate`.
 The simulator is not a real TEE and produces no attestation. Deploying to a real enclave still needs
 enrollment, so the README claims simulation, not deployment.
 
-Evidence and the full run: `docs/scratch/verification/evidence/10-confidential-workflows-beta-access.md`.
+Evidence and the full run:
+`docs/scratch/verification/evidence/10-confidential-workflows-beta-access.md`.

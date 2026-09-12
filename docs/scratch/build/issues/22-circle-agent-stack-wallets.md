@@ -31,9 +31,9 @@ depend on.
 
 ## Comments
 
-Done. `createCircleAgentSigner` is in `supplier/src/circle.ts` and drives the Circle CLI: there is no
-API-key client to write, because the CLI authenticates as a Circle user with a session from an email
-one-time code and accepts no API key. `AGENT_SIGNER` picks the implementation and defaults to
+Done. `createCircleAgentSigner` is in `supplier/src/circle.ts` and drives the Circle CLI: there is
+no API-key client to write, because the CLI authenticates as a Circle user with a session from an
+email one-time code and accepts no API key. `AGENT_SIGNER` picks the implementation and defaults to
 `local`, so nothing but an environment variable moves an agent onto its Circle wallet.
 
 `supplier/test/signer.test.ts` covers both: the local signer's bid signature recovers to the address
