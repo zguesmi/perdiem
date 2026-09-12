@@ -29,7 +29,8 @@ npx hardhat test
 - `contracts/mocks/MockUSDC.sol` — a six-decimal ERC-20 standing in for Arc's USDC. Local only.
 - `test/SealedAuction.t.sol` — Foundry-compatible Solidity unit tests.
 - `ignition/modules/Local.ts` — the local deployment, described for Hardhat Ignition.
-- `scripts/deploy.ts` — runs that module against a local node and writes the addresses to `.env`.
+- `scripts/deploy.ts` — runs that module against a local node and writes the addresses to
+  `.env.localhost`.
 
 ## Deploying to a local node
 
@@ -42,10 +43,14 @@ pnpm --filter @perdiem/onchain deploy:local
 
 The script deploys `MockUSDC` and `SealedAuction`, mints 10,000 USDC and sends 10 ETH of gas to the
 buyer and the three suppliers, then writes `SEALED_AUCTION_ADDRESS` and `USDC_ADDRESS` into the
-repository's `.env`. Every other package reads them from there.
+repository's `.env.localhost`. Every other package reads them from there.
 
-The enclave keypair is generated on the first run. The private half is written to `.env` as
-`ENCLAVE_PRIVATE_KEY`, base64, which is the form the workflow secret takes; the public half is a
+The file is named after the Hardhat network: `--network localhost` reads and writes
+`.env.localhost`, `--network arcTestnet` reads and writes `.env.arcTestnet`. A local deployment
+cannot overwrite a testnet one.
+
+The enclave keypair is generated on the first run. The private half is written to `.env.localhost`
+as `ENCLAVE_PRIVATE_KEY`, base64, which is the form the workflow secret takes; the public half is a
 constructor argument and is readable afterwards as `SealedAuction.enclavePublicKey()`. Later runs
 reuse the stored key, because a new key would mean a new contract and every sealed bid already at
 the relay would stop opening.
