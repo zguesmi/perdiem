@@ -1,18 +1,11 @@
-# The stack against Arc testnet: the relay, the purchaser service, the three supplier agents and
-# the page.
+# The stack against Arc testnet. `docker compose -f docker-compose.arc.yml up --build`.
 #
-#   docker compose -f docker-compose.arc.yml up --build
+# A separate file rather than an override of `docker-compose.yml`, because an override cannot
+# remove: there is no node and nothing to deploy here. `SEALED_AUCTION_ADDRESS` in `.env.arcTestnet`
+# names a contract that is already on chain.
 #
-# It is a separate file rather than an override of `docker-compose.yml`, because an override adds
-# and replaces and cannot remove: the local file's services wait on a deployment container, and
-# there is nothing to deploy here. `SEALED_AUCTION_ADDRESS` in `.env.arcTestnet` names a contract
-# that is already on chain, and Arc's RPC URL is the same inside the network and outside it, so no
-# service overrides it.
-#
-# Reachable from outside: the relay on 8787, the purchaser on 8788 and the page on 5173. The relay
-# needs a public HTTPS address, because the CRE workflow calls it from Chainlink's nodes and not
-# from this host; terminate TLS in front of these ports and name that host in `RELAY_URL` and
-# `UI_ALLOWED_HOSTS`.
+# The relay needs a public HTTPS address, because the CRE workflow calls it from Chainlink's nodes.
+# Terminate TLS in front of these ports and name that host in `RELAY_URL` and `UI_ALLOWED_HOSTS`.
 #
 # Not here: the CRE workflow, which needs the `cre` binary.
 
@@ -24,18 +17,35 @@ x-environment-file: &environment-file
   target: /app/.env.arcTestnet
   read_only: true
 
-# Every service reads the Arc file rather than the local one. `scripts/docker-entrypoint.sh` loads
-# whatever `ENV_FILE` names.
 x-environment: &environment
   ENV_FILE: /app/.env.arcTestnet
 
-# The Circle CLI holds the agent's session, opened once with `circle wallet login <email>
-# --testnet` and good for 28 days. An agent signs by running the CLI, so the session has to be on
-# the host before the containers start. Writable, because the CLI refreshes the session in place.
+# The Circle CLI session, opened on the host with `circle wallet login <email> --testnet`. Writable,
+# because the CLI refreshes it in place.
 x-circle-session: &circle-session
   type: bind
   source: ${HOME}/.circle-cli
   target: /root/.circle-cli
+
+# One wallet each: `commit` is once per address, so two agents behind one wallet place one
+# commitment and revert the other. They poll five times slower than the default, because Arc's
+# public endpoint answers three agents polling every second with `rate limit exceeded`.
+x-supplier: &supplier
+  build:
+    context: .
+    dockerfile: supplier/Dockerfile
+  image: perdiem/supplier
+  depends_on:
+    relay:
+      condition: service_healthy
+  volumes:
+    - *environment-file
+    - *circle-session
+
+x-supplier-environment: &supplier-environment
+  <<: *environment
+  RELAY_URL: http://relay:8787
+  WATCH_POLL_MILLISECONDS: 5000
 
 services:
   relay:
@@ -71,69 +81,29 @@ services:
     volumes:
       - *environment-file
 
-  # Three agents, one image. The name is the argument; the wallet is the entry in `.env.arcTestnet`
-  # that `AGENT_WALLET_VARIABLE` names. One wallet each: `commit` is once per address, so two
-  # agents behind one wallet place one commitment and revert the other.
-  #
-  # They watch the chain five times slower than the default, because Arc's public endpoint answers
-  # three agents polling every second with `rate limit exceeded`.
   supplier-astoria:
-    build:
-      context: .
-      dockerfile: supplier/Dockerfile
-    image: perdiem/supplier
-    depends_on:
-      relay:
-        condition: service_healthy
+    <<: *supplier
     environment:
-      <<: *environment
-      RELAY_URL: http://relay:8787
-      WATCH_POLL_MILLISECONDS: 5000
+      <<: *supplier-environment
       AGENT_WALLET_VARIABLE: SUPPLIER_1_WALLET_ADDRESS
-    volumes:
-      - *environment-file
-      - *circle-session
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "hotel-astoria-agent"]
 
   supplier-victoria:
-    build:
-      context: .
-      dockerfile: supplier/Dockerfile
-    image: perdiem/supplier
-    depends_on:
-      relay:
-        condition: service_healthy
+    <<: *supplier
     environment:
-      <<: *environment
-      RELAY_URL: http://relay:8787
-      WATCH_POLL_MILLISECONDS: 5000
+      <<: *supplier-environment
       AGENT_WALLET_VARIABLE: SUPPLIER_2_WALLET_ADDRESS
-    volumes:
-      - *environment-file
-      - *circle-session
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "victoria-palace-agent"]
 
   supplier-voyageurs:
-    build:
-      context: .
-      dockerfile: supplier/Dockerfile
-    image: perdiem/supplier
-    depends_on:
-      relay:
-        condition: service_healthy
+    <<: *supplier
     environment:
-      <<: *environment
-      RELAY_URL: http://relay:8787
-      WATCH_POLL_MILLISECONDS: 5000
+      <<: *supplier-environment
       AGENT_WALLET_VARIABLE: SUPPLIER_3_WALLET_ADDRESS
-    volumes:
-      - *environment-file
-      - *circle-session
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "grands-voyageurs-agent"]
 
-  # The page runs in a browser, so it keeps the public URLs the environment file names. Vite
-  # refuses a request whose `Host` header it does not know, and a public deployment is reached by
-  # its own name, so that name goes in `UI_ALLOWED_HOSTS`.
+  # Vite refuses a request whose `Host` header it does not know, so a public deployment names its
+  # own host in `UI_ALLOWED_HOSTS`.
   ui:
     build:
       context: .

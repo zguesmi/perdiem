@@ -1,24 +1,31 @@
-# The whole local stack: a node with the contracts on it, the relay, the purchaser service, the
-# three supplier agents and the page.
+# The local stack. `docker compose up --build`.
 #
-#   docker compose up --build
-#
-# `.env.localhost` is the one file every service reads. The deployment writes the contract addresses
-# into it and everything downstream waits for that container to finish, so a service never starts
-# against an address that does not exist yet. Each service loads the file itself, in
-# `scripts/docker-entrypoint.sh`: Compose reads `env_file` when it creates a container, which is
-# before anything has been deployed.
-#
-# Not here: the CRE workflow, which needs the `cre` binary, and `scripts/sealed-bidding.ts`, which
-# opens an auction from the host.
+# Not here: the CRE workflow, which needs the `cre` binary, and `scripts/sealed-bidding.ts`.
 
 name: perdiem
 
+# `deploy` writes the contract addresses into this file, so it is the only service that mounts it
+# writable and every other service waits for it. `scripts/docker-entrypoint.sh` loads the file at
+# start rather than Compose's `env_file`, which is read before anything is deployed.
 x-environment-file: &environment-file
   - type: bind
     source: ./.env.localhost
     target: /app/.env.localhost
     read_only: true
+
+x-deployed: &deployed
+  deploy:
+    condition: service_completed_successfully
+
+x-supplier: &supplier
+  build:
+    context: .
+    dockerfile: supplier/Dockerfile
+  image: perdiem/supplier
+  depends_on:
+    relay:
+      condition: service_healthy
+  volumes: *environment-file
 
 services:
   node:
@@ -41,9 +48,7 @@ services:
       timeout: 5s
       retries: 30
 
-  # One shot. It deploys the stand-in USDC and `SealedAuction`, funds the demo accounts, and writes
-  # the addresses back into `.env.localhost`, which is why this is the only service that mounts the
-  # file writable.
+  # One shot: deploys the stand-in USDC and `SealedAuction` and funds the demo accounts.
   deploy:
     build:
       context: .
@@ -58,27 +63,14 @@ services:
       - type: bind
         source: ./.env.localhost
         target: /app/.env.localhost
-    command:
-      [
-        "pnpm",
-        "--filter",
-        "@perdiem/onchain",
-        "exec",
-        "hardhat",
-        "run",
-        "scripts/deploy.ts",
-        "--network",
-        "localhost",
-      ]
+    command: ["pnpm", "--filter", "@perdiem/onchain", "exec", "hardhat", "run", "scripts/deploy.ts", "--network", "localhost"]
 
   relay:
     build:
       context: .
       dockerfile: relay/Dockerfile
     image: perdiem/relay
-    depends_on:
-      deploy:
-        condition: service_completed_successfully
+    depends_on: *deployed
     ports:
       - "8787:8787"
     volumes: *environment-file
@@ -99,73 +91,46 @@ services:
       context: .
       dockerfile: purchaser/Dockerfile
     image: perdiem/purchaser
-    depends_on:
-      deploy:
-        condition: service_completed_successfully
+    depends_on: *deployed
     environment:
       ARC_RPC_URL: http://node:8545
     ports:
       - "8788:8788"
     volumes: *environment-file
 
-  # Three agents, one image. The name is the argument; the key is the entry in `.env.localhost` that
-  # `AGENT_KEY_VARIABLE` names. They start before any auction opens, because an agent reads the
-  # terms from `TermsPublished` and never derives an identifier.
+  # Three agents, one image. `AGENT_KEY_VARIABLE` names the key each signs with: `commit` is once
+  # per address, so two agents behind one key place one commitment and revert the other.
   supplier-astoria:
-    build:
-      context: .
-      dockerfile: supplier/Dockerfile
-    image: perdiem/supplier
-    depends_on:
-      relay:
-        condition: service_healthy
+    <<: *supplier
     environment:
       ARC_RPC_URL: http://node:8545
       RELAY_URL: http://relay:8787
       AGENT_KEY_VARIABLE: SUPPLIER_1_PRIVATE_KEY
-    volumes: *environment-file
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "hotel-astoria-agent"]
 
   supplier-victoria:
-    build:
-      context: .
-      dockerfile: supplier/Dockerfile
-    image: perdiem/supplier
-    depends_on:
-      relay:
-        condition: service_healthy
+    <<: *supplier
     environment:
       ARC_RPC_URL: http://node:8545
       RELAY_URL: http://relay:8787
       AGENT_KEY_VARIABLE: SUPPLIER_2_PRIVATE_KEY
-    volumes: *environment-file
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "victoria-palace-agent"]
 
   supplier-voyageurs:
-    build:
-      context: .
-      dockerfile: supplier/Dockerfile
-    image: perdiem/supplier
-    depends_on:
-      relay:
-        condition: service_healthy
+    <<: *supplier
     environment:
       ARC_RPC_URL: http://node:8545
       RELAY_URL: http://relay:8787
       AGENT_KEY_VARIABLE: SUPPLIER_3_PRIVATE_KEY
-    volumes: *environment-file
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "grands-voyageurs-agent"]
 
-  # The page runs in a browser on the host, so it keeps the URLs the environment file names and
-  # reaches the node and the relay through their published ports.
+  # The page runs in a browser on the host, so it keeps the URLs the environment file names.
   ui:
     build:
       context: .
       dockerfile: ui/Dockerfile
     image: perdiem/ui
-    depends_on:
-      deploy:
-        condition: service_completed_successfully
+    depends_on: *deployed
     ports:
       - "5173:5173"
     volumes: *environment-file
