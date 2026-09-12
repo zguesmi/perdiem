@@ -24,7 +24,7 @@ export const referenceBid: Bid = {
   hotelId: "lp1a2b3",
   hotelName: "Awesome Hotel",
   stars: 4,
-  price: 440_000_000,
+  price: 4_400_000,
   refundable: true,
   breakfastIncluded: true,
   roomType: "double",

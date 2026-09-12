@@ -49,6 +49,17 @@ const ACCOUNT_VARIABLES = {
   supplier3: "SUPPLIER_3_ADDRESS",
 } as const;
 
+/** A positive integer from the environment file. The auction's terms are deployment parameters. */
+function readAmount(variable: string): bigint {
+  const value = BigInt(process.env[variable] ?? "0");
+
+  if (value <= 0n) {
+    throw new Error(`${variable} is missing from ${ENV_FILE}, or is not a positive integer`);
+  }
+
+  return value;
+}
+
 function readAddress(variable: string): `0x${string}` {
   const value = process.env[variable];
 
@@ -131,21 +142,39 @@ if (code.length > 0 && code.every((bytecode) => bytecode === "0x")) {
 
 const enclavePublicKey = bytesToHex(x25519.getPublicKey(enclavePrivateKey));
 
+// The page reads the auction's whole log history from here. Arc prunes old blocks, so a page that
+// starts at zero is answered with `pruned history unavailable` and renders nothing.
+const fromBlock = BigInt(
+  (await connection.provider.request({ method: "eth_blockNumber" })) as string,
+);
+
+// The stake and the two periods are deployment parameters, not constants: a testnet run bids in
+// cents and settles in minutes, where a production one would not.
+const terms = {
+  supplierStake: readAmount("SUPPLIER_STAKE"),
+  bidPeriod: readAmount("BID_PERIOD_SECONDS"),
+  finalizePeriod: readAmount("FINALIZE_PERIOD_SECONDS"),
+};
+
 // The addresses reach every other package through the environment file. Ignition's record under
 // `ignition/deployments/` stays the deployment history, and nothing outside `onchain/` reads it.
 if (onArc) {
   const usdc = readAddress("USDC_ADDRESS");
   const { sealedAuction } = await connection.ignition.deploy(arcDeployment, {
-    parameters: { [arcDeployment.id]: { usdc, forwarder: CRE_FORWARDER, enclavePublicKey } },
+    parameters: { [arcDeployment.id]: { usdc, forwarder: CRE_FORWARDER, enclavePublicKey, ...terms } },
     deploymentId: DEPLOYMENT_ID,
     displayUi: true,
   });
 
-  await updateEnvFile({ SEALED_AUCTION_ADDRESS: sealedAuction.address });
+  await updateEnvFile({
+    SEALED_AUCTION_ADDRESS: sealedAuction.address,
+    VITE_FROM_BLOCK: String(fromBlock),
+  });
 
   console.log();
   console.log(`SealedAuction  ${sealedAuction.address}`);
   console.log(`USDC           ${usdc}, already on the chain`);
+  console.log(`Stake          ${terms.supplierStake}, bidding ${terms.bidPeriod}s, finalize ${terms.finalizePeriod}s`);
 } else {
   const accounts = {
     buyer: readAddress(ACCOUNT_VARIABLES.buyer),
@@ -159,7 +188,9 @@ if (onArc) {
   }
 
   const { usdc, sealedAuction } = await connection.ignition.deploy(localDeployment, {
-    parameters: { [localDeployment.id]: { forwarder: CRE_FORWARDER, enclavePublicKey, ...accounts } },
+    parameters: {
+      [localDeployment.id]: { forwarder: CRE_FORWARDER, enclavePublicKey, ...terms, ...accounts },
+    },
     deploymentId: DEPLOYMENT_ID,
     displayUi: true,
   });
@@ -168,11 +199,13 @@ if (onArc) {
     SEALED_AUCTION_ADDRESS: sealedAuction.address,
     USDC_ADDRESS: usdc.address,
     USDC_DECIMALS: String(USDC_DECIMALS),
+    VITE_FROM_BLOCK: String(fromBlock),
   });
 
   console.log();
   console.log(`SealedAuction  ${sealedAuction.address}`);
   console.log(`USDC           ${usdc.address}`);
+  console.log(`Stake          ${terms.supplierStake}, bidding ${terms.bidPeriod}s, finalize ${terms.finalizePeriod}s`);
 }
 
 console.log(`Addresses written to ${ENV_FILE}.`);

@@ -77,7 +77,8 @@ contract SealedAuctionTest is Test {
 
     function setUp() public {
         usdc = new MockUSDC();
-        auction = new SealedAuction(usdc, FORWARDER, ENCLAVE_PUBLIC_KEY);
+        auction =
+            new SealedAuction(usdc, FORWARDER, ENCLAVE_PUBLIC_KEY, SUPPLIER_STAKE, BID_PERIOD, FINALIZE_PERIOD);
 
         usdc.mint(BUYER, PAYOUT_CAP);
         vm.prank(BUYER);
@@ -88,6 +89,12 @@ contract SealedAuctionTest is Test {
             vm.prank(supplier(i));
             usdc.approve(address(auction), type(uint256).max);
         }
+    }
+
+    /// A finalize deadline at or before the bid deadline leaves no window for the enclave to settle.
+    function test_constructor_rejectsAFinalizePeriodInsideTheBidPeriod() public {
+        vm.expectRevert(SealedAuction.FinalizeBeforeBidding.selector);
+        new SealedAuction(usdc, FORWARDER, ENCLAVE_PUBLIC_KEY, SUPPLIER_STAKE, BID_PERIOD, BID_PERIOD);
     }
 
     /**

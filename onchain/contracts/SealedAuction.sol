@@ -76,8 +76,8 @@ contract SealedAuction is IReceiver {
         uint256 payout;
     }
 
-    /// USDC a supplier locks when committing a bid.
-    uint256 public constant SUPPLIER_STAKE = 50e6;
+    /// USDC a supplier locks when committing a bid. Set at deployment.
+    uint256 public immutable SUPPLIER_STAKE;
 
     /// Commitments per auction. Settlement and every refund walk the array, so it stays bounded.
     uint256 public constant MAX_BIDS = 5;
@@ -85,11 +85,15 @@ contract SealedAuction is IReceiver {
     /// Auctions that are neither finalized nor timed out. `pendingSettlement` walks them all.
     uint256 public constant MAX_OPEN_AUCTIONS = 32;
 
-    /// How long after creation a supplier may commit and seal a bid.
-    uint64 public constant BID_PERIOD = 2 hours;
+    /// How long after creation a supplier may commit and seal a bid. Set at deployment.
+    uint64 public immutable BID_PERIOD;
 
-    /// How long after creation a settlement may land before anyone can refund the auction.
-    uint64 public constant FINALIZE_PERIOD = 4 hours;
+    /**
+     * How long after creation a settlement may land before anyone can refund the auction. Set at
+     * deployment, and longer than `BID_PERIOD`: the gap covers the cron interval, the claim,
+     * scoring, the booking and the settlement write.
+     */
+    uint64 public immutable FINALIZE_PERIOD;
 
     /// A claim report, which moves an auction from `Bidding` to `Settling`.
     uint8 private constant ACTION_CLAIM = 1;
@@ -148,6 +152,7 @@ contract SealedAuction is IReceiver {
     error WinnerWithoutPayout();
     error WinnerNeverCommitted();
     error MissingBookingId();
+    error FinalizeBeforeBidding();
 
     modifier onlyForwarder() {
         if (msg.sender != forwarder) {
@@ -156,10 +161,30 @@ contract SealedAuction is IReceiver {
         _;
     }
 
-    constructor(IERC20 usdc_, address forwarder_, bytes32 enclavePublicKey_) {
+    /**
+     * @param supplierStake_ USDC every supplier locks to commit a bid.
+     * @param bidPeriod_ Seconds from creation to the bid deadline.
+     * @param finalizePeriod_ Seconds from creation to the finalize deadline. Above `bidPeriod_`, or
+     * every auction can be refunded before the enclave has had a chance to settle it.
+     */
+    constructor(
+        IERC20 usdc_,
+        address forwarder_,
+        bytes32 enclavePublicKey_,
+        uint256 supplierStake_,
+        uint64 bidPeriod_,
+        uint64 finalizePeriod_
+    ) {
+        if (finalizePeriod_ <= bidPeriod_) {
+            revert FinalizeBeforeBidding();
+        }
+
         usdc = usdc_;
         forwarder = forwarder_;
         enclavePublicKey = enclavePublicKey_;
+        SUPPLIER_STAKE = supplierStake_;
+        BID_PERIOD = bidPeriod_;
+        FINALIZE_PERIOD = finalizePeriod_;
     }
 
     /**

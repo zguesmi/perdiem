@@ -23,7 +23,7 @@ const bid: Bid = {
   hotelId: "lp1beec",
   hotelName: "Hotel Des Grands Voyageurs",
   stars: 4,
-  price: 440_000_000,
+  price: 4_400_000,
   refundable: true,
   breakfastIncluded: true,
   roomType: "double",
@@ -124,7 +124,7 @@ test("the Circle signer returns the CLI's signature and transaction hash", async
       address: USDC,
       abi: usdcAbi,
       functionName: "approve",
-      args: [SEALED_AUCTION, 50_000_000n],
+      args: [SEALED_AUCTION, 500_000n],
     }),
     TX_HASH,
   );
@@ -136,7 +136,7 @@ test("the Circle signer returns the CLI's signature and transaction hash", async
     "execute",
     "approve(address,uint256)",
     SEALED_AUCTION,
-    "50000000",
+    "500000",
   ]);
 });
 

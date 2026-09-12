@@ -14,6 +14,9 @@ const arcDeployment = buildModule("ArcDeployment", (m) => {
     m.getParameter("usdc"),
     m.getParameter("forwarder"),
     m.getParameter("enclavePublicKey"),
+    m.getParameter("supplierStake"),
+    m.getParameter("bidPeriod"),
+    m.getParameter("finalizePeriod"),
   ]);
 
   return { sealedAuction };

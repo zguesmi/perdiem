@@ -13,8 +13,8 @@ import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
  */
 
 /**
- * USDC minted to each account, in minor units. One figure for everyone, well above the 750 payout
- * cap a buyer locks and the 50 stake a supplier locks, so one node serves many auctions.
+ * USDC minted to each account, in minor units. One figure for everyone, far above any payout cap a
+ * buyer locks and any stake a supplier locks, so one node serves many auctions.
  */
 export const GRANT = 10_000_000_000n;
 
@@ -26,7 +26,14 @@ const localDeployment = buildModule("LocalDeployment", (m) => {
   const enclavePublicKey = m.getParameter("enclavePublicKey");
 
   const usdc = m.contract("MockUSDC");
-  const sealedAuction = m.contract("SealedAuction", [usdc, forwarder, enclavePublicKey]);
+  const sealedAuction = m.contract("SealedAuction", [
+    usdc,
+    forwarder,
+    enclavePublicKey,
+    m.getParameter("supplierStake"),
+    m.getParameter("bidPeriod"),
+    m.getParameter("finalizePeriod"),
+  ]);
 
   for (const account of FUNDED) {
     m.call(usdc, "mint", [m.getParameter(account), GRANT], { id: `mint_${account}` });

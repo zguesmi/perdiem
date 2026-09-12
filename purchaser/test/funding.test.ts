@@ -13,25 +13,25 @@ import {
 
 const serverKeys = ["server"];
 const quorumKeys = ["travel-manager", "finance"];
-const quorumCeiling = 500_000_000n;
+const quorumCeiling = 5_000_000n;
 
 /** Only which wallet comes back is asserted, so neither stub needs behaviour. */
 const policyWallet = {} as PrivyWallet;
 const quorumWallet = {} as PrivyWallet;
 const wallets = { wallet: policyWallet, quorumWallet };
 
-const bucket = 250_000_000n;
+const bucket = 2_500_000n;
 
 test("rounds the payout cap up to the next whole bucket", () => {
-  assert.equal(payoutCapFor(520_000_000n, bucket), 750_000_000n);
-  assert.equal(payoutCapFor(800_000_000n, bucket), 1_000_000_000n);
+  assert.equal(payoutCapFor(5_200_000n, bucket), 7_500_000n);
+  assert.equal(payoutCapFor(8_000_000n, bucket), 10_000_000n);
   assert.equal(payoutCapFor(1n, bucket), bucket);
 });
 
 test("pads a maximum price that lands on a bucket boundary to the next one", () => {
   // The cap is emitted in `TermsPublished`. Equal to the maximum price, it publishes the ceiling
   // the policy exists to keep private.
-  for (const maxPrice of [bucket, 750_000_000n, bucket * 9n]) {
+  for (const maxPrice of [bucket, 7_500_000n, bucket * 9n]) {
     assert.ok(payoutCapFor(maxPrice, bucket) > maxPrice, String(maxPrice));
   }
 });

@@ -14,21 +14,21 @@ const bids: ScorableBid[] = [
   {
     supplier: "0xa",
     stars: 3,
-    price: 330_000_000,
+    price: 3_300_000,
     refundable: true,
     breakfastIncluded: false,
   },
   {
     supplier: "0xb",
     stars: 4,
-    price: 400_000_000,
+    price: 4_000_000,
     refundable: false,
     breakfastIncluded: false,
   },
   {
     supplier: "0xc",
     stars: 4,
-    price: 440_000_000,
+    price: 4_400_000,
     refundable: true,
     breakfastIncluded: true,
   },
@@ -38,11 +38,11 @@ test("the second cheapest bid wins", () => {
   const settlement = settle(policy, bids);
 
   assert.equal(settlement.winner, "0xc");
-  assert.equal(settlement.payout, 440_000_000);
+  assert.equal(settlement.payout, 4_400_000);
 });
 
 test("the cheapest bid is ineligible because the trade-down discount is not deep enough", () => {
-  // 330 is 17.5% below the cheapest four-star bid. The policy asks for 30%.
+  // 3.30 is 17.5% below the cheapest four-star bid. The policy asks for 30%.
   const settlement = settle(policy, bids);
 
   assert.notEqual(settlement.winner, "0xa");
@@ -62,33 +62,33 @@ test("a trade-down bid is eligible on the maximum price alone when no bid meets 
   const settlement = settle(policy, [bids[0]!]);
 
   assert.equal(settlement.winner, "0xa");
-  assert.equal(settlement.payout, 330_000_000);
+  assert.equal(settlement.payout, 3_300_000);
 });
 
 test("a trade-down bid deep enough below the cheapest bid at the star rating is eligible", () => {
-  // 280 is 30% below 400, which is exactly what the policy asks for.
-  const deepDiscount = { ...bids[0]!, price: 280_000_000 };
+  // 2.80 is 30% below 4.00, which is exactly what the policy asks for.
+  const deepDiscount = { ...bids[0]!, price: 2_800_000 };
 
   const settlement = settle(policy, [deepDiscount, bids[1]!]);
 
   assert.equal(settlement.winner, "0xa");
-  assert.equal(settlement.payout, 280_000_000);
+  assert.equal(settlement.payout, 2_800_000);
 });
 
 test("equal scores break on the lower price", () => {
-  // 400 with breakfast and 360 with nothing both score 160.
+  // 4.00 with breakfast and 3.60 with nothing both score 1.60.
   const dearer: ScorableBid = {
     ...bids[1]!,
     supplier: "0xd",
-    price: 400_000_000,
+    price: 4_000_000,
     breakfastIncluded: true,
   };
-  const cheaper: ScorableBid = { ...bids[1]!, supplier: "0xe", price: 360_000_000 };
+  const cheaper: ScorableBid = { ...bids[1]!, supplier: "0xe", price: 3_600_000 };
 
   const settlement = settle(policy, [dearer, cheaper]);
 
   assert.equal(settlement.winner, "0xe");
-  assert.equal(settlement.payout, 360_000_000);
+  assert.equal(settlement.payout, 3_600_000);
 });
 
 test("equal scores at the same price break on the lower supplier address", () => {

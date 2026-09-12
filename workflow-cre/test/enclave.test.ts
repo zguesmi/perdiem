@@ -40,17 +40,17 @@ const suppliers = [
   {
     account: privateKeyToAccount(`0x${"11".repeat(32)}`),
     salt: `0x${"11".repeat(32)}`,
-    terms: { stars: 3, price: 330_000_000, refundable: true, breakfastIncluded: false },
+    terms: { stars: 3, price: 3_300_000, refundable: true, breakfastIncluded: false },
   },
   {
     account: privateKeyToAccount(`0x${"22".repeat(32)}`),
     salt: `0x${"22".repeat(32)}`,
-    terms: { stars: 4, price: 400_000_000, refundable: false, breakfastIncluded: false },
+    terms: { stars: 4, price: 4_000_000, refundable: false, breakfastIncluded: false },
   },
   {
     account: privateKeyToAccount(`0x${"33".repeat(32)}`),
     salt: `0x${"33".repeat(32)}`,
-    terms: { stars: 4, price: 440_000_000, refundable: true, breakfastIncluded: true },
+    terms: { stars: 4, price: 4_400_000, refundable: true, breakfastIncluded: true },
   },
 ] as const;
 
@@ -128,7 +128,7 @@ test("the second cheapest bid wins, and the settlement carries its booking", asy
   assert.deepEqual(settlement, {
     auctionId: AUCTION_ID,
     winner: winner.account.address,
-    payout: 440_000_000,
+    payout: 4_400_000,
     policyHash,
     bidsRoot: keccak256(concatHex(payloads.map(commitmentOf))),
     bookingId: BOOKING_ID,

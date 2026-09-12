@@ -9,9 +9,9 @@ season. That is what the model is for. See `docs/adr/0007-supplier-agents-decide
 
 | Agent                   | Hotel                   | Stars | Demo price |
 | ----------------------- | ----------------------- | ----- | ---------- |
-| `hotel-astoria-agent`   | Hotel Astoria - Astotel | 3     | 330        |
-| `victoria-palace-agent` | Victoria Palace Hotel   | 4     | 400        |
-| `dame-des-arts-agent`   | Hôtel Dame des Arts     | 4     | 440        |
+| `hotel-astoria-agent`   | Hotel Astoria - Astotel | 3     | 3.3        |
+| `victoria-palace-agent` | Victoria Palace Hotel   | 4     | 4.0        |
+| `dame-des-arts-agent`   | Hôtel Dame des Arts     | 4     | 4.4        |
 
 ## The one tool
 

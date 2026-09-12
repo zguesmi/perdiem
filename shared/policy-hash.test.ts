@@ -14,11 +14,11 @@ import { hashPolicy } from "./policy-hash.ts";
 const CANONICAL =
   '{"currency":"USDC","hardRequirements":{"checkin":"2026-10-12","checkout":"2026-10-14",' +
   '"city":"Paris","minStars":4,"numberOfRooms":1,"roomType":"double"},' +
-  '"maxPrice":520000000,"nights":2,' +
-  '"preferences":{"breakfastIncluded":40000000,"refundable":50000000},' +
+  '"maxPrice":5200000,"nights":2,' +
+  '"preferences":{"breakfastIncluded":400000,"refundable":500000},' +
   '"tradeDown":{"requiredDiscountPercentage":30,"stars":3},"version":1}';
 
-const POLICY_HASH = "0xc02246ea158658c8ee47f33d88f453046752a6cd63502f414449986c512a9902";
+const POLICY_HASH = "0xe4a4ed7ab2e1db5cd179d37d61d06ff4d0afaec589723fea4fc4e873b8d53f9c";
 
 test("canonicalizes the reference Policy to the committed bytes", () => {
   assert.equal(canonicalJson(referencePolicy), CANONICAL);

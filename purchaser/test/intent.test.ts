@@ -12,8 +12,8 @@ import type { IntentAgent } from "../src/intent.ts";
 import type { PolicyUploader } from "../src/policy-upload.ts";
 import { PolicyRefusedError } from "../src/privy.ts";
 
-/** 250 USDC. The reference policy's 520 maximum price rounds up to a 750 cap, as the demo does. */
-const payoutCapBucket = 250_000_000n;
+/** 2.5 USDC. The reference policy's 5.2 maximum price rounds up to a 7.5 cap, as the demo does. */
+const payoutCapBucket = 2_500_000n;
 
 const pageOrigin = "http://localhost:5173";
 
@@ -37,8 +37,8 @@ function funder(
 }
 
 const intent =
-  "Paris, 12 to 14 October 2026, one double room, 4 star minimum, at most 520 USDC. " +
-  "Free cancellation is worth 50. Breakfast is worth 40. I would accept 3 star if at least 30% cheaper.";
+  "Paris, 12 to 14 October 2026, one double room, 4 star minimum, at most 5.2 USDC. " +
+  "Free cancellation is worth 0.5. Breakfast is worth 0.4. I would accept 3 star if at least 30% cheaper.";
 
 const summary = "Paris, 12 to 14 October 2026, 2 nights.\n1 double room, 4 stars or better.";
 
@@ -133,7 +133,7 @@ test("gives up after the second failure, and hashes nothing", async () => {
 
 test("rejects a fractional price rather than rounding it", async () => {
   // Rounding would silently change the number the buyer is about to commit to on chain.
-  const intentAgent = stub(answer(makePolicy({ maxPrice: 520_000_000.5 })));
+  const intentAgent = stub(answer(makePolicy({ maxPrice: 5_200_000.5 })));
   const response = await post(service(intentAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
@@ -163,7 +163,7 @@ test("hashes the confirmed policy the same way every other package does", async 
   assert.equal(response.body.policyHash, hashPolicy(referencePolicy));
   // The hash the buyer is shown is the hash that was funded. Two calls here is two auctions.
   assert.deepEqual(fund.funded(), [
-    { policyHash: hashPolicy(referencePolicy), payoutCap: 750_000_000n },
+    { policyHash: hashPolicy(referencePolicy), payoutCap: 7_500_000n },
   ]);
   assert.equal(response.body.auctionId, funded.auctionId);
   assert.equal(response.body.approveHash, funded.approveHash);
@@ -187,12 +187,12 @@ test("tells the buyer what the organization refused, rather than failing", async
   // A price the spend policy will not fund is an answer. The buyer lowers it and confirms again.
   const refused = funder(() => Promise.reject(new PolicyRefusedError("RPC request denied")));
   const response = await post(service(stub(answer()), refused), "/confirm", {
-    policy: makePolicy({ maxPrice: 800_000_000 }),
+    policy: makePolicy({ maxPrice: 8_000_000 }),
   });
 
   assert.equal(response.status, 422);
   assert.equal(response.body.error, "RPC request denied");
-  assert.equal(response.body.payoutCap, "1000000000");
+  assert.equal(response.body.payoutCap, "10000000");
 });
 
 test("seals the policy to the enclave and uploads it before it opens the auction", async () => {

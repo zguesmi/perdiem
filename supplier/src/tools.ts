@@ -43,7 +43,7 @@ export const submitBidInput = z
     price: z
       .int()
       .positive()
-      .describe("The whole stay, in USDC minor units. 330 USDC is 330000000."),
+      .describe("The whole stay, in USDC minor units. USDC has six decimals, so 4.4 USDC is 4400000."),
     refundable: z.boolean(),
     breakfastIncluded: z.boolean(),
     roomType: z.string().min(1),
