@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { x25519 } from "@noble/curves/ed25519.js";
 import { privateKeyToAccount } from "viem/accounts";
-import { concatHex, keccak256, zeroHash } from "viem";
+import { bytesToHex, concatHex, keccak256, zeroHash } from "viem";
 
 import {
   BID_TYPES,
@@ -91,8 +91,9 @@ async function payloadOf(
 const commitmentOf = (payload: SealedBidPayload): `0x${string}` =>
   bidCommitment(bidHash(payload.bid), payload.salt);
 
-const sealedBidOf = (payload: SealedBidPayload): Uint8Array =>
-  sealBid(payload, enclavePublicKey, AUCTION_ID);
+/** Hex, because that is how the supplier agent writes it and how the relay hands it back. */
+const sealedBidOf = (payload: SealedBidPayload, key: Uint8Array = enclavePublicKey): string =>
+  bytesToHex(sealBid(payload, key, AUCTION_ID));
 
 /**
  * The whole pipeline over a set of payloads, each both committed on chain and posted to the relay.
@@ -109,7 +110,7 @@ function inputsFor(
     commitments: payloads.map(commitmentOf),
     committers: payloads.map((payload) => payload.bid.supplier),
     sealedPolicy,
-    sealedBids: payloads.map(sealedBidOf),
+    sealedBids: payloads.map((payload) => sealedBidOf(payload)),
     enclavePrivateKey,
     isValidSignature: () => false,
     book: () => BOOKING_ID,
@@ -195,12 +196,26 @@ test("drops a bid nobody can decrypt", async () => {
 
   const { scored, dropped } = runEnclave(
     inputsFor(payloads, {
-      sealedBids: [sealBid(payloads[0], strangersKey, AUCTION_ID), sealedBidOf(payloads[1])],
+      sealedBids: [sealedBidOf(payloads[0], strangersKey), sealedBidOf(payloads[1])],
     }),
   );
 
   assert.equal(scored, 1);
   assert.equal(dropped, 1);
+});
+
+test("drops a relay body that is not an envelope at all", async () => {
+  // The relay takes anybody's bytes under anybody's key. One blob that is not hex must not end the
+  // run, or a stranger can turn every auction into a timeout refund.
+  const payloads = await Promise.all([payloadOf(runnerUp), payloadOf(winner)]);
+
+  const { settlement, scored, dropped } = runEnclave(
+    inputsFor(payloads, { sealedBids: ["not hex at all", sealedBidOf(payloads[1])] }),
+  );
+
+  assert.equal(scored, 1);
+  assert.equal(dropped, 1);
+  assert.equal(settlement.winner, winner.account.address);
 });
 
 test("the bids root covers a committer whose sealed bid never arrived", async () => {
@@ -209,7 +224,7 @@ test("the bids root covers a committer whose sealed bid never arrived", async ()
   // Two envelopes at the relay, three commitments on chain. The root follows the chain, or the
   // contract rejects a settlement that is otherwise correct.
   const { settlement, scored } = runEnclave(
-    inputsFor(payloads, { sealedBids: payloads.slice(1).map(sealedBidOf) }),
+    inputsFor(payloads, { sealedBids: payloads.slice(1).map((payload) => sealedBidOf(payload)) }),
   );
 
   assert.equal(scored, 2);

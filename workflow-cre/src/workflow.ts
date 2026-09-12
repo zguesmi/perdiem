@@ -148,10 +148,6 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
     return text(response);
   };
 
-  const sealedBids = (
-    JSON.parse(get(`/auctions/${auctionId}/bids`)) as { ciphertext: string }[]
-  ).map((bid) => hexToBytes(bid.ciphertext as `0x${string}`));
-
   const { settlement, scored, dropped } = runEnclave({
     auctionId,
     policyHash,
@@ -159,7 +155,9 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
     commitments,
     committers,
     sealedPolicy: hexToBytes(get(`/policies/${policyHash}`) as `0x${string}`),
-    sealedBids,
+    sealedBids: (JSON.parse(get(`/auctions/${auctionId}/bids`)) as { ciphertext: string }[]).map(
+      (bid) => bid.ciphertext,
+    ),
     enclavePrivateKey: Buffer.from(
       runtime.getSecret({ id: "ENCLAVE_PRIVATE_KEY" }).result().value,
       "base64",

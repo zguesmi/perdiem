@@ -27,8 +27,8 @@ export interface EnclaveInputs {
   /** The address that placed each of those commitments, in the same order. */
   committers: readonly `0x${string}`[];
   sealedPolicy: Uint8Array;
-  /** The ciphertexts the relay holds. A supplier that committed may have posted none. */
-  sealedBids: readonly Uint8Array[];
+  /** The hex-encoded ciphertexts the relay holds, exactly as it returned them. */
+  sealedBids: readonly string[];
   enclavePrivateKey: Uint8Array;
   /** ERC-1271 `isValidSignature` against the supplier's own account, for a contract account. */
   isValidSignature: (
@@ -58,8 +58,8 @@ export function runEnclave(inputs: EnclaveInputs): EnclaveResult {
     ]),
   );
 
-  const opened = inputs.sealedBids.flatMap((envelope) => {
-    const payload = verified(envelope, committed, inputs);
+  const opened = inputs.sealedBids.flatMap((ciphertext) => {
+    const payload = verified(ciphertext, committed, inputs);
 
     return payload === null ? [] : [payload];
   });
@@ -93,15 +93,18 @@ export function runEnclave(inputs: EnclaveInputs): EnclaveResult {
 
 /**
  * One sealed bid, decrypted and checked against what its supplier put on chain. `null` for any
- * failure: a wrong key, a flipped byte, another auction's envelope, a signature that is not the
- * supplier's, or a commitment that is not the one the stake was placed behind.
+ * failure: a body that is not hex, a wrong key, a flipped byte, another auction's envelope, a
+ * signature that is not the supplier's, or a commitment that is not the one the stake was placed
+ * behind. The relay takes anybody's bytes, so a blob that is not an envelope at all drops like the
+ * rest rather than ending the run.
  */
 function verified(
-  envelope: Uint8Array,
+  ciphertext: string,
   committed: ReadonlyMap<string, `0x${string}` | undefined>,
   inputs: EnclaveInputs,
 ): SealedBidPayload | null {
   try {
+    const envelope = hexToBytes(ciphertext as `0x${string}`);
     const payload = openSealedBid(envelope, inputs.enclavePrivateKey, inputs.auctionId);
     const { bid, salt, signature } = payload;
     const digest = bidDigest(bid, inputs.sealedAuction);
