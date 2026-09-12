@@ -47,7 +47,7 @@ fallback.
 `transferFrom` is public, so anyone reads the payout cap. The demo pads it: cap 750 against a
 maximum price of 520. The ceiling stays bounded, which is a workaround and not a fix.
 
-## The requisition service holds the enclave private key
+## The purchaser service holds the enclave private key
 
 An independent party should generate the X25519 keypair, and only the public half should reach the
 deployment. Whoever holds the private half reads every sealed bid and every supplier's booking

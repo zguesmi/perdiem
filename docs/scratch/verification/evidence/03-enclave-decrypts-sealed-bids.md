@@ -80,7 +80,7 @@ it.
 Every scheme above needs randomness to **seal** and none to **open**. Sealing happens in the agent,
 on Node, so this costs the design nothing. It does close one door: the enclave cannot generate the
 recipient keypair and publish the public half, because a Vault DON secret has to exist before the
-run that reads it. `requisition/` generating the keypair is not laziness; it is the only place a
+run that reads it. `purchaser/` generating the keypair is not laziness; it is the only place a
 32-byte secret can come from. The buyer holding the private half stays a stated limitation of the
 demo.
 

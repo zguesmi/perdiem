@@ -47,7 +47,7 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 ## Privy
 
 - V6 — server wallets sign on chain id 5042002 with `eth_signTransaction`, and a policy rule pins
-  the chain id. `eth_sendTransaction` refuses Arc, so Privy signs and the requisition service
+  the chain id. `eth_sendTransaction` refuses Arc, so Privy signs and the purchaser service
   broadcasts to `ARC_RPC_URL`. A 2-of-2 key quorum enforces on the app in use, so there is no
   policy-only fallback.
   - Ticket:

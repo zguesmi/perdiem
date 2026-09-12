@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
 /**
- * The requisition service is the buyer's side of the desk. It does two things and no more:
+ * The purchaser service is the buyer's side of the desk. It does two things and no more:
  *
  * 1. Turns one English sentence into a Policy, with a single LLM call and one retry at most.
  * 2. Gets that spend approved and locked: the Privy organization wallet signs `createAuction`, and
@@ -9,7 +9,7 @@ import { Hono } from "hono";
  *
  * It does not score, does not book, does not hold bids, and never reads the relay.
  */
-export function createRequisitionApp(): Hono {
+export function createPurchaserApp(): Hono {
   const app = new Hono();
 
   // One sentence in, a Policy out. Rejected outright if it fails schema validation.

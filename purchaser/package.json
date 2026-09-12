@@ -1,10 +1,10 @@
 {
-  "name": "@perdiem/requisition",
+  "name": "@perdiem/purchaser",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc --project tsconfig.build.json",
-    "start": "node dist/requisition/src/index.js",
+    "start": "node dist/purchaser/src/index.js",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },

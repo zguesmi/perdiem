@@ -38,7 +38,7 @@ ms). A wrong key and a flipped ciphertext byte both fail with `invalid tag`. HPK
 
 The enclave cannot generate a keypair — `crypto.getRandomValues must be defined`. Sealing needs
 randomness and opening does not, so the agents seal on Node and nothing in the design breaks. It
-does confirm that `requisition/` has to generate the keypair, so the buyer holding the private half
+does confirm that `purchaser/` has to generate the keypair, so the buyer holding the private half
 stays a stated limitation.
 
 The chosen scheme and the rejected ones are in `docs/adr/0005-sealed-bid-envelope-scheme.md`.

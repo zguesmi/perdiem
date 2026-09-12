@@ -1,8 +1,7 @@
-# @perdiem/requisition
+# @perdiem/purchaser
 
-A requisition is the internal request to buy something, carrying its budget approval. That is
-exactly what this service produces: it takes one English sentence from the buyer and ends with a
-funded auction on chain.
+The purchaser is the buying side of the auction, the counterpart of `supplier/`. It takes one
+English sentence from the buyer and ends with a funded auction on chain.
 
 1. `POST /intent` — one LLM call with a fixed system prompt, validated against the Policy schema.
    One retry, then it gives up.
@@ -21,14 +20,14 @@ reads the relay.
 Run from the repository root, after `pnpm install`.
 
 ```sh
-pnpm --filter @perdiem/requisition dev         # tsx watch, reloads on change
-pnpm --filter @perdiem/requisition test        # tsx --test over test/**/*.test.ts
-pnpm --filter @perdiem/requisition typecheck   # tsc --noEmit
-pnpm --filter @perdiem/requisition build       # emits dist/
-pnpm --filter @perdiem/requisition start       # runs dist/index.js, needs build first
+pnpm --filter @perdiem/purchaser dev         # tsx watch, reloads on change
+pnpm --filter @perdiem/purchaser test        # tsx --test over test/**/*.test.ts
+pnpm --filter @perdiem/purchaser typecheck   # tsc --noEmit
+pnpm --filter @perdiem/purchaser build       # emits dist/
+pnpm --filter @perdiem/purchaser start       # runs dist/index.js, needs build first
 ```
 
-The server listens on port 8788. Set `REQUISITION_PORT` to move it.
+The server listens on port 8788. Set `PURCHASER_PORT` to move it.
 
 ## Status
 

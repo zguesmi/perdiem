@@ -18,8 +18,8 @@ policy-only, and the README has to say so rather than imply a quorum that does n
 
 Signing works, broadcasting does not. `eth_signTransaction` signs for chain id 5042002; the policy
 pins the chain id and rejects any other. `eth_sendTransaction` returns
-`App is not authorized to transact on chain eip155:5042002`, so the requisition service broadcasts
-the signed RLP to `ARC_RPC_URL` itself.
+`App is not authorized to transact on chain eip155:5042002`, so the purchaser service broadcasts the
+signed RLP to `ARC_RPC_URL` itself.
 
 A 2-of-2 key quorum was created and enforced on the app in use, so no policy-only fallback is needed
 and build ticket 11 stands as written.

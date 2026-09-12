@@ -1,6 +1,6 @@
 # Canonical encoding is one shared function over integers
 
-The Policy Hash is computed twice: once by the requisition service, before the buyer confirms, and
+The Policy Hash is computed twice: once by the purchaser service, before the buyer confirms, and
 once by the Enclave, before it reports a Settlement. The contract compares them. If the two bytes
 disagree by one byte, the settlement is rejected and the auction dies in `timeoutRefund` with no
 winner and no diagnostic beyond "hash mismatch".

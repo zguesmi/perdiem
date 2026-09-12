@@ -66,7 +66,7 @@ The same request with `chain_id: 1`, HTTP 400:
 ```
 
 `eth_signTransaction` takes no `caip2` argument. The chain id sits inside the transaction object and
-the response is the RLP of the signed transaction, so the requisition service broadcasts it to
+the response is the RLP of the signed transaction, so the purchaser service broadcasts it to
 `ARC_RPC_URL` itself.
 
 ## 4. A 2-of-2 key quorum was created and is enforced

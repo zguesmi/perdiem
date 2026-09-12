@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
 
-import { createRequisitionApp } from "../src/app.ts";
+import { createPurchaserApp } from "../src/app.ts";
 
 // The two beats of the demo, stated as tests. Red until the routes are implemented, and blocked on
 // docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md for the exact Policy shape.
@@ -13,7 +13,7 @@ const intent =
   "Free cancellation is worth 50. Breakfast is worth 40. I would accept 3 star if at least 30% cheaper.";
 
 test("turns one sentence into a policy", async () => {
-  const response = await createRequisitionApp().request("/intent", {
+  const response = await createPurchaserApp().request("/intent", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ intent }),
@@ -26,7 +26,7 @@ test("turns one sentence into a policy", async () => {
 });
 
 test("rejects an intent the model could not turn into a valid policy", async () => {
-  const response = await createRequisitionApp().request("/intent", {
+  const response = await createPurchaserApp().request("/intent", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ intent: "" }),
@@ -38,7 +38,7 @@ test("rejects an intent the model could not turn into a valid policy", async () 
 test("hashes the confirmed policy the same way every other package does", async () => {
   const policy = { maxPrice: 520, nights: 2 };
 
-  const response = await createRequisitionApp().request("/confirm", {
+  const response = await createPurchaserApp().request("/confirm", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ policy }),

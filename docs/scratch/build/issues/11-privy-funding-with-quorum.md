@@ -23,7 +23,7 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
       ceiling is a per-signer override policy, not a quorum threshold: the wallet carries a server
       authorization key capped at 500 and a key quorum of two with no cap, and the service picks the
       signer from the Payout Cap. The override-policy path is unverified.
-- [ ] The requisition service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
+- [ ] The purchaser service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
       broadcast on Arc.
 
 ## Comments
