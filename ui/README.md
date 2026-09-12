@@ -20,9 +20,20 @@ No design work beyond a clean default. No mobile layout.
 
 ## Configuration
 
-Copy `.env.example` to `.env.local`. `VITE_ARC_RPC_URL`, `VITE_SEALED_AUCTION_ADDRESS` and
-`VITE_RELAY_URL` are required; the page reports which one is missing rather than rendering blank.
-`VITE_EXPLORER_URL` and `VITE_FROM_BLOCK` are optional.
+This package has no environment file. Vite reads `VITE_`-prefixed variables straight from the
+process environment, so the repository root `.env` is the only one, and every service starts the
+same way:
+
+```sh
+set -a; source .env; set +a
+```
+
+`VITE_ARC_RPC_URL`, `VITE_SEALED_AUCTION_ADDRESS` and `VITE_RELAY_URL` are required. The page names
+the missing one rather than rendering blank. `VITE_EXPLORER_URL` and `VITE_FROM_BLOCK` are optional;
+leave the explorer empty on a local node and hashes render as plain text.
+
+Only the `VITE_` prefix keeps the seven private keys in that same `.env` out of the bundle. Never
+name a secret `VITE_`, and never set `envPrefix` in `vite.config.ts`.
 
 This package keeps the `tsconfig.json`, `vite.config.ts` and lint setup that `pnpm create vite`
 generated, rather than extending `tsconfig.base.json`. Same rule as `onchain/`: where a tool owns

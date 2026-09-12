@@ -80,15 +80,20 @@ export type Config = {
 };
 
 /**
- * Vite exposes anything prefixed `VITE_` to the browser, so every value here is public by
- * construction. Missing configuration throws rather than defaulting: a page silently pointed at
- * the wrong chain reads as "the demo is broken".
+ * Vite inlines anything prefixed `VITE_` into the bundle, so every value here is public by
+ * construction. The prefix is the only thing keeping the private keys in the same `.env` out of
+ * the browser.
+ *
+ * Missing configuration throws rather than defaulting. A page silently pointed at the wrong chain
+ * reads as "the demo is broken".
  */
 export function readConfig(env: Record<string, string | undefined>): Config {
   const required = (name: string): string => {
     const value = env[name];
     if (!value) {
-      throw new Error(`${name} is not set. Copy ui/.env.example to ui/.env.local and fill it in.`);
+      throw new Error(
+        `${name} is not set. Run \`set -a; source .env; set +a\` from the repository root, then start the dev server.`,
+      );
     }
     return value;
   };
