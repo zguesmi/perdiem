@@ -155,3 +155,42 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/*
+ * The stepper. The rule above each step is its mark: hairline for a step still ahead, solid for one
+ * behind, accent for the one running. That is the whole state of the auction, read without words.
+ */
+.stepper {
+  display: grid;
+  gap: calc(var(--step) * 2);
+  grid-template-columns: repeat(4, 1fr);
+  list-style: none;
+  margin: calc(var(--step) * 2) 0 0;
+  padding: 0;
+}
+
+.step {
+  border-top: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--step);
+  padding-top: var(--step);
+}
+
+.step .line {
+  font-size: 15px;
+}
+
+.step.done {
+  border-color: var(--text-h);
+}
+
+.step.live {
+  border-color: var(--accent);
+}
+
+.step.done .name,
+.step.live .name,
+.step.live .line {
+  color: var(--text-h);
+}

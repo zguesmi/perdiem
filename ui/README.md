@@ -55,9 +55,8 @@ pnpm --filter @perdiem/ui build       # tsc -b, then vite build into dist/
 pnpm --filter @perdiem/ui preview     # serves the built dist/
 pnpm --filter @perdiem/ui typecheck   # tsc -b
 pnpm --filter @perdiem/ui lint        # oxlint
+pnpm --filter @perdiem/ui test        # node:test, over the step logic
 ```
-
-This package has no test script.
 
 ## Status
 

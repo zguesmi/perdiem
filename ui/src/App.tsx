@@ -8,6 +8,7 @@ import { Funding } from "./panels/funding.tsx";
 import { Intent } from "./panels/intent.tsx";
 import { Settlement } from "./panels/settlement.tsx";
 import type { Funding as FundingAnswer } from "./purchaser.ts";
+import { Stepper } from "./stepper.tsx";
 import { useAuction } from "./use-auction.ts";
 
 /** Read once, at import. Misconfiguration is shown rather than thrown: a blank page names nothing. */
@@ -20,7 +21,7 @@ const configuration = ((): { config?: Config; error?: string } => {
 })();
 
 /**
- * One page, five panels, top to bottom: intent, funding, bids, enclave, settlement.
+ * One page, read top to bottom: the stepper, then five panels.
  *
  * The page holds no auction state of its own. Every panel is rendered from what `useAuction`
  * re-read, so a reload and a refresh show the same thing and there is nothing here to disagree
@@ -55,8 +56,9 @@ export default function App() {
       {config && auction && (
         <>
           <p className="note">
-            Auction <code>{short(auction.auctionId)}</code>, state <strong>{auction.state}</strong>
+            Auction <code>{short(auction.auctionId)}</code>
           </p>
+          <Stepper auction={auction} />
           <Intent config={config} auction={auction} />
           <Funding
             config={config}
