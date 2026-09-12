@@ -548,8 +548,10 @@ Verified on Arc testnet, row V7:
 ## Purchaser service
 
 - `POST /intent` — one model call with a fixed system prompt, stored at
-  `purchaser/prompts/intent.md`, validated against the Policy schema. One retry, then it fails. The
-  model client is injected, so the route tests run against a canned completion with no network.
+  `purchaser/prompts/intent.md`. It answers with the Policy and a plain-English summary of it, both
+  validated. One retry, then it fails. The buyer approves the summary and the Policy is what gets
+  hashed, so nothing the model wrote in prose reaches the chain. The model client is injected, so
+  the route tests run against a canned answer with no network.
 - `POST /confirm` — canonicalize, hash, upload the Policy as a workflow secret, call `createAuction`
   with the Payout Cap. It never holds the enclave private key.
 - Privy: the organization wallet signs with `eth_signTransaction` and the purchaser service

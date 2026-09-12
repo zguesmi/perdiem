@@ -10,23 +10,35 @@ import type { Completer } from "./intent.ts";
  *
  * 1. Turns one English sentence into a Policy, with a single model call and one retry at most.
  * 2. Hashes the Policy the buyer confirmed, with the encoder every other package uses.
- *
- * It does not score, does not book, does not hold bids, and never reads the relay.
  */
 export interface PurchaserOptions {
+  /**
+   * How a sentence becomes a candidate answer. It is a constructor argument rather than something
+   * the routes build themselves, so the tests hand the service a canned answer and exercise the
+   * validation, the retry and the hashing without a key, a network or a bill.
+   */
   completer: Completer;
-  /** Injected so a test states the date the buyer's "12 October" resolves against. */
-  today?: () => string;
 }
 
-/** A candidate that fails the schema buys exactly one more model call. Then the request fails. */
+/** A candidate that fails validation buys exactly one more model call. Then the request fails. */
 const ATTEMPTS = 2;
 
 const intentRequest = z.object({ intent: z.string().min(1) }).strict();
 
 const confirmRequest = z.object({ policy: z.unknown() }).strict();
 
-/** A body that is not JSON is the client's mistake, and a rejection rather than a server fault. */
+/**
+ * What the model answers with: the Policy, and the same thing in English for the buyer to read.
+ * The summary is shown and then dropped. Only the Policy is canonicalized and hashed, so nothing
+ * the model wrote in prose can change what reaches the chain.
+ */
+const candidate = z.object({ policy: policySchema, summary: z.string().min(1) }).strict();
+
+/**
+ * A body that is not JSON throws inside `context.req.json()`, which Hono answers with a 500. The
+ * client sent something the service should simply reject, so both routes read the body through
+ * here and reject it themselves.
+ */
 async function body(context: Context): Promise<unknown> {
   try {
     return await context.req.json();
@@ -35,9 +47,7 @@ async function body(context: Context): Promise<unknown> {
   }
 }
 
-export function createPurchaserApp({ completer, today }: PurchaserOptions): Hono {
-  const date = today ?? (() => new Date().toISOString().slice(0, 10));
-
+export function createPurchaserApp({ completer }: PurchaserOptions): Hono {
   const app = new Hono();
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
@@ -52,13 +62,11 @@ export function createPurchaserApp({ completer, today }: PurchaserOptions): Hono
     let rejection: string | undefined;
 
     for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
-      const policy = policySchema.safeParse(
-        await completer(request.data.intent, date(), rejection),
-      );
-      if (policy.success) {
-        return context.json({ policy: policy.data });
+      const answer = candidate.safeParse(await completer(request.data.intent, rejection));
+      if (answer.success) {
+        return context.json(answer.data);
       }
-      rejection = z.prettifyError(policy.error);
+      rejection = z.prettifyError(answer.error);
     }
 
     return context.json({ error: "the model could not produce a valid policy" }, 422);
