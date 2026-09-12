@@ -11,7 +11,12 @@ import { createPrivyWallet } from "./privy.ts";
 const keys = z
   .string()
   .default("")
-  .transform((value) => value.split(",").filter((key) => key.trim() !== ""));
+  .transform((value) =>
+    value
+      .split(",")
+      .map((key) => key.trim())
+      .filter((key) => key !== ""),
+  );
 
 const environment = z
   .object({

@@ -32,6 +32,21 @@ test("a payout cap over the ceiling needs both quorum members", () => {
   assert.equal(chosen.quorumSigned, true);
 });
 
+test("refuses a cap over the ceiling with nobody to sign for it", () => {
+  // Privy would sign on the spend policy alone, and the page would report two approvals nobody
+  // gave. The cap is known at startup, so this fails there rather than at the deadline.
+  assert.throws(
+    () =>
+      signingKeys({
+        payoutCap: quorumCeiling + 1n,
+        quorumCeiling,
+        serverKeys,
+        quorumKeys: [],
+      }),
+    /quorum keys/,
+  );
+});
+
 /** A P-256 keypair in the format Privy hands an authorization key out in. */
 function authorizationKey(): { privateKey: string; publicKey: ReturnType<typeof createPublicKey> } {
   const pair = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
@@ -147,4 +162,19 @@ test("turns a refused request into an error rather than an unsigned transaction"
     new Response('{"error":"RPC request denied due to policy violation"}', { status: 400 });
 
   await assert.rejects(() => wallet(fetch).signTransaction(transaction, []), /policy violation/);
+});
+
+test("re-reads the wallet address after a failed read", async () => {
+  // A cached rejection would outlive the blip that caused it and refuse every later funding.
+  let calls = 0;
+  const fetch: typeof globalThis.fetch = async () => {
+    calls += 1;
+    return calls === 1
+      ? new Response("upstream", { status: 502 })
+      : new Response(JSON.stringify({ address: `0x${"22".repeat(20)}` }), { status: 200 });
+  };
+  const buyer = wallet(fetch);
+
+  await assert.rejects(() => buyer.address());
+  assert.equal(await buyer.address(), `0x${"22".repeat(20)}`);
 });

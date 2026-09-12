@@ -165,14 +165,16 @@ test("refuses to hash a policy that does not match the schema", async () => {
   assert.equal(response.status, 422);
 });
 
-test("refuses a policy the payout cap cannot cover, and funds nothing", async () => {
-  // The payout is the winner's price, so a cap under the maximum price can reject a real winner
-  // at settlement, after every supplier has already staked.
-  const fund = funder();
-  const response = await post(service(stub(answer()), fund), "/confirm", {
-    policy: makePolicy({ maxPrice: Number(payoutCap) + 1 }),
-  });
+test("refuses a policy the payout cap does not sit above, and funds nothing", async () => {
+  // Under the maximum price, the contract rejects a real winner at settlement. Equal to it,
+  // `TermsPublished` emits the cap and publishes the maximum price the policy keeps private.
+  for (const maxPrice of [Number(payoutCap), Number(payoutCap) + 1]) {
+    const fund = funder();
+    const response = await post(service(stub(answer()), fund), "/confirm", {
+      policy: makePolicy({ maxPrice }),
+    });
 
-  assert.equal(response.status, 422);
-  assert.deepEqual(fund.funded(), []);
+    assert.equal(response.status, 422, String(maxPrice));
+    assert.deepEqual(fund.funded(), []);
+  }
 });
