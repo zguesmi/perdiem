@@ -5,7 +5,9 @@ English sentence from the buyer and ends with a funded auction on chain.
 
 1. `POST /intent` — one model call with the system prompt at `prompts/intent.md`. It answers with
    the Policy and a plain-English summary of it. One retry, then it gives up.
-2. `POST /confirm` — canonicalize the Policy and hash it, and return the public half of it.
+2. `POST /confirm` — canonicalize the Policy, hash it, lock the payout cap in escrow and open the
+   auction. It answers with the policy hash, the public half of the Policy, the auction identifier
+   and both transaction hashes.
 
 The buyer approves the summary; the Policy is what gets hashed. The summary is shown and then
 dropped, so nothing the model wrote in prose can change what reaches the chain.
@@ -21,9 +23,24 @@ a buyer's sentence at runtime, which is a different fact from the model used to 
 The model client is injected into `createPurchaserApp`, so every test drives the service with a
 canned answer and no network. Nothing in `pnpm test` calls a model or costs money.
 
-Funding goes through a Privy organization wallet. Its spend policy allows USDC transfers to the
-`SealedAuction` contract and nothing else, and anything above the ceiling needs a key quorum: the
-travel manager and finance both sign.
+## Funding
+
+Funding goes through a Privy organization wallet, and it is two signed transactions rather than
+one: `createAuction` pulls the payout cap with `transferFrom`, so an `approve` on the USDC token
+has to be mined first.
+
+Privy signs and does not broadcast on Arc — `eth_sendTransaction` answers `App is not authorized to
+transact on chain eip155:5042002` — so the service takes the signed RLP from `eth_signTransaction`
+and sends it to `ARC_RPC_URL` itself.
+
+The payout cap alone decides who authorizes the signature. Above `PRIVY_QUORUM_CEILING` the key
+quorum approves and every key in `PRIVY_QUORUM_KEYS` signs the request, comma-separated in one
+`privy-authorization-signature` header. At or below it, `PRIVY_SERVER_KEYS` signs, and an empty
+list means the wallet's spend policy is the whole authorization.
+
+`POST /confirm` refuses a Policy whose maximum price is above the payout cap. The payout is the
+winning bid's price, so a cap under it would let the contract reject a legitimate winner at
+settlement, after every supplier had already staked.
 
 What this service is not: it does not score bids, does not book anything, holds no bids, and never
 reads the relay.
@@ -51,5 +68,10 @@ The server listens on port 8788. Set `PURCHASER_PORT` to move it.
 
 ## Status
 
-Funding is not wired yet: `POST /confirm` hashes the Policy and returns it, and does not upload the
-workflow secrets or call `createAuction`.
+`POST /confirm` does not upload the Policy as a workflow secret yet.
+
+The ceiling is a per-signer override policy on one wallet, not a quorum threshold. That path is
+documented by Privy and has not been run: what is verified is a policy-only wallet signing with no
+authorization header, and a 2-of-2 quorum wallet refusing anything but two signatures. Pointing
+`PRIVY_WALLET_ID` at a quorum-owned wallet and leaving `PRIVY_SERVER_KEYS` empty exercises only the
+quorum half.

@@ -4,7 +4,28 @@ import { test } from "node:test";
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { referencePolicy, makePolicy } from "../../shared/reference-policy.ts";
 import { createPurchaserApp } from "../src/app.ts";
+import type { Funder, Funding } from "../src/funding.ts";
 import type { IntentAgent } from "../src/intent.ts";
+
+/** Above the reference policy's 520 maximum price, as the demo's cap is. */
+const payoutCap = 750_000_000n;
+
+const funded: Funding = {
+  auctionId: `0x${"a1".repeat(32)}`,
+  approveHash: `0x${"b2".repeat(32)}`,
+  createAuctionHash: `0x${"c3".repeat(32)}`,
+  quorumSigned: true,
+};
+
+/** Records what the route asked it to fund, so a test can assert on the hash that reached it. */
+function funder(): Funder & { funded: () => `0x${string}`[] } {
+  const hashes: `0x${string}`[] = [];
+  const fund: Funder = async (policyHash) => {
+    hashes.push(policyHash);
+    return funded;
+  };
+  return Object.assign(fund, { funded: () => hashes });
+}
 
 const intent =
   "Paris, 12 to 14 October 2026, one double room, 4 star minimum, at most 520 USDC. " +
@@ -25,6 +46,11 @@ function stub(...candidates: unknown[]): IntentAgent & { calls: () => number } {
   return Object.assign(intentAgent, { calls: () => calls });
 }
 
+/** The service under test. Every dependency that costs money or touches a chain is a stub. */
+function service(intentAgent: IntentAgent, fund: Funder = funder()) {
+  return createPurchaserApp({ intentAgent, funder: fund, payoutCap });
+}
+
 async function post(
   app: ReturnType<typeof createPurchaserApp>,
   path: string,
@@ -41,7 +67,7 @@ async function post(
 
 test("turns one sentence into a policy the buyer can read", async () => {
   const intentAgent = stub(answer());
-  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
+  const response = await post(service(intentAgent), "/intent", { intent });
 
   assert.equal(response.status, 200);
   assert.deepEqual(response.body.policy, referencePolicy);
@@ -52,14 +78,14 @@ test("turns one sentence into a policy the buyer can read", async () => {
 test("rejects an answer that carries no summary for the buyer", async () => {
   // The buyer approves what they read, so a policy with nothing to read is not an answer.
   const intentAgent = stub({ policy: referencePolicy });
-  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
+  const response = await post(service(intentAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
 });
 
 test("retries a candidate that fails the schema exactly once", async () => {
   const intentAgent = stub(answer(makePolicy({ hardRequirements: { minStars: 9 } })), answer());
-  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
+  const response = await post(service(intentAgent), "/intent", { intent });
 
   assert.equal(response.status, 200);
   assert.equal(intentAgent.calls(), 2);
@@ -74,7 +100,7 @@ test("tells the retry what was wrong with the first answer", async () => {
     return call++ === 0 ? answer(makePolicy({ hardRequirements: { minStars: 9 } })) : answer();
   };
 
-  await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
+  await post(service(intentAgent), "/intent", { intent });
 
   assert.equal(rejections[0], undefined);
   assert.match(String(rejections[1]), /minStars/);
@@ -82,7 +108,7 @@ test("tells the retry what was wrong with the first answer", async () => {
 
 test("gives up after the second failure, and hashes nothing", async () => {
   const intentAgent = stub(answer(makePolicy({ currency: "EUR" })));
-  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
+  const response = await post(service(intentAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
   assert.equal(intentAgent.calls(), 2);
@@ -92,13 +118,13 @@ test("gives up after the second failure, and hashes nothing", async () => {
 test("rejects a fractional price rather than rounding it", async () => {
   // Rounding would silently change the number the buyer is about to commit to on chain.
   const intentAgent = stub(answer(makePolicy({ maxPrice: 520_000_000.5 })));
-  const response = await post(createPurchaserApp({ intentAgent }), "/intent", { intent });
+  const response = await post(service(intentAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
 });
 
 test("rejects a body that is not JSON rather than failing", async () => {
-  const app = createPurchaserApp({ intentAgent: stub(answer()) });
+  const app = service(stub(answer()));
 
   for (const path of ["/intent", "/confirm"]) {
     const response = await app.request(path, {
@@ -112,12 +138,18 @@ test("rejects a body that is not JSON rather than failing", async () => {
 });
 
 test("hashes the confirmed policy the same way every other package does", async () => {
-  const response = await post(createPurchaserApp({ intentAgent: stub(answer()) }), "/confirm", {
+  const fund = funder();
+  const response = await post(service(stub(answer()), fund), "/confirm", {
     policy: referencePolicy,
   });
 
   assert.equal(response.status, 200);
   assert.equal(response.body.policyHash, hashPolicy(referencePolicy));
+  // The hash the buyer is shown is the hash that was funded. Two hashes here is two auctions.
+  assert.deepEqual(fund.funded(), [hashPolicy(referencePolicy)]);
+  assert.equal(response.body.auctionId, funded.auctionId);
+  assert.equal(response.body.approveHash, funded.approveHash);
+  assert.equal(response.body.createAuctionHash, funded.createAuctionHash);
   // The buyer publishes this half, so a field that leaks into it is a field every supplier reads.
   assert.deepEqual(response.body.publicRequirements, {
     ...referencePolicy.hardRequirements,
@@ -126,9 +158,21 @@ test("hashes the confirmed policy the same way every other package does", async 
 });
 
 test("refuses to hash a policy that does not match the schema", async () => {
-  const response = await post(createPurchaserApp({ intentAgent: stub(answer()) }), "/confirm", {
+  const response = await post(service(stub(answer())), "/confirm", {
     policy: makePolicy({ preferences: { refundable: -1 } }),
   });
 
   assert.equal(response.status, 422);
+});
+
+test("refuses a policy the payout cap cannot cover, and funds nothing", async () => {
+  // The payout is the winner's price, so a cap under the maximum price can reject a real winner
+  // at settlement, after every supplier has already staked.
+  const fund = funder();
+  const response = await post(service(stub(answer()), fund), "/confirm", {
+    policy: makePolicy({ maxPrice: Number(payoutCap) + 1 }),
+  });
+
+  assert.equal(response.status, 422);
+  assert.deepEqual(fund.funded(), []);
 });
