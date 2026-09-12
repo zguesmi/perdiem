@@ -15,7 +15,7 @@ import type { Policy } from "../../shared/policy.ts";
  */
 export type ScorableBid = Pick<
   Bid,
-  "supplier" | "stars" | "price" | "refundable" | "breakfastIncluded" | "roomType" | "numberOfRooms"
+  "supplier" | "stars" | "price" | "refundable" | "breakfastIncluded"
 >;
 
 /**
@@ -34,14 +34,11 @@ export interface ScoringResult {
 export function settle(policy: Policy, bids: readonly ScorableBid[]): ScoringResult {
   const { maxPrice, hardRequirements, tradeDown, preferences } = policy;
 
-  // Neither the city nor the dates are members of the Bid: a supplier bids against one auction, and
-  // the enclave books that auction's dates. What is left of the hard requirements is the room.
-  const affordable = bids.filter(
-    (bid) =>
-      bid.price <= maxPrice &&
-      bid.roomType === hardRequirements.roomType &&
-      bid.numberOfRooms === hardRequirements.numberOfRooms,
-  );
+  // The hard requirements are not compared here. The Bid carries no city and no dates, and a
+  // supplier's model writes `roomType` and `numberOfRooms` in its own words, so a byte-exact
+  // comparison drops honest bids after their stake is locked. The auction terms bind the bid
+  // instead: the bid is signed over one `auctionId`, and the enclave books that auction's dates.
+  const affordable = bids.filter((bid) => bid.price <= maxPrice);
 
   const atMinStars = affordable.filter((bid) => bid.stars >= hardRequirements.minStars);
 

@@ -17,8 +17,6 @@ const bids: ScorableBid[] = [
     price: 330_000_000,
     refundable: true,
     breakfastIncluded: false,
-    roomType: "double",
-    numberOfRooms: 1,
   },
   {
     supplier: "0xb",
@@ -26,8 +24,6 @@ const bids: ScorableBid[] = [
     price: 400_000_000,
     refundable: false,
     breakfastIncluded: false,
-    roomType: "double",
-    numberOfRooms: 1,
   },
   {
     supplier: "0xc",
@@ -35,8 +31,6 @@ const bids: ScorableBid[] = [
     price: 440_000_000,
     refundable: true,
     breakfastIncluded: true,
-    roomType: "double",
-    numberOfRooms: 1,
   },
 ];
 
@@ -79,15 +73,6 @@ test("a trade-down bid deep enough below the cheapest bid at the star rating is 
 
   assert.equal(settlement.winner, "0xa");
   assert.equal(settlement.payout, 280_000_000);
-});
-
-test("a bid that misses a hard requirement is ineligible", () => {
-  const wrongRoom = bids.map((bid) => ({ ...bid, roomType: "single" }));
-
-  const settlement = settle(policy, wrongRoom);
-
-  assert.equal(settlement.winner, null);
-  assert.equal(settlement.payout, 0);
 });
 
 test("equal scores break on the lower price", () => {
