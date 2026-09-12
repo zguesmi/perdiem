@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
@@ -26,6 +26,15 @@ const intentRequest = z.object({ intent: z.string().min(1) }).strict();
 
 const confirmRequest = z.object({ policy: z.unknown() }).strict();
 
+/** A body that is not JSON is the client's mistake, and a rejection rather than a server fault. */
+async function body(context: Context): Promise<unknown> {
+  try {
+    return await context.req.json();
+  } catch {
+    return undefined;
+  }
+}
+
 export function createPurchaserApp({ completer, today }: PurchaserOptions): Hono {
   const date = today ?? (() => new Date().toISOString().slice(0, 10));
 
@@ -33,16 +42,23 @@ export function createPurchaserApp({ completer, today }: PurchaserOptions): Hono
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
   app.post("/intent", async (context) => {
-    const request = intentRequest.safeParse(await context.req.json());
+    const request = intentRequest.safeParse(await body(context));
     if (!request.success) {
       return context.json({ error: "an intent is one non-empty sentence" }, 422);
     }
 
+    // The second call is told what was wrong with the first. A byte-identical retry against a
+    // model with no sampling parameters reproduces a deterministic failure and pays for it twice.
+    let rejection: string | undefined;
+
     for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
-      const policy = policySchema.safeParse(await completer(request.data.intent, date()));
+      const policy = policySchema.safeParse(
+        await completer(request.data.intent, date(), rejection),
+      );
       if (policy.success) {
         return context.json({ policy: policy.data });
       }
+      rejection = z.prettifyError(policy.error);
     }
 
     return context.json({ error: "the model could not produce a valid policy" }, 422);
@@ -51,7 +67,7 @@ export function createPurchaserApp({ completer, today }: PurchaserOptions): Hono
   // The buyer confirms. Canonicalize and hash, and publish the half of the Policy suppliers see.
   // An invalid Policy is never hashed: a hash is a commitment, and this one reaches the chain.
   app.post("/confirm", async (context) => {
-    const request = confirmRequest.safeParse(await context.req.json());
+    const request = confirmRequest.safeParse(await body(context));
     const policy = policySchema.safeParse(request.data?.policy);
     if (!policy.success) {
       return context.json({ error: "the policy does not match the schema" }, 422);

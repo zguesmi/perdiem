@@ -9,7 +9,12 @@ import Anthropic from "@anthropic-ai/sdk";
  * The return is `unknown` on purpose: a completer that could only return a valid Policy would make
  * the validation it is tested against unreachable.
  */
-export type Completer = (intent: string, today: string) => Promise<unknown>;
+export type Completer = (
+  intent: string,
+  today: string,
+  /** Why the previous candidate was rejected, on the retry only. */
+  rejection?: string,
+) => Promise<unknown>;
 
 const promptPath = new URL("../prompts/intent.md", import.meta.url);
 
@@ -21,14 +26,30 @@ const promptPath = new URL("../prompts/intent.md", import.meta.url);
 export function createCompleter(model: string): Completer {
   const client = new Anthropic();
 
-  return async (intent, today) => {
+  return async (intent, today, rejection) => {
     const response = await client.messages.create({
       model,
       max_tokens: 16000,
       thinking: { type: "adaptive" },
       system: await readFile(promptPath, "utf8"),
-      messages: [{ role: "user", content: `Today is ${today}.\n\n${intent}` }],
+      messages: [
+        { role: "user", content: `Today is ${today}.\n\n${intent}` },
+        ...(rejection
+          ? ([
+              {
+                role: "user",
+                content: `Your last answer was rejected:\n${rejection}\n\nAnswer again.`,
+              },
+            ] as const)
+          : []),
+      ],
     });
+
+    // A truncated or declined answer is a failed candidate with a reason worth naming, rather than
+    // a JSON parse error the caller cannot tell from a model that wrote prose.
+    if (response.stop_reason !== "end_turn") {
+      return null;
+    }
 
     const text = response.content
       .filter((block) => block.type === "text")

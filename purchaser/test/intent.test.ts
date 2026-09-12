@@ -49,6 +49,35 @@ test("retries a candidate that fails the schema exactly once", async () => {
   assert.equal(completer.calls(), 2);
 });
 
+test("tells the retry what was wrong with the first answer", async () => {
+  // A byte-identical second call reproduces a deterministic failure and pays for it twice.
+  const rejections: (string | undefined)[] = [];
+  let call = 0;
+  const completer: Completer = async (_intent, _today, rejection) => {
+    rejections.push(rejection);
+    return call++ === 0 ? makePolicy({ hardRequirements: { minStars: 9 } }) : referencePolicy;
+  };
+
+  await post(createPurchaserApp({ completer }), "/intent", { intent });
+
+  assert.equal(rejections[0], undefined);
+  assert.match(String(rejections[1]), /minStars/);
+});
+
+test("rejects a body that is not JSON rather than failing", async () => {
+  const app = createPurchaserApp({ completer: stub(referencePolicy) });
+
+  for (const path of ["/intent", "/confirm"]) {
+    const response = await app.request(path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "not json",
+    });
+
+    assert.equal(response.status, 422, path);
+  }
+});
+
 test("gives up after the second failure, and hashes nothing", async () => {
   const completer = stub(makePolicy({ currency: "EUR" }));
   const response = await post(createPurchaserApp({ completer }), "/intent", { intent });
