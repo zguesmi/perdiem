@@ -1,7 +1,11 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    // The CRE CLI compiles this package with bun, and `@chainlink/cre-sdk` only publishes its types
+    // through `exports`. Node20 resolution finds none of them.
+    "module": "preserve",
+    "moduleResolution": "bundler"
   },
   "include": ["src", "test"]
 }

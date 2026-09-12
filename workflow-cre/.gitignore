@@ -1,2 +1,4 @@
 node_modules/
-dist/
+
+# The CRE toolchain bundles and compiles beside the workflow entry point.
+.cre_build_tmp.*
