@@ -30,7 +30,7 @@ so take it only after this row is answered and answered no.
       signed and broadcast, EIP-712 signature over `Bid`.
 - [x] If item 3 fails, the ticket records which key signed the bid and which signed the chain calls,
       and that both resolve to one address.
-- [x] The transaction hash for a `commit` call from a Circle wallet is in `docs/evidence/`, or the
+- [x] The transaction hash for a `commit` call from a Circle wallet is in `docs/scratch/verification/evidence/`, or the
       failure is. `approve` stands in for `commit` until `SealedAuction` is deployed.
 
 ## Comments
@@ -73,4 +73,4 @@ Two limitations found on the way, both recorded in the evidence and in `docs/dem
   `/v1/w3s/user/...` endpoints, with a `userToken` from email OTP. It never uses a console API key,
   and it has no flag to accept one, so Circle Console API Logs stay at zero for these runs.
 
-Evidence and the exact output: `docs/evidence/07-circle-agent-stack-wallets.md`.
+Evidence and the exact output: `docs/scratch/verification/evidence/07-circle-agent-stack-wallets.md`.

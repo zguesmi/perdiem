@@ -1,6 +1,6 @@
 node_modules/
 pnpm-lock.yaml
-docs/evidence/
+docs/scratch/verification/evidence/
 
 # Agent skill files: line breaks are load-bearing for the agents that read them.
 **/SKILL.md

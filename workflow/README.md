@@ -50,7 +50,7 @@ pnpm --dir workflow typecheck   # tsc --noEmit
 ```
 
 There is no build script yet, because the CRE scaffolding is not generated. Once it is, the
-simulation run that produces the evidence in `docs/evidence/` is:
+simulation run that produces the evidence in `docs/scratch/verification/evidence/` is:
 
 ```sh
 cre workflow simulate
@@ -62,4 +62,4 @@ The CRE scaffolding is not generated yet, and Confidential Workflows is in priva
 here is the scoring rule, stubbed, and the demo table as a red test.
 
 Evidence rule: a fake runner may execute the handler while it is being built. Only
-`cre workflow simulate` produces the logs in `docs/evidence/`.
+`cre workflow simulate` produces the logs in `docs/scratch/verification/evidence/`.

@@ -31,7 +31,7 @@ Record the answer and the chosen path in `docs/decisions.md`.
 - [x] Row V13 records the host name the handler must use, whether outbound hosts are restricted, and
       whether plain HTTP is permitted.
 - [x] The chosen path is recorded, with the fallbacks that were rejected and why.
-- [x] A handler fetching from the relay is in `docs/evidence/`, or the failure is.
+- [x] A handler fetching from the relay is in `docs/scratch/verification/evidence/`, or the failure is.
 
 ## Comments
 
@@ -57,4 +57,4 @@ two cases stay distinguishable, so only a genuinely empty relay ends in a no-win
 Deployment is a different question. No DON can reach a developer's localhost, so a deployed demo
 needs the relay on a public host. That is one config value.
 
-Evidence: `docs/evidence/13-can-the-enclave-reach-the-relay.md`.
+Evidence: `docs/scratch/verification/evidence/13-can-the-enclave-reach-the-relay.md`.

@@ -463,7 +463,7 @@ no-winner path; the timeout path.
 - Encode the Settlement as an action `2` report and write it to `SealedAuction`. Two `writeReport`
   calls fit one run and the second sees the state the first committed, so the claim and the
   settlement need no second cron tick. Row V8.
-- Save one full `cre workflow simulate` run to `docs/evidence/`.
+- Save one full `cre workflow simulate` run to `docs/scratch/verification/evidence/`.
 
 The relay runs on `http://localhost:8787` and the handler reads it there: in simulation the HTTP
 capability runs in the CLI's own process, so localhost resolves, plain HTTP is allowed and no host

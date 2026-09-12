@@ -31,4 +31,4 @@ characters and a 32-byte X25519 private key in base64 is 44. No trimming.
 The Vault DON path is unverified. `cre secrets create` takes the same YAML but needs deploy access,
 which row V10 says this account does not have.
 
-Evidence: `docs/evidence/04-workflow-secrets-in-simulation.md`.
+Evidence: `docs/scratch/verification/evidence/04-workflow-secrets-in-simulation.md`.

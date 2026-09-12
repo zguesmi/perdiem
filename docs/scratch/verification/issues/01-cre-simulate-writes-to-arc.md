@@ -8,12 +8,12 @@ constructor argument. If simulation does not broadcast, the demo needs a differe
 settlement transaction.
 
 Record the forwarder address in `docs/decisions.md` and save the simulation output to
-`docs/evidence/`.
+`docs/scratch/verification/evidence/`.
 
 ## Acceptance criteria
 
 - [x] Row V1 in `docs/decisions.md` is answered, with the forwarder address written out.
-- [x] The simulation output is saved in `docs/evidence/`.
+- [x] The simulation output is saved in `docs/scratch/verification/evidence/`.
 - [x] If simulation does not broadcast, the ticket records what the demo's settlement transaction is
       instead. It does broadcast, so no alternative is needed.
 
@@ -32,7 +32,7 @@ got the same address, so it is a constant for the chain and can be a constructor
 `chain-name: arc-testnet`.
 
 Evidence:
-[01 — CRE simulate writing to Arc testnet](../../../evidence/01-cre-simulate-writes-to-arc.md).
+[01 — CRE simulate writing to Arc testnet](../evidence/01-cre-simulate-writes-to-arc.md).
 
 ### Three things the spec did not account for
 

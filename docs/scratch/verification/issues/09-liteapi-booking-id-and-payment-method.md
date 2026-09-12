@@ -8,7 +8,7 @@ response and whatever the UI displays beside the on-chain hash.
 ## Acceptance criteria
 
 - [x] Row V9 is answered with the booking id field name and the sandbox payment method string.
-- [x] One prebook and one book response are saved in `docs/evidence/`, with sandbox test guest data
+- [x] One prebook and one book response are saved in `docs/scratch/verification/evidence/`, with sandbox test guest data
       only.
 - [x] The id is confirmed stable between the booking response and any later read.
 
@@ -53,4 +53,4 @@ wants the offer's `offerId`, `book` has nowhere for `payment.method`, `holder`, 
 `clientReference`, and there is no read path. The list is in the evidence file. Implementing
 `createSandboxLiteApiClient` is a build ticket, not this one.
 
-Evidence: `docs/evidence/09-liteapi-booking-id-and-payment-method.md`.
+Evidence: `docs/scratch/verification/evidence/09-liteapi-booking-id-and-payment-method.md`.
