@@ -2,16 +2,27 @@
 
 One page, five panels, read top to bottom during the demo:
 
-1. **Intent** — the sentence, the parsed policy, the policy hash and its block number.
-2. **Funding** — budget, ceiling, Privy quorum approvals, the `createAuction` transaction.
-3. **Bids** — commitment hashes only until settlement, then the full bids, so the audience sees why
-   the cheapest one lost.
-4. **Enclave** — a live tail of the simulation log. The policy never appears here.
-5. **Settlement** — winner, payout, refund, stake refunds, booking id.
+1. **Intent** — the policy hash and the public requirements, from `TermsPublished`.
+2. **Funding** — buyer, payout cap, both deadlines, the `createAuction` transaction.
+3. **Bids** — one row per on-chain commitment, with the size of its ciphertext at the relay.
+4. **Enclave** — state, bids root, and the claim transaction.
+5. **Settlement** — winner, payout, refund, booking id, and the settling transaction.
+
+Every panel ends in a transaction hash, linked to `VITE_EXPLORER_URL` when one is configured.
+
+The page reads `auctions` and `commitments` on a 2 second timer and holds no auction state of its
+own. It shows the newest auction and nothing else.
+
+It cannot show the private half of the policy, because it never holds it. The maximum price and the
+preferences are a workflow secret, and a sealed bid is ciphertext to everyone but the enclave.
 
 No design work beyond a clean default. No mobile layout.
 
 ## Configuration
+
+Copy `.env.example` to `.env.local`. `VITE_ARC_RPC_URL`, `VITE_SEALED_AUCTION_ADDRESS` and
+`VITE_RELAY_URL` are required; the page reports which one is missing rather than rendering blank.
+`VITE_EXPLORER_URL` and `VITE_FROM_BLOCK` are optional.
 
 This package keeps the `tsconfig.json`, `vite.config.ts` and lint setup that `pnpm create vite`
 generated, rather than extending `tsconfig.base.json`. Same rule as `onchain/`: where a tool owns
@@ -33,4 +44,5 @@ This package has no test script.
 
 ## Status
 
-Five empty panels. Nothing is wired to the chain or the relay yet.
+Wired to the chain and the relay. Two things the panels do not show, because nothing publishes them
+yet: the buyer's sentence and the parsed policy, and the losing bids after settlement.
