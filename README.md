@@ -80,6 +80,25 @@ set -a; source .env.localhost; set +a
 npx tsx scripts/sealed-bidding.ts
 ```
 
+## The enclave key
+
+An X25519 keypair. The public half is a `SealedAuction` constructor argument, readable as
+`enclavePublicKey()`. The private half is the workflow secret `ENCLAVE_PRIVATE_KEY`, loaded only
+inside `handlerInTee`.
+
+- `onchain/scripts/deploy.ts` generates it on the first run, when `ENCLAVE_PRIVATE_KEY` is empty,
+  and writes the private half into the environment file as base64.
+- A new key means a new contract, and every ciphertext already at the relay stops opening.
+- Its holder can read every sealed bid, so every price and every preference, and every supplier's
+  booking credentials.
+- Here the holder is whoever runs the deployment. `.env.localhost` is bind-mounted into every
+  container, so the purchaser service and the three agents can read it as well.
+- The buyer and the suppliers should not hold it. A party that is neither generates the keypair and
+  uploads the private half, and only the public half reaches the contract.
+- What would remove the trusted party: a private half that only ever exists inside an attested
+  enclave. Out of scope here, because the enclave has no randomness of its own —
+  `x25519.utils.randomPrivateKey()` throws `crypto.getRandomValues must be defined` there.
+
 ## The sealed bidding slice
 
 One script runs the first half of the flow on a local node and stops at the last sealed bid:
