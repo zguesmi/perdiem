@@ -3,8 +3,9 @@ import { z } from "zod";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
-import type { Funder } from "./funding.ts";
+import { payoutCapFor, type Funder } from "./funding.ts";
 import type { IntentAgent } from "./intent.ts";
+import { PolicyRefusedError } from "./privy.ts";
 
 /**
  * The purchaser service is the buyer's side of the desk. It does two things and no more:
@@ -25,10 +26,10 @@ export interface PurchaserOptions {
    */
   funder: Funder;
   /**
-   * USDC minor units the buyer locks, above the Policy's maximum price so that the ceiling is not
-   * readable from a public `transferFrom`. The route rejects a Policy the cap cannot cover.
+   * The step the payout cap is rounded up to, in USDC minor units. It is what the cap leaks: the
+   * band the maximum price falls in, and nothing sharper.
    */
-  payoutCap: bigint;
+  payoutCapBucket: bigint;
 }
 
 /** A candidate that fails validation buys exactly one more model call. Then the request fails. */
@@ -58,7 +59,11 @@ async function body(context: Context): Promise<unknown> {
   }
 }
 
-export function createPurchaserApp({ intentAgent, funder, payoutCap }: PurchaserOptions): Hono {
+export function createPurchaserApp({
+  intentAgent,
+  funder,
+  payoutCapBucket,
+}: PurchaserOptions): Hono {
   const app = new Hono();
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
@@ -92,21 +97,25 @@ export function createPurchaserApp({ intentAgent, funder, payoutCap }: Purchaser
       return context.json({ error: "the policy does not match the schema" }, 422);
     }
 
-    // The cap has to sit strictly above the maximum price. Below it, a legitimate winner is
-    // rejected by the contract at settlement; equal to it, `TermsPublished` emits the cap and every
-    // supplier reads the maximum price the policy exists to keep private.
-    if (BigInt(policy.data.maxPrice) >= payoutCap) {
-      return context.json({ error: "the payout cap does not sit above the maximum price" }, 422);
-    }
-
     const policyHash = hashPolicy(policy.data);
     const requirements = publicRequirements(policy.data);
+    const payoutCap = payoutCapFor(BigInt(policy.data.maxPrice), payoutCapBucket);
 
-    return context.json({
-      policyHash,
-      publicRequirements: requirements,
-      ...(await funder(policyHash, requirements)),
-    });
+    try {
+      return context.json({
+        policyHash,
+        publicRequirements: requirements,
+        payoutCap: String(payoutCap),
+        ...(await funder(policyHash, requirements, payoutCap)),
+      });
+    } catch (reason) {
+      // A price the organization will not fund is an answer to the buyer, not a fault. They lower
+      // it and confirm again.
+      if (reason instanceof PolicyRefusedError) {
+        return context.json({ error: reason.message, payoutCap: String(payoutCap) }, 422);
+      }
+      throw reason;
+    }
   });
 
   return app;

@@ -6,9 +6,10 @@ import { referencePolicy, makePolicy } from "../../shared/reference-policy.ts";
 import { createPurchaserApp } from "../src/app.ts";
 import type { Funder, Funding } from "../src/funding.ts";
 import type { IntentAgent } from "../src/intent.ts";
+import { PolicyRefusedError } from "../src/privy.ts";
 
-/** Above the reference policy's 520 maximum price, as the demo's cap is. */
-const payoutCap = 750_000_000n;
+/** 250 USDC. The reference policy's 520 maximum price rounds up to a 750 cap, as the demo does. */
+const payoutCapBucket = 250_000_000n;
 
 const funded: Funding = {
   auctionId: `0x${"a1".repeat(32)}`,
@@ -17,14 +18,16 @@ const funded: Funding = {
   quorumSigned: true,
 };
 
-/** Records what the route asked it to fund, so a test can assert on the hash that reached it. */
-function funder(): Funder & { funded: () => `0x${string}`[] } {
-  const hashes: `0x${string}`[] = [];
-  const fund: Funder = async (policyHash) => {
-    hashes.push(policyHash);
-    return funded;
+/** Records what the route asked it to fund, so a test can assert on what reached it. */
+function funder(
+  answer: () => Promise<Funding> = async () => funded,
+): Funder & { funded: () => { policyHash: `0x${string}`; payoutCap: bigint }[] } {
+  const calls: { policyHash: `0x${string}`; payoutCap: bigint }[] = [];
+  const fund: Funder = async (policyHash, _requirements, payoutCap) => {
+    calls.push({ policyHash, payoutCap });
+    return answer();
   };
-  return Object.assign(fund, { funded: () => hashes });
+  return Object.assign(fund, { funded: () => calls });
 }
 
 const intent =
@@ -48,7 +51,7 @@ function stub(...candidates: unknown[]): IntentAgent & { calls: () => number } {
 
 /** The service under test. Every dependency that costs money or touches a chain is a stub. */
 function service(intentAgent: IntentAgent, fund: Funder = funder()) {
-  return createPurchaserApp({ intentAgent, funder: fund, payoutCap });
+  return createPurchaserApp({ intentAgent, funder: fund, payoutCapBucket });
 }
 
 async function post(
@@ -145,8 +148,10 @@ test("hashes the confirmed policy the same way every other package does", async 
 
   assert.equal(response.status, 200);
   assert.equal(response.body.policyHash, hashPolicy(referencePolicy));
-  // The hash the buyer is shown is the hash that was funded. Two hashes here is two auctions.
-  assert.deepEqual(fund.funded(), [hashPolicy(referencePolicy)]);
+  // The hash the buyer is shown is the hash that was funded. Two calls here is two auctions.
+  assert.deepEqual(fund.funded(), [
+    { policyHash: hashPolicy(referencePolicy), payoutCap: 750_000_000n },
+  ]);
   assert.equal(response.body.auctionId, funded.auctionId);
   assert.equal(response.body.approveHash, funded.approveHash);
   assert.equal(response.body.createAuctionHash, funded.createAuctionHash);
@@ -165,16 +170,14 @@ test("refuses to hash a policy that does not match the schema", async () => {
   assert.equal(response.status, 422);
 });
 
-test("refuses a policy the payout cap does not sit above, and funds nothing", async () => {
-  // Under the maximum price, the contract rejects a real winner at settlement. Equal to it,
-  // `TermsPublished` emits the cap and publishes the maximum price the policy keeps private.
-  for (const maxPrice of [Number(payoutCap), Number(payoutCap) + 1]) {
-    const fund = funder();
-    const response = await post(service(stub(answer()), fund), "/confirm", {
-      policy: makePolicy({ maxPrice }),
-    });
+test("tells the buyer what the organization refused, rather than failing", async () => {
+  // A price the spend policy will not fund is an answer. The buyer lowers it and confirms again.
+  const refused = funder(() => Promise.reject(new PolicyRefusedError("RPC request denied")));
+  const response = await post(service(stub(answer()), refused), "/confirm", {
+    policy: makePolicy({ maxPrice: 800_000_000 }),
+  });
 
-    assert.equal(response.status, 422, String(maxPrice));
-    assert.deepEqual(fund.funded(), []);
-  }
+  assert.equal(response.status, 422);
+  assert.equal(response.body.error, "RPC request denied");
+  assert.equal(response.body.payoutCap, "1000000000");
 });

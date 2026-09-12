@@ -43,6 +43,14 @@ export interface PrivyWallet {
   ): Promise<`0x${string}`>;
 }
 
+/**
+ * The spend policy turned the request down. It is the organization refusing to sign, not a fault,
+ * so the buyer is told what happened rather than shown a failure.
+ */
+export class PolicyRefusedError extends Error {}
+
+const refusal = z.object({ error: z.string(), code: z.literal("policy_violation") });
+
 const walletAnswer = z.object({ address: z.custom<`0x${string}`>((value) => typeof value === "string") });
 
 const signedAnswer = z.object({
@@ -106,7 +114,12 @@ export function createPrivyWallet(options: PrivyOptions): PrivyWallet {
     });
 
     if (!response.ok) {
-      throw new Error(`Privy answered ${response.status}: ${await response.text()}`);
+      const body = await response.text();
+      const refused = refusal.safeParse(JSON.parse(body) as unknown);
+      if (refused.success) {
+        throw new PolicyRefusedError(refused.data.error);
+      }
+      throw new Error(`Privy answered ${response.status}: ${body}`);
     }
     return (await response.json()) as unknown;
   }

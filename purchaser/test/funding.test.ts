@@ -3,12 +3,28 @@ import { createPublicKey, generateKeyPairSync, verify } from "node:crypto";
 import { test } from "node:test";
 
 import { canonicalJson } from "../../shared/canonical-json.ts";
-import { signingKeys } from "../src/funding.ts";
+import { payoutCapFor, signingKeys } from "../src/funding.ts";
 import { authorizationSignature, createPrivyWallet, type PrivyTransaction } from "../src/privy.ts";
 
 const serverKeys = ["server"];
 const quorumKeys = ["travel-manager", "finance"];
 const quorumCeiling = 500_000_000n;
+
+const bucket = 250_000_000n;
+
+test("rounds the payout cap up to the next whole bucket", () => {
+  assert.equal(payoutCapFor(520_000_000n, bucket), 750_000_000n);
+  assert.equal(payoutCapFor(800_000_000n, bucket), 1_000_000_000n);
+  assert.equal(payoutCapFor(1n, bucket), bucket);
+});
+
+test("pads a maximum price that lands on a bucket boundary to the next one", () => {
+  // The cap is emitted in `TermsPublished`. Equal to the maximum price, it publishes the ceiling
+  // the policy exists to keep private.
+  for (const maxPrice of [bucket, 750_000_000n, bucket * 9n]) {
+    assert.ok(payoutCapFor(maxPrice, bucket) > maxPrice, String(maxPrice));
+  }
+});
 
 test("the spend policy authorizes a payout cap at or under the ceiling", () => {
   for (const payoutCap of [1n, quorumCeiling]) {
