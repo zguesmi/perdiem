@@ -7,7 +7,7 @@ import { BID_TYPES, bidDomain, bidMessage, type Bid } from "../../shared/bid.ts"
 import { walletSchema } from "../src/config.ts";
 import { createCircleAgentSigner, type RunCircle } from "../src/circle.ts";
 import { createLocalSigner, createSigner } from "../src/signer.ts";
-import { sealedAuctionAbi, usdcAbi } from "../src/abi.ts";
+import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
 
 const RPC_URL = "http://rpc.test";
 const SEALED_AUCTION = "0x000000000000000000000000000000000000dEaD" as const;

@@ -2,7 +2,8 @@ import { createWalletClient, type Abi, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 import { BID_TYPES, bidDomain, bidMessage, type Bid } from "../../shared/bid.ts";
-import { arc, arcTransport, assertMined, createArcClient } from "./chain.ts";
+import { arc } from "../../shared/chain.ts";
+import { arcTransport, assertMined, createArcClient } from "./chain.ts";
 import { createCircleAgentSigner } from "./circle.ts";
 
 /**

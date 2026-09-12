@@ -1,3 +1,5 @@
+import { defineChain } from "viem";
+
 /**
  * The Arc testnet, confirmed by `eth_chainId` against the public RPC.
  *
@@ -7,3 +9,16 @@
  * import from this directory.
  */
 export const ARC_CHAIN_ID = 5042002;
+
+/**
+ * Arc testnet as viem wants it. Every client in the repository is built from this one definition,
+ * so no reader can sign or read against a chain id the rest disagrees with.
+ */
+export function arc(rpcUrl: string) {
+  return defineChain({
+    id: ARC_CHAIN_ID,
+    name: "Arc testnet",
+    nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 6 },
+    rpcUrls: { default: { http: [rpcUrl] } },
+  });
+}

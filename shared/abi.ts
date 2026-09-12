@@ -1,5 +1,22 @@
-/** The slice of `SealedAuction` an agent touches: one event it listens to, the reads and the write. */
+/**
+ * The one description of `SealedAuction` and of the USDC token, shared by every TypeScript reader.
+ *
+ * Suppliers and the buyer touch different halves of the contract, and two copies of one function's
+ * inputs is two chances to encode calldata the chain rejects. The Solidity source is the origin of
+ * both, so they live together and drift together or not at all.
+ */
 export const sealedAuctionAbi = [
+  {
+    type: "event",
+    name: "AuctionCreated",
+    inputs: [
+      { name: "auctionId", type: "bytes32", indexed: true },
+      { name: "buyer", type: "address", indexed: true },
+      { name: "createdAt", type: "uint64", indexed: false },
+      { name: "bidDeadline", type: "uint64", indexed: false },
+      { name: "finalizeDeadline", type: "uint64", indexed: false },
+    ],
+  },
   {
     type: "event",
     name: "TermsPublished",
@@ -24,6 +41,29 @@ export const sealedAuctionAbi = [
   },
   {
     type: "function",
+    name: "createAuction",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "policyHash", type: "bytes32" },
+      {
+        name: "requirements",
+        type: "tuple",
+        components: [
+          { name: "city", type: "string" },
+          { name: "checkin", type: "string" },
+          { name: "checkout", type: "string" },
+          { name: "minStars", type: "uint8" },
+          { name: "roomType", type: "string" },
+          { name: "numberOfRooms", type: "uint8" },
+          { name: "tradeDownStars", type: "uint8" },
+        ],
+      },
+      { name: "payoutCap", type: "uint256" },
+    ],
+    outputs: [{ name: "auctionId", type: "bytes32" }],
+  },
+  {
+    type: "function",
     name: "commit",
     stateMutability: "nonpayable",
     inputs: [
@@ -31,6 +71,20 @@ export const sealedAuctionAbi = [
       { name: "commitment", type: "bytes32" },
     ],
     outputs: [],
+  },
+  {
+    type: "function",
+    name: "commitments",
+    stateMutability: "view",
+    inputs: [{ type: "bytes32" }],
+    outputs: [{ type: "bytes32[]" }],
+  },
+  {
+    type: "function",
+    name: "committers",
+    stateMutability: "view",
+    inputs: [{ type: "bytes32" }],
+    outputs: [{ type: "address[]" }],
   },
   {
     type: "function",
@@ -72,7 +126,7 @@ export const sealedAuctionAbi = [
   },
 ] as const;
 
-/** Only the approval an agent needs before `commit` pulls its stake. */
+/** Only the approval the escrow needs before it pulls a stake or a payout cap. */
 export const usdcAbi = [
   {
     type: "function",
