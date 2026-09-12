@@ -104,6 +104,13 @@ export const sealedAuctionAbi = [
   },
   {
     type: "function",
+    name: "pendingSettlement",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "bytes32" }],
+  },
+  {
+    type: "function",
     name: "commitments",
     stateMutability: "view",
     inputs: [{ type: "bytes32" }],
