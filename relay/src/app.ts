@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 
 const MAX_SEALED_BID_BYTES = 16 * 1024;
 
@@ -17,6 +18,10 @@ export function createRelayApp(): Hono {
   const bids = new Map<string, Map<string, string>>();
 
   const app = new Hono();
+
+  // The page reads the sealed bids from a browser on another origin. Everything served here is
+  // already public: the store holds ciphertext and no authentication guards it.
+  app.use("/auctions/*", cors());
 
   // A supplier submits its sealed bid. First write wins, because the commitment is already on
   // chain: a later write could only swap the bid behind a fixed commitment, which the enclave drops.
