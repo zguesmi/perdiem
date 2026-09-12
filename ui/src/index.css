@@ -1,3 +1,7 @@
+/*
+ * The base the page is built on: the palette, the type scale and the spacing rhythm, each stated
+ * once. Three type sizes, one accent, one hairline border, and structure from whitespace.
+ */
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -5,31 +9,17 @@
   --border: #e5e4e7;
   --code-bg: #f4f3ec;
   --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Every margin, gap and padding on the page is this step or a multiple of it. */
+  --step: 8px;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  color-scheme: light dark;
 }
 
+/* The page is read in dark mode as often as in light, so every colour is defined in both. */
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #9ca3af;
@@ -38,74 +28,130 @@
     --border: #2e303a;
     --code-bg: #1f2028;
     --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  font: 18px/1.45 var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The one column. Nothing else sets a width or an alignment. */
+main {
+  box-sizing: border-box;
+  margin: 0 auto;
+  max-width: 46rem;
+  padding: calc(var(--step) * 4) calc(var(--step) * 2) calc(var(--step) * 8);
+  text-align: left;
 }
 
 h1,
 h2 {
-  font-family: var(--heading);
-  font-weight: 500;
   color: var(--text-h);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+.lede {
+  margin-top: var(--step);
+}
+
+/* The third size: a note, a label, and anything set in mono. */
+.note,
+.field .label,
+code {
+  font-size: 15px;
+}
+
+.note {
+  margin: var(--step) 0;
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
   background: var(--code-bg);
+  border-radius: 4px;
+  color: var(--text-h);
+  font-family: var(--mono);
+  padding: 0 var(--step);
+}
+
+a {
+  color: inherit;
+}
+
+section {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-top: calc(var(--step) * 2);
+  padding: calc(var(--step) * 2);
+}
+
+/* Label left, value right, so a column of hashes reads down the page. */
+.field {
+  display: flex;
+  gap: calc(var(--step) * 2);
+  justify-content: space-between;
+  padding: var(--step) 0;
+}
+
+.field .label {
+  white-space: nowrap;
+}
+
+.row + .row {
+  border-top: 1px solid var(--border);
+  margin-top: var(--step);
+  padding-top: var(--step);
+}
+
+.error {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 4px;
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: 15px;
+  margin-top: calc(var(--step) * 2);
+  padding: var(--step) calc(var(--step) * 2);
+}
+
+textarea {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+  margin: var(--step) 0;
+  padding: var(--step);
+  resize: vertical;
+  width: 100%;
+}
+
+button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  margin-right: var(--step);
+  padding: var(--step) calc(var(--step) * 2);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
