@@ -29,10 +29,30 @@ test("the live step is the auction's own state, and every earlier step is done",
 });
 
 test("a terminal auction leaves no step live", () => {
-  for (const state of ["Finalized", "Timeout"] as const) {
-    const statuses = steps(auction(state), NOW).map((step) => step.status);
-    assert.deepEqual(statuses, ["done", "done", "done", "done"], state);
-  }
+  const finalized = steps(auction("Finalized"), NOW).map((step) => step.status);
+  assert.deepEqual(finalized, ["done", "done", "done", "done"]);
+
+  const timedOut = steps(auction("Timeout"), NOW).map((step) => step.status);
+  assert.ok(!timedOut.includes("live"));
+});
+
+test("a timed-out auction leaves the steps it never reached pending", () => {
+  const fromCreated = steps(auction("Timeout"), NOW);
+  assert.deepEqual(
+    fromCreated.map((step) => step.status),
+    ["done", "pending", "pending", "done"],
+  );
+  assert.equal(fromCreated[2]?.line, "Never claimed");
+
+  const fromBidding = auction("Timeout", { bids: [{ commitment: "0x05" }] });
+  assert.deepEqual(
+    steps(fromBidding, NOW).map((step) => step.status),
+    ["done", "done", "pending", "done"],
+  );
+});
+
+test("the bid countdown shows before the first commit opens bidding", () => {
+  assert.equal(steps(auction("Created"), NOW)[1]?.line, "0 suppliers committed, 1:30 left");
 });
 
 test("timeout replaces the last step rather than adding a fifth", () => {
@@ -44,11 +64,7 @@ test("timeout replaces the last step rather than adding a fifth", () => {
 
 test("the live bidding step counts the commitments and the time left", () => {
   const bidding = auction("Bidding", {
-    bids: [
-      { commitment: "0x05" },
-      { commitment: "0x06" },
-      { commitment: "0x07" },
-    ],
+    bids: [{ commitment: "0x05" }, { commitment: "0x06" }, { commitment: "0x07" }],
   });
   assert.equal(steps(bidding, NOW)[1]?.line, "3 suppliers committed, 1:30 left");
 });
@@ -57,7 +73,7 @@ test("a step that has nothing to report still says what it waits for", () => {
   const lines = steps(auction("Created"), NOW).map((step) => step.line);
   assert.deepEqual(lines, [
     "750 USDC locked in escrow",
-    "0 suppliers committed",
+    "0 suppliers committed, 1:30 left",
     "Claimed once bidding closes",
     "Paid against the policy hash",
   ]);

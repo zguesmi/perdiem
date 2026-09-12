@@ -29,13 +29,42 @@ export function steps(auction: AuctionView, now: number): Step[] {
       : NAMES.findIndex((name) => name === auction.state);
 
   return NAMES.map((name, index) => {
-    const status = terminal || index < current ? "done" : index === current ? "live" : "pending";
+    const status = statusOf(auction, index, current, terminal);
     return {
       name: index === NAMES.length - 1 && auction.state === "Timeout" ? "Timeout" : name,
       status,
       line: line(auction, index, status, now),
     };
   });
+}
+
+/**
+ * A timed-out auction refunded from wherever it stopped, so the steps it never reached stay pending.
+ * Marking them done would claim a scoring run that never happened.
+ */
+function statusOf(
+  auction: AuctionView,
+  index: number,
+  current: number,
+  terminal: boolean,
+): Step["status"] {
+  if (auction.state === "Timeout") {
+    return index === NAMES.length - 1 || reached(auction, index) ? "done" : "pending";
+  }
+  if (terminal) {
+    return "done";
+  }
+  return index < current ? "done" : index === current ? "live" : "pending";
+}
+
+function reached(auction: AuctionView, index: number): boolean {
+  if (index === 1) {
+    return auction.bids.length > 0;
+  }
+  if (index === 2) {
+    return auction.claimedTransaction !== undefined;
+  }
+  return true;
 }
 
 function line(auction: AuctionView, index: number, status: Step["status"], now: number): string {
@@ -45,19 +74,30 @@ function line(auction: AuctionView, index: number, status: Step["status"], now: 
     case 1:
       return bidding(auction, status, now);
     case 2:
-      if (status === "live") {
-        return `${countdown(auction.finalizeDeadline, now)} before refunds open`;
-      }
-      return status === "done" ? "Scored inside the enclave" : "Claimed once bidding closes";
+      return settling(auction, status, now);
     default:
       return settled(auction, status);
   }
 }
 
+/** The deadline runs from creation, so the countdown shows before the first commit opens bidding. */
 function bidding(auction: AuctionView, status: Step["status"], now: number): string {
   const count = auction.bids.length;
   const committed = `${count} ${count === 1 ? "supplier" : "suppliers"} committed`;
-  return status === "live" ? `${committed}, ${countdown(auction.bidDeadline, now)} left` : committed;
+  if (status === "done" || isTerminal(auction.state)) {
+    return committed;
+  }
+  return `${committed}, ${countdown(auction.bidDeadline, now)} left`;
+}
+
+function settling(auction: AuctionView, status: Step["status"], now: number): string {
+  if (status === "live") {
+    return `${countdown(auction.finalizeDeadline, now)} before refunds open`;
+  }
+  if (auction.claimedTransaction) {
+    return "Scored inside the enclave";
+  }
+  return isTerminal(auction.state) ? "Never claimed" : "Claimed once bidding closes";
 }
 
 function settled(auction: AuctionView, status: Step["status"]): string {
