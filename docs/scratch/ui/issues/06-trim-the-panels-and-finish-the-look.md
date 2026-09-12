@@ -1,6 +1,6 @@
 # Trim the panels and finish the look
 
-Status: ready-for-agent Type: task Blocked by: 03, 04, 05
+Status: resolved Type: task Blocked by: 03, 04, 05
 
 With the stepper, the transaction rows and the balances in place, several facts appear twice: the
 state, both deadlines, the payout cap, the winner, the payout and every transaction hash.
@@ -9,9 +9,9 @@ Every fact appears once. The panels keep what only they can say: the policy hash
 requirements, the buyer, the commitment hashes, the ciphertext sizes, the bids root and the booking
 id.
 
-Then one pass over the whole page against `docs/scratch/ui/spec.md`, with the auction in each of
-its states. The page is minimal: fewer lines, more space, one accent. It is not sparse: no state
-leaves a viewer wondering what is happening or what happens next.
+Then one pass over the whole page against `docs/scratch/ui/spec.md`, with the auction in each of its
+states. The page is minimal: fewer lines, more space, one accent. It is not sparse: no state leaves
+a viewer wondering what is happening or what happens next.
 
 ## Acceptance criteria
 
@@ -23,5 +23,11 @@ leaves a viewer wondering what is happening or what happens next.
       `Finalized` and `Timeout`, in both colour schemes.
 - [ ] A screenshot of `Bidding` and one of `Finalized` are attached to this ticket.
 - [ ] `ui/README.md` describes the page as it now is.
+
+## Screenshots
+
+![Bidding](../screenshots/bidding.png)
+
+![Finalized](../screenshots/finalized.png)
 
 ## Comments
