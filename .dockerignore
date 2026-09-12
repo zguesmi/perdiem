@@ -1,0 +1,22 @@
+# Everything an image builds from is a source file or a manifest. Dependencies are installed in the
+# image, and secrets reach it through a mount at run time, never through a layer.
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.github
+.husky
+.claude
+.vscode
+.pnpm-store
+.pnpm-cache
+docs
+onchain/artifacts
+onchain/cache
+onchain/ignition/deployments
+.env
+.env.*
+*.log
+*.local
+*.local.*

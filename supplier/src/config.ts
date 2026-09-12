@@ -82,7 +82,12 @@ export const walletSchema = z
       .string()
       .regex(/^0x[0-9a-fA-F]{64}$/)
       .optional(),
-    CIRCLE_WALLET_ADDRESS: addressSchema.optional(),
+    // An environment file carries a variable it has no value for as an empty string, and a local
+    // signer never fills this one in, so empty means absent.
+    CIRCLE_WALLET_ADDRESS: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      addressSchema.optional(),
+    ),
   })
   .transform((environment, ctx): Wallet => {
     if (environment.AGENT_SIGNER === "circle") {
