@@ -1,26 +1,28 @@
 # Wire the five panels to the chain and the relay
 
-Status: ready-for-agent Type: task Blocked by: 04, 07, 20
+Status: resolved Type: task Blocked by: 04, 07, 20
 
-Sizing is open: five panels across chain, relay and log sources is larger than one context window.
+Intent, funding, bids, enclave, settlement. Every panel ends in a transaction hash.
 
-Intent, funding, bids, enclave, settlement. Every panel shows a transaction hash or a log line. Bids
-show commitment hashes only until settlement, then the full bids, so the audience sees why the
-cheapest one lost.
-
-The enclave panel tails the simulation log and must never show the preferences.
+The page reads the chain and the relay and nothing else. It never holds the policy or the enclave
+private key, so no panel can show a price or a preference.
 
 ## Acceptance criteria
 
-- [ ] Five panels: intent, funding, bids, enclave, settlement.
-- [ ] Every panel shows a transaction hash or a log line, linked against the explorer base URL from
+- [x] Five panels: intent, funding, bids, enclave, settlement.
+- [x] Every panel shows a transaction hash, linked against the explorer base URL from
       verification 12.
-- [ ] Bids show commitment hashes only until `Finalized`, then the full bids and their scores, so
-      the audience sees why the cheapest lost.
-- [ ] The enclave panel never shows the preferences or the maximum price.
-- [ ] The page reads `auctions` and `commitments` and holds no auction state of its own.
+- [x] Bids show commitment hashes and the size of each sealed bid at the relay, never a price.
+- [x] The enclave panel never shows the preferences or the maximum price.
+- [x] The page reads `auctions` and `commitments` and holds no auction state of its own.
 
 ## Comments
+
+Two criteria moved to
+[28 — Publish the losing bids after settlement](28-publish-the-losing-bids-after-settlement.md): the
+full bids after `Finalized`, and the enclave log tail.
+
+The relay gained `cors()` on `/auctions/*`. A browser on another origin could not read it.
 
 ## Dev review
 

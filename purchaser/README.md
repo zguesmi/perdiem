@@ -17,7 +17,8 @@ minor units for this trip, so the buyer confirms concrete numbers and no formula
 Dates come from the sentence alone. The model is told no date and guesses no year: a sentence with
 no year gets no Policy, because a wrong year would be hashed onto a public ledger.
 
-Intent parsing runs on `claude-opus-5`. Set `INTENT_MODEL` to move it. This is the model that reads
+Its environment lives in the repository root, in the `.env.<network>` file the rest of the demo
+reads. Intent parsing runs on `claude-opus-5`. Set `INTENT_MODEL` to move it. This is the model that reads
 a buyer's sentence at runtime, which is a different fact from the model used to build the project.
 
 The model client is injected into `createPurchaserApp`, so every test drives the service with a

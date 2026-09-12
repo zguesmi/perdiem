@@ -22,7 +22,7 @@ Requires Node 22 or later and pnpm 12.3.4 (`corepack enable` picks up the pinned
 ```sh
 pnpm install                  # the workspace: onchain, purchaser, relay, supplier, ui
 pnpm --dir workflow-cre install   # workflow-cre/ is outside the workspace and installs on its own
-cp .env.example .env
+cp .env.localhost.example .env.localhost
 ```
 
 ## Commands
@@ -68,8 +68,8 @@ One script runs the first half of the flow on a local node and stops at the last
 
 It starts a Hardhat node, deploys, starts the relay, starts the three agents, opens an auction
 against `referencePolicy`, and waits for three commitments on chain and three ciphertexts at the
-relay. It needs `ANTHROPIC_API_KEY` and the booking credentials in `.env`, because the agents price
-with a model. Scoring, settlement and the booking are not in it.
+relay. It needs `ANTHROPIC_API_KEY` and the booking credentials in `.env.localhost`, because the
+agents price with a model. Scoring, settlement and the booking are not in it.
 
 The test suites are red on purpose. They state the behaviour each package owes before it is written;
 every package README says what its own red tests are waiting on.
