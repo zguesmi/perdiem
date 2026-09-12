@@ -128,6 +128,7 @@ export function createClient(config: Config): PublicClient {
 export async function readAuction(
   client: PublicClient,
   config: Config,
+  lastBalances?: Map<string, bigint>,
 ): Promise<AuctionView | null> {
   const logs = parseEventLogs({
     abi: sealedAuctionAbi,
@@ -152,9 +153,10 @@ export async function readAuction(
   const contract = { address: config.sealedAuction, abi: sealedAuctionAbi } as const;
   // The token comes from the contract rather than from configuration: it is immutable there, and a
   // configured address is one more thing that can disagree with the auction it claims to fund.
-  const [auction, commitments, bidsRoot, usdc] = await Promise.all([
+  const [auction, commitments, committers, bidsRoot, usdc] = await Promise.all([
     client.readContract({ ...contract, functionName: "auctions", args: [auctionId] }),
     client.readContract({ ...contract, functionName: "commitments", args: [auctionId] }),
+    client.readContract({ ...contract, functionName: "committers", args: [auctionId] }),
     client.readContract({ ...contract, functionName: "bidsRoot", args: [auctionId] }),
     client.readContract({ ...contract, functionName: "usdc" }),
   ]);
@@ -167,11 +169,7 @@ export async function readAuction(
   const committed = forThisAuction.filter((log) => log.eventName === "Committed");
   const [sealed, balances] = await Promise.all([
     readSealedBids(config, auctionId),
-    readBalances(client, usdc, [
-      config.sealedAuction,
-      auction[1],
-      ...committed.map((log) => log.args.supplier),
-    ]),
+    readBalances(client, usdc, [config.sealedAuction, auction[1], ...committers], lastBalances),
   ]);
 
   return {
@@ -188,9 +186,11 @@ export async function readAuction(
     bidsRoot,
     claimedTransaction: claimed && transaction(claimed),
     relayReachable: sealed !== undefined,
-    bids: commitments.map((commitment) => {
-      const log = committed.find((entry) => entry.args.commitment === commitment);
-      const supplier = log?.args.supplier;
+    bids: commitments.map((commitment, index) => {
+      // By index, not by commitment value: `commit` is once per address, not once per commitment,
+      // so a supplier can stake behind a commitment another supplier already placed.
+      const supplier = committers[index];
+      const log = committed.find((entry) => entry.args.supplier === supplier);
       return {
         commitment,
         supplier,
@@ -210,27 +210,39 @@ export async function readAuction(
 }
 
 /**
- * One `balanceOf` per address, in one batch of reads. A failure here fails the whole poll, which
- * leaves the last balances on screen rather than blanking the panel.
+ * One `balanceOf` per address, in one batch of reads.
+ *
+ * A read that fails keeps the balance the last poll saw, and never rejects: one unreadable address
+ * would otherwise fail every poll and freeze the whole page, not just this panel.
  */
 async function readBalances(
   client: PublicClient,
   usdc: Address,
-  addresses: Address[],
+  addresses: readonly Address[],
+  last?: Map<string, bigint>,
 ): Promise<Map<string, bigint>> {
   const wanted = [...new Set(addresses.map((address) => address.toLowerCase()))] as Address[];
   const balances = await Promise.all(
-    wanted.map((address) =>
-      client.readContract({
-        address: usdc,
-        abi: usdcAbi,
-        functionName: "balanceOf",
-        args: [address],
-      }),
-    ),
+    wanted.map(async (address) => {
+      try {
+        return await client.readContract({
+          address: usdc,
+          abi: usdcAbi,
+          functionName: "balanceOf",
+          args: [address],
+        });
+      } catch {
+        return last?.get(address);
+      }
+    }),
   );
 
-  return new Map(wanted.map((address, index) => [address, balances[index] as bigint]));
+  return new Map(
+    wanted.flatMap((address, index) => {
+      const balance = balances[index];
+      return balance === undefined ? [] : [[address, balance] as const];
+    }),
+  );
 }
 
 /** A log carries both halves of a transaction row, so nothing has to be read back per hash. */
