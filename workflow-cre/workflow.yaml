@@ -1,0 +1,6 @@
+staging-settings:
+  user-workflow:
+    workflow-name: "perdiem"
+  workflow-artifacts:
+    workflow-path: "./src/main.ts"
+    config-path: "./config.json"

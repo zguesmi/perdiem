@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "simulate": "cre workflow simulate . --non-interactive --trigger-index 0 -e ../.env.arcTestnet",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },
@@ -12,5 +13,9 @@
     "@types/node": "^22.20.1",
     "tsx": "^4.23.13",
     "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "@chainlink/cre-sdk": "1.20.0",
+    "zod": "^4.5.4"
   }
 }

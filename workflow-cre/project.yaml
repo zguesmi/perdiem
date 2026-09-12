@@ -1,0 +1,9 @@
+# The CRE CLI reads this file to resolve `--target`. One target, because nothing is deployed and
+# every run goes through `cre workflow simulate`.
+#
+# The RPC is Arc testnet. The confidential handler reads the auction's commitments from
+# `SealedAuction` through it, so the URL has to resolve on the machine the simulator runs on.
+staging-settings:
+  rpcs:
+    - chain-name: arc-testnet
+      url: ${ARC_RPC_URL}
