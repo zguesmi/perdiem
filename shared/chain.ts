@@ -7,3 +7,10 @@
  * import from this directory.
  */
 export const ARC_CHAIN_ID = 5042002;
+
+/**
+ * USDC on Arc has six decimals, confirmed against the deployed token. Every amount in a Policy, a
+ * Bid and a Settlement is an integer count of minor units, so this converts for display and for
+ * nothing else.
+ */
+export const USDC_DECIMALS = 6;
