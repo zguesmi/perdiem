@@ -183,7 +183,7 @@ if (command === "create") {
   // change no state. The gas figures are fixed rather than estimated: `createAuction` reverts
   // until the approval it needs is mined, and an estimate is not what the policy reads anyway.
   const cases = [
-    ["approve 250 to the auction", policyWallet, approve(sealedAuction, 250_000_000n), [], "signed"],
+    ["approve the maximum cap to the auction", policyWallet, approve(sealedAuction, environment.MAX_PAYOUT_CAP), [], "signed"],
     ["approve the maximum cap to a spender the policy never names", policyWallet, approve(wrongSpender, environment.MAX_PAYOUT_CAP), [], "refused"],
     ["approve above the maximum cap", policyWallet, approve(sealedAuction, environment.MAX_PAYOUT_CAP + 1n), [], "refused"],
     ["createAuction above the maximum cap", policyWallet, createAuction(environment.MAX_PAYOUT_CAP + 1n), [], "refused"],
