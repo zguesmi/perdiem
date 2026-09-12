@@ -11,7 +11,8 @@
 #
 #   ./scripts/demo-sealed-bidding.sh
 #
-# It needs `.env` with ANTHROPIC_API_KEY, the buyer's and the three suppliers' private keys, and
+# It needs `.env.localhost` with ANTHROPIC_API_KEY, the buyer's and the three suppliers' private
+# keys, and
 # the booking credentials. Every process it starts is its own, and it stops all of them on the way
 # out, so it runs twice in a row with no cleanup.
 set -euo pipefail
@@ -74,13 +75,14 @@ echo "service logs in ${LOGS}"
 
 set -a
 # shellcheck disable=SC1091
-source .env
+source .env.localhost
 set +a
-: "${ANTHROPIC_API_KEY:?set it in .env; the agents price with a model}"
-: "${BOOKING_URL:?set it in .env; it is sealed into every bid}"
-: "${BOOKING_API_KEY:?set it in .env; it is sealed into every bid}"
+: "${ANTHROPIC_API_KEY:?set it in .env.localhost; the agents price with a model}"
+: "${BOOKING_URL:?set it in .env.localhost; it is sealed into every bid}"
+: "${BOOKING_API_KEY:?set it in .env.localhost; it is sealed into every bid}"
 
-# The local node, not Arc, and the local relay. These override whatever `.env` points at.
+# The local node, not Arc, and the local relay. These override whatever `.env.localhost` points
+# at.
 export ARC_RPC_URL=${RPC_URL}
 export RELAY_URL
 
@@ -101,10 +103,11 @@ echo "chain id ${ARC_CHAIN_ID}"
 step "Deploy MockUSDC and SealedAuction"
 (cd onchain && npx hardhat run scripts/deploy.ts --network localhost) >"${LOGS}/deploy.log" 2>&1
 grep -E '^(SealedAuction|USDC) ' "${LOGS}/deploy.log"
-# The deployment writes the addresses to `.env`, so they are read back rather than parsed out.
+# The deployment writes the addresses to `.env.localhost`, so they are read back rather than
+# parsed out.
 set -a
 # shellcheck disable=SC1091
-source .env
+source .env.localhost
 set +a
 export ARC_RPC_URL=${RPC_URL}
 

@@ -1,9 +1,10 @@
 /**
  * The one description of `SealedAuction` and of the USDC token, shared by every TypeScript reader.
  *
- * Suppliers and the buyer touch different halves of the contract, and two copies of one function's
- * inputs is two chances to encode calldata the chain rejects. The Solidity source is the origin of
- * both, so they live together and drift together or not at all.
+ * The suppliers, the buyer and the page each touch a different part of the contract, and two
+ * copies of one function's inputs is two chances to encode calldata the chain rejects. The
+ * Solidity source is the origin of all of them, so they live together and drift together or not
+ * at all.
  */
 export const sealedAuctionAbi = [
   {
@@ -38,6 +39,35 @@ export const sealedAuctionAbi = [
         ],
       },
     ],
+  },
+  {
+    type: "event",
+    name: "Committed",
+    inputs: [
+      { name: "auctionId", type: "bytes32", indexed: true },
+      { name: "supplier", type: "address", indexed: true },
+      { name: "commitment", type: "bytes32", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "AuctionClaimed",
+    inputs: [{ name: "auctionId", type: "bytes32", indexed: true }],
+  },
+  {
+    type: "event",
+    name: "AuctionFinalized",
+    inputs: [
+      { name: "auctionId", type: "bytes32", indexed: true },
+      { name: "winner", type: "address", indexed: true },
+      { name: "payout", type: "uint256", indexed: false },
+      { name: "bookingId", type: "string", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "AuctionTimedOut",
+    inputs: [{ name: "auctionId", type: "bytes32", indexed: true }],
   },
   {
     type: "function",
@@ -85,6 +115,13 @@ export const sealedAuctionAbi = [
     stateMutability: "view",
     inputs: [{ type: "bytes32" }],
     outputs: [{ type: "address[]" }],
+  },
+  {
+    type: "function",
+    name: "bidsRoot",
+    stateMutability: "view",
+    inputs: [{ name: "auctionId", type: "bytes32" }],
+    outputs: [{ type: "bytes32" }],
   },
   {
     type: "function",

@@ -128,7 +128,8 @@ the default.
 
 `config/<name>.json` holds what is this supplier's own: the hotel, the price range, the model and
 the effort. Where the agent reads and writes is one deployment shared by all three, so it comes from
-the environment.
+the environment. Every value comes from the repository root file for the network, `.env.localhost`
+or `.env.arcTestnet`.
 
 | Variable                 | What it is                                          |
 | ------------------------ | --------------------------------------------------- |
