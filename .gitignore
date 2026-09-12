@@ -16,3 +16,7 @@ onchain/ignition/deployments/*
 
 !docs/scratch/verification/evidence/*.log
 .claude/worktrees
+
+# The deployment run book and its ticket name the host, its ports and its session files.
+docs/scratch/deploy/
+docs/deploy.md
