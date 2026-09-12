@@ -91,9 +91,14 @@ services:
       context: .
       dockerfile: purchaser/Dockerfile
     image: perdiem/purchaser
-    depends_on: *deployed
+    depends_on:
+      deploy:
+        condition: service_completed_successfully
+      relay:
+        condition: service_healthy
     environment:
       ARC_RPC_URL: http://node:8545
+      RELAY_URL: http://relay:8787
     ports:
       - "8788:8788"
     volumes: *environment-file

@@ -3,15 +3,18 @@ import { z } from "zod";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
+import { sealPolicy } from "../../shared/sealed-policy.ts";
 import { payoutCapFor, type Funder } from "./funding.ts";
 import type { IntentAgent } from "./intent.ts";
+import type { PolicyUploader } from "./policy-upload.ts";
 import { PolicyRefusedError } from "./privy.ts";
 
 /**
  * The purchaser service is the buyer's side of the desk. It does two things and no more:
  *
  * 1. Turns one English sentence into a Policy, with a single model call and one retry at most.
- * 2. Hashes the Policy the buyer confirmed, and funds the auction that commits to that hash.
+ * 2. Hashes the Policy the buyer confirmed, seals it to the enclave, and funds the auction that
+ *    commits to that hash.
  */
 export interface PurchaserOptions {
   /**
@@ -25,11 +28,15 @@ export interface PurchaserOptions {
    * agent: the route tests drive the whole confirmation with no Privy app and no chain.
    */
   funder: Funder;
+  /** Where the sealed policy goes so the enclave can fetch it by the hash on chain. */
+  uploadPolicy: PolicyUploader;
   /**
    * The step the payout cap is rounded up to, in USDC minor units. It is what the cap leaks: the
    * band the maximum price falls in, and nothing sharper.
    */
   payoutCapBucket: bigint;
+  /** The deployment's X25519 public half, read from `SealedAuction`. The buyer seals to it. */
+  enclavePublicKey: Uint8Array;
 }
 
 /** A candidate that fails validation buys exactly one more model call. Then the request fails. */
@@ -62,7 +69,9 @@ async function body(context: Context): Promise<unknown> {
 export function createPurchaserApp({
   intentAgent,
   funder,
+  uploadPolicy,
   payoutCapBucket,
+  enclavePublicKey,
 }: PurchaserOptions): Hono {
   const app = new Hono();
 
@@ -100,6 +109,17 @@ export function createPurchaserApp({
     const policyHash = hashPolicy(policy.data);
     const requirements = publicRequirements(policy.data);
     const payoutCap = payoutCapFor(BigInt(policy.data.maxPrice), payoutCapBucket);
+
+    // Before the auction, never after: the enclave fetches the policy by the hash the chain
+    // carries, and an auction whose policy never arrived pays nobody and refunds on timeout.
+    const envelope = sealPolicy(policy.data, enclavePublicKey, policyHash);
+    try {
+      await uploadPolicy(policyHash, envelope);
+    } catch (reason) {
+      // The message, not the error: a stack from this path can carry the policy that failed.
+      console.error(`the sealed policy did not reach the relay: ${(reason as Error).message}`);
+      return context.json({ error: "the sealed policy did not reach the relay" }, 502);
+    }
 
     try {
       return context.json({

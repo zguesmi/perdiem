@@ -12,10 +12,10 @@ The live specification. It states what the demo builds and nothing else.
 A corporate travel desk states a booking need in one English sentence. A large language model turns
 it into a Policy: hard requirements, weighted preferences, and a maximum price. The buyer confirms
 once, and the Policy Hash lands on chain before any Bid exists. The buyer locks a Payout Cap in
-Escrow on Arc. The Policy goes into a Chainlink CRE confidential workflow as a secret. Supplier
-agents each submit one Sealed Bid. The Enclave scores them against the private Policy and reports
-only the winner, the Payout and the booking id. The contract pays the winner, refunds the rest, and
-refunds every Stake.
+Escrow on Arc. The Policy goes to the relay sealed to the enclave, and a Chainlink CRE confidential
+workflow opens it inside the Enclave. Supplier agents each submit one Sealed Bid. The Enclave scores
+them against the private Policy and reports only the winner, the Payout and the booking id. The
+contract pays the winner, refunds the rest, and refunds every Stake.
 
 The result that matters: three bids arrive, the cheapest loses, the second cheapest wins. The buyer
 pays more than the cheapest on purpose, for what the private Policy values.
@@ -47,7 +47,7 @@ not compared with the bid price, and no cancellation path exists.
 | `workflow-cre/` | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
 | `supplier/`     | Three supplier agents. A model prices, one tool executes                     |
 | `purchaser/`    | The buyer's service: intent parsing, policy commit, Privy funding            |
-| `relay/`        | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
+| `relay/`        | A blind store for the sealed Policy and the Sealed Bids. Serves the Enclave  |
 | `ui/`           | One page, five panels                                                        |
 | `shared/`       | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
 
@@ -56,9 +56,9 @@ not compared with the bid price, and no cancellation path exists.
 1. The buyer types one sentence. `purchaser/` makes one model call and returns a Policy, validated
    against its schema. One retry at most, then it fails.
 2. The buyer confirms. `purchaser/` canonicalizes the Policy and computes the Policy Hash.
-3. `purchaser/` uploads the Policy as a workflow secret, then calls `createAuction`, which pulls the
-   Payout Cap in the same call. State is `Created`. The enclave private key is not its business: an
-   independent party uploads that one.
+3. `purchaser/` seals the Policy to the enclave public key, puts it at the relay under the Policy
+   Hash, then calls `createAuction`, which pulls the Payout Cap in the same call. State is
+   `Created`. The enclave private key is not its business: an independent party holds that one.
 4. Privy signs that call from the organization wallet and `purchaser/` broadcasts it. Above the
    ceiling, the key quorum approves.
 5. Each agent builds one Bid, signs it with EIP-712, commits `keccak256(abi.encode(bidHash, salt))`
@@ -66,6 +66,7 @@ not compared with the bid price, and no cancellation path exists.
    order. The first commit moves the auction to `Bidding`.
 6. There is no reveal phase. See `docs/adr/0001-no-reveal-phase.md`.
 7. After `bidDeadline` the workflow claims the auction with a claim report. The Enclave fetches the
+   sealed Policy by the Policy Hash on chain and checks what it opens against that hash, fetches the
    Sealed Bids, decrypts them, checks each signature and each commitment, filters for Eligible,
    scores, picks a winner, and builds the Bids Root.
 8. The Enclave books the winner's hotel with the credentials sealed inside that bid, and reads the
@@ -109,6 +110,10 @@ regenerated fixture.
   They make a schema change a different hash, and they let a revealed Policy explain its numbers.
 - Canonical encoding is one function in `shared/`. The buyer and the Enclave call that one function,
   so their bytes agree by construction. See `docs/adr/0003-canonical-encoding.md`.
+- The Policy reaches the Enclave sealed, through the relay, keyed by the Policy Hash. It is not a
+  workflow secret: a secret holds one value for every auction and arrives unchecked, while the
+  Enclave checks a fetched Policy against the hash the chain already carries. See
+  `docs/adr/0008-the-policy-travels-through-the-relay.md`.
 
 Public Requirements, emitted in `TermsPublished`: city, checkin, checkout, minStars, roomType,
 numberOfRooms, `tradeDown.stars`. Never emitted: `maxPrice`, `tradeDown.requiredDiscountPercentage`,
@@ -207,12 +212,14 @@ enough that keccak256 brute-forces the commitment in seconds without it.
   contract-account supplier is checked with ERC-1271.
 
 The envelope is `epk(32) || nonce(24) || ciphertext`, with the key
-`HKDF-SHA256(X25519(esk, enclavePublicKey), epk || enclavePublicKey, "perdiem/sealed-bid/v1" || auctionId, 32)`
-and XChaCha20-Poly1305 over the JSON. One ephemeral keypair per bid. `@noble/curves`,
-`@noble/ciphers` and `@noble/hashes` on both sides, which `viem` already puts in the tree. Verified
-in a confidential handler, row V3: 11 ms per bid, 30 ms for three. A wrong key or one flipped byte
-fails with `invalid tag`. See `docs/adr/0005-sealed-bid-envelope-scheme.md` for the schemes this
-beat.
+`HKDF-SHA256(X25519(esk, enclavePublicKey), epk || enclavePublicKey, domain || binding, 32)` and
+XChaCha20-Poly1305 over the JSON. One scheme, in `shared/envelope.ts`, and two domains: a bid binds
+`"perdiem/sealed-bid/v1"` to its `auctionId`, a Policy binds `"perdiem/sealed-policy/v1"` to its
+Policy Hash, so neither ciphertext opens as the other. One ephemeral keypair per envelope.
+`@noble/curves`, `@noble/ciphers` and `@noble/hashes` on both sides, which `viem` already puts in
+the tree. Verified in a confidential handler, row V3: 11 ms per bid, 30 ms for three. A wrong key or
+one flipped byte fails with `invalid tag`. See `docs/adr/0005-sealed-bid-envelope-scheme.md` for the
+schemes this beat.
 
 The keypair is generated by an independent party, neither the buyer nor any supplier, and only the
 public half reaches the deployment. Whoever holds the private half can read every Sealed Bid and
@@ -229,6 +236,8 @@ auction state.
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `PUT /auctions/{auctionId}/bids/{supplier}` | Body is the raw ciphertext. `201` on the first write for that pair, `409` on any later one, `413` over 16 KiB |
 | `GET /auctions/{auctionId}/bids`            | `200` with `[{ supplier, ciphertext }]`, in arrival order. `[]` for an unknown auction                        |
+| `PUT /policies/{policyHash}`                | Body is the raw ciphertext. `201` on the first write for that hash, `409` on any later one, `413` over 16 KiB |
+| `GET /policies/{policyHash}`                | `200` with the ciphertext as it was written. `404` for a hash it never saw                                    |
 
 First write wins, because the commitment is already on chain: overwriting would only swap the bid
 behind a fixed commitment, which the Enclave then drops. No delete, no auction listing.
@@ -469,9 +478,10 @@ no-winner path; the timeout path.
 - A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`,
   exit.
 - Claim the auction with an action `1` report before any scoring work.
-- Inside `handlerInTee`: load the Policy and the enclave private key from secrets; read the
-  commitments from the chain; fetch the Sealed Bids with `cre.capabilities.HTTPClient`; decrypt;
-  check signatures; check commitments; build the Bids Root; score; book the winner; return only the
+- Inside `handlerInTee`: load the enclave private key from secrets; read the Policy Hash and the
+  commitments from the chain; fetch the sealed Policy from the relay by that hash and check what it
+  opens against it; fetch the Sealed Bids with `cre.capabilities.HTTPClient`; decrypt; check
+  signatures; check commitments; build the Bids Root; score; book the winner; return only the
   Settlement.
 - The same `HTTPClient.sendRequest` carries the booking, with `method` and a `body`. The capability
   caps a request at 120 KB and a response at 250 KB, and times out at 10 s per request, so every
@@ -487,10 +497,8 @@ capability runs in the CLI's own process, so localhost resolves, plain HTTP is a
 allow list exists. Verified in row V13. A deployed workflow cannot reach a developer's machine, so a
 deployed demo needs the relay on a public host.
 
-Secrets are environment variables named in `secrets.yaml`, and `cre workflow simulate` needs
-`-e .env` to resolve them. One secret holds at most 131,072 bytes, which is the operating system's
-`exec` limit rather than a CRE limit. The Policy is 425 characters and the enclave private key
-is 44. Verified in row V4.
+The only secret is `ENCLAVE_PRIVATE_KEY`, 44 characters. Secrets are environment variables named in
+`secrets.yaml`, and `cre workflow simulate` needs `-e .env` to resolve them. Verified in row V4.
 
 Never logged outside the enclave section: the Policy, the maximum price, the preferences, the
 enclave private key, any decrypted Bid, any supplier's booking credentials. Grep the logs before
@@ -569,8 +577,10 @@ Verified on Arc testnet, row V7:
   validated. One retry, then it fails. The buyer approves the summary and the Policy is what gets
   hashed, so nothing the model wrote in prose reaches the chain. The model client is injected, so
   the route tests run against a canned answer with no network.
-- `POST /confirm` — canonicalize, hash, upload the Policy as a workflow secret, call `createAuction`
-  with the Payout Cap. It never holds the enclave private key.
+- `POST /confirm` — canonicalize, hash, seal the Policy to `SealedAuction.enclavePublicKey()` and
+  put it at the relay under the hash, then call `createAuction` with the Payout Cap. The upload is
+  first: an auction whose Policy never arrived pays nobody. A relay that refuses it answers the
+  buyer 502 and opens no auction. It never holds the enclave private key.
 - Privy: the organization wallet signs with `eth_signTransaction` and the purchaser service
   broadcasts the signed RLP to `ARC_RPC_URL`. Privy does not broadcast on Arc: `eth_sendTransaction`
   returns `App is not authorized to transact on chain eip155:5042002`.

@@ -44,8 +44,8 @@ Both targets exist and both simulate. They differ by name only, because nothing 
 
 ```yaml
 secretsNames:
-  POLICY:
-    - POLICY
+  ENCLAVE_PRIVATE_KEY:
+    - ENCLAVE_PRIVATE_KEY
 ```
 
 The file holds no values. The CLI reads them from the process environment, so the `.env` has to be
@@ -55,11 +55,14 @@ script passes `../.env.arcTestnet`.
 Three rules the CLI enforces, all of them at compile time rather than at run time:
 
 - Every variable named in `secrets.yaml` must exist, whether or not a handler reads it. A missing
-  one fails with `environment variable POLICY for secret value not found`.
-- An empty value is accepted. That is what keeps `POLICY=` in the `.env` while the handler that
-  reads it is still being written.
-- One secret holds at most 131,072 bytes, which is the operating system's `exec` limit. The Policy
-  is 425 characters and the enclave private key is 44.
+  one fails with `environment variable ENCLAVE_PRIVATE_KEY for secret value not found`.
+- An empty value is accepted. That is what keeps `ENCLAVE_PRIVATE_KEY=` in the `.env` while the
+  handler that reads it is still being written.
+- One secret holds at most 131,072 bytes, which is the operating system's `exec` limit. The enclave
+  private key is 44 characters.
+
+The enclave private key is the only secret. The Policy reaches the handler sealed, through the
+relay, keyed by its Policy Hash. See `docs/adr/0008-the-policy-travels-through-the-relay.md`.
 
 Inside the handler, `runtime.getSecret({ id }).result().value` returns the text. On a deployment the
 Vault DON releases it straight into the attested enclave; in simulation there is no enclave, so

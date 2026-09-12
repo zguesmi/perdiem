@@ -1,10 +1,14 @@
 import { serve } from "@hono/node-server";
+import { createPublicClient, hexToBytes, http } from "viem";
 import { z } from "zod";
 
+import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { addressSchema } from "../../shared/bid.ts";
+import { arc } from "../../shared/chain.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
 import { createIntentAgent } from "./intent.ts";
+import { createPolicyUploader } from "./policy-upload.ts";
 import { createPrivyWallet } from "./privy.ts";
 
 /** A comma-separated list of authorization keys, in the order the quorum expects them. */
@@ -26,6 +30,7 @@ const environment = z
 
     ARC_RPC_URL: z.url(),
     SEALED_AUCTION_ADDRESS: addressSchema,
+    RELAY_URL: z.url(),
     /**
      * The step the payout cap is rounded up to, and the largest cap the spend policy will sign.
      * Both in USDC minor units. Privy refuses a `createAuction` above the maximum.
@@ -53,8 +58,20 @@ function organizationWallet(walletId: string) {
   });
 }
 
+/** One keypair per deployment, so the public half is read once at start and never again. */
+const enclavePublicKey = await createPublicClient({
+  chain: arc(environment.ARC_RPC_URL),
+  transport: http(environment.ARC_RPC_URL),
+}).readContract({
+  address: environment.SEALED_AUCTION_ADDRESS,
+  abi: sealedAuctionAbi,
+  functionName: "enclavePublicKey",
+});
+
 const app = createPurchaserApp({
   intentAgent: createIntentAgent(environment.INTENT_MODEL),
+  uploadPolicy: createPolicyUploader(environment.RELAY_URL),
+  enclavePublicKey: hexToBytes(enclavePublicKey),
   payoutCapBucket: environment.PAYOUT_CAP_BUCKET,
   funder: createFunder({
     wallet: organizationWallet(environment.PRIVY_WALLET_ID),

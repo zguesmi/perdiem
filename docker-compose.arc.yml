@@ -75,7 +75,12 @@ services:
       context: .
       dockerfile: purchaser/Dockerfile
     image: perdiem/purchaser
-    environment: *environment
+    depends_on:
+      relay:
+        condition: service_healthy
+    environment:
+      <<: *environment
+      RELAY_URL: http://relay:8787
     ports:
       - "8788:8788"
     volumes:

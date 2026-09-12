@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { x25519 } from "@noble/curves/ed25519.js";
+
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { referencePolicy, makePolicy } from "../../shared/reference-policy.ts";
+import { openSealedPolicy } from "../../shared/sealed-policy.ts";
 import { createPurchaserApp } from "../src/app.ts";
 import type { Funder, Funding } from "../src/funding.ts";
 import type { IntentAgent } from "../src/intent.ts";
+import type { PolicyUploader } from "../src/policy-upload.ts";
 import { PolicyRefusedError } from "../src/privy.ts";
 
 /** 250 USDC. The reference policy's 520 maximum price rounds up to a 750 cap, as the demo does. */
@@ -51,7 +55,13 @@ function stub(...candidates: unknown[]): IntentAgent & { calls: () => number } {
 
 /** The service under test. Every dependency that costs money or touches a chain is a stub. */
 function service(intentAgent: IntentAgent, fund: Funder = funder()) {
-  return createPurchaserApp({ intentAgent, funder: fund, payoutCapBucket });
+  return createPurchaserApp({
+    intentAgent,
+    funder: fund,
+    uploadPolicy: async () => {},
+    payoutCapBucket,
+    enclavePublicKey: x25519.getPublicKey(x25519.utils.randomSecretKey()),
+  });
 }
 
 async function post(
@@ -180,4 +190,57 @@ test("tells the buyer what the organization refused, rather than failing", async
   assert.equal(response.status, 422);
   assert.equal(response.body.error, "RPC request denied");
   assert.equal(response.body.payoutCap, "1000000000");
+});
+
+test("seals the policy to the enclave and uploads it before it opens the auction", async () => {
+  // The enclave fetches by the hash the chain carries, so the upload has to be there first. Put
+  // the auction on chain first and a workflow that runs on time finds nothing to score.
+  const order: string[] = [];
+  const enclavePrivateKey = x25519.utils.randomSecretKey();
+  let uploaded: Uint8Array | undefined;
+
+  const fund: Funder = async () => {
+    order.push("createAuction");
+    return funded;
+  };
+  const uploadPolicy: PolicyUploader = async (_policyHash, envelope) => {
+    order.push("uploadPolicy");
+    uploaded = envelope;
+  };
+
+  const app = createPurchaserApp({
+    intentAgent: stub(answer()),
+    funder: fund,
+    uploadPolicy,
+    payoutCapBucket,
+    enclavePublicKey: x25519.getPublicKey(enclavePrivateKey),
+  });
+  const response = await post(app, "/confirm", { policy: referencePolicy });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(order, ["uploadPolicy", "createAuction"]);
+  assert.deepEqual(
+    openSealedPolicy(uploaded as Uint8Array, enclavePrivateKey, hashPolicy(referencePolicy)),
+    referencePolicy,
+  );
+});
+
+test("opens no auction when the sealed policy does not reach the relay", async () => {
+  // An auction whose policy the enclave cannot fetch pays nobody and refunds on timeout. Better
+  // to fail before the buyer's money is locked.
+  const fund = funder();
+  const app = createPurchaserApp({
+    intentAgent: stub(answer()),
+    funder: fund,
+    uploadPolicy: async () => {
+      throw new Error("the relay refused the sealed policy with 409");
+    },
+    payoutCapBucket,
+    enclavePublicKey: x25519.getPublicKey(x25519.utils.randomSecretKey()),
+  });
+
+  const response = await post(app, "/confirm", { policy: referencePolicy });
+
+  assert.equal(response.status, 502);
+  assert.deepEqual(fund.funded(), []);
 });
