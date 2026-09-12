@@ -4,3 +4,12 @@ staging-settings:
   workflow-artifacts:
     workflow-path: "./src/main.ts"
     config-path: "./config.json"
+    secrets-path: "./secrets.yaml"
+
+production-settings:
+  user-workflow:
+    workflow-name: "perdiem"
+  workflow-artifacts:
+    workflow-path: "./src/main.ts"
+    config-path: "./config.production.json"
+    secrets-path: "./secrets.yaml"

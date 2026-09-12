@@ -30,12 +30,18 @@ The template is `hello-confidential-workflows-ts` on CRE CLI 1.32.0, flattened: 
 and the workflow folder are one directory, so there is one `package.json` and one `tsconfig.json`
 instead of two of each. `cre workflow simulate .` accepts that layout.
 
-What the template shipped and this package does not keep:
+What the template shipped and this package does not keep: its own `main.ts` body, `workflow.ts`
+handler, README and `.env.example`.
 
-- `config.production.json` and `production-settings`. The demo runs through the simulator, so one
-  target is enough.
-- `secrets.yaml`. Nothing reads a secret yet. It comes back with the enclave logic.
-- The template's own `main.ts` body, `workflow.ts` handler, README and `.env.example`.
+Both targets are kept and both simulate. They differ by name only, and a second target makes
+`--target` mandatory under `--non-interactive`:
+`multiple targets found in project.yaml and --non-interactive is set`.
+
+`secrets.yaml` is kept too, mapping `POLICY` and `ENCLAVE_PRIVATE_KEY` to variables of the same
+name. The CLI resolves them at compile time from the file passed with `-e`, so every variable it
+names has to exist even while no handler reads it, and an empty value is accepted. A probe read both
+inside `handlerInTee` and logged `policyChars=52 skChars=44`, never a value. `POLICY=` is now in
+both `.env` examples.
 
 `src/main.ts` must export `main`; the toolchain calls it. A module that does not export it fails to
 compile with `Error: JS module does not export main`. The template's trailing `main()` call is not
@@ -62,9 +68,9 @@ Running trigger trigger=cron-trigger@1.0.0
 
 ### The files the CLI owns
 
-A regeneration overwrites the shape of these seven, so local edits to them are the edits to re-apply
-by hand: `project.yaml`, `workflow.yaml`, `config.json`, `src/main.ts`, `src/workflow.ts`,
-`package.json`, `tsconfig.json`.
+A regeneration overwrites the shape of these nine, so local edits to them are the edits to re-apply
+by hand: `project.yaml`, `workflow.yaml`, `config.json`, `config.production.json`, `secrets.yaml`,
+`src/main.ts`, `src/workflow.ts`, `package.json`, `tsconfig.json`.
 
 ## Comments
 
