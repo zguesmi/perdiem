@@ -126,8 +126,7 @@ export async function readAuction(
   const forThisAuction = logs.filter((log) => log.args.auctionId === auctionId);
   const find = <Name extends (typeof logs)[number]["eventName"]>(name: Name) =>
     forThisAuction.find((log) => log.eventName === name) as
-      | Extract<(typeof logs)[number], { eventName: Name }>
-      | undefined;
+      Extract<(typeof logs)[number], { eventName: Name }> | undefined;
 
   const contract = { address: config.sealedAuction, abi: sealedAuctionAbi } as const;
   const [auction, commitments, bidsRoot] = await Promise.all([
@@ -188,7 +187,13 @@ async function readSealedBids(config: Config, auctionId: Hex): Promise<Map<strin
       return new Map();
     }
     const bids = (await response.json()) as { supplier: string; ciphertext: string }[];
-    return new Map(bids.map((bid) => [bid.supplier.toLowerCase(), bid.ciphertext.length]));
+    // A supplier posts the envelope as a `0x` hex string, so two characters are one byte.
+    return new Map(
+      bids.map((bid) => [
+        bid.supplier.toLowerCase(),
+        Math.floor(bid.ciphertext.replace(/^0x/, "").length / 2),
+      ]),
+    );
   } catch {
     return new Map();
   }
