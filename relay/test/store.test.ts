@@ -48,6 +48,22 @@ test("refuses a sealed bid over the sixteen kibibyte cap", async () => {
   assert.equal(response.status, 413);
 });
 
+test("serves one supplier's sealed bid, whatever case it is asked for in", async () => {
+  const app = createRelayApp();
+  await put(app, sealedBid);
+
+  const response = await app.request(`/auctions/${auctionId}/bids/0xA11CE`);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), sealedBid);
+});
+
+test("answers 404 for a supplier that posted nothing", async () => {
+  const response = await createRelayApp().request(`/auctions/${auctionId}/bids/0xb0b`);
+
+  assert.equal(response.status, 404);
+});
+
 test("serves every sealed bid for an auction", async () => {
   const app = createRelayApp();
   await put(app, sealedBid);

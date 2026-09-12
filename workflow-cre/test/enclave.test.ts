@@ -204,6 +204,24 @@ test("drops a bid nobody can decrypt", async () => {
   assert.equal(dropped, 1);
 });
 
+test("a signature check that cannot complete stops the settlement", async () => {
+  // Dropping the bid here would pay the runner-up, and no on-chain rule undoes that. An auction
+  // that never settles is undone by `timeoutRefund`.
+  const payloads = await Promise.all([payloadOf(runnerUp), payloadOf(winner)]);
+  const wallet = "0x000000000000000000000000000000000000c1c1" as const;
+  const onWallet = { ...payloads[1], bid: bidOf(winner, { supplier: wallet }) };
+
+  assert.throws(() =>
+    runEnclave(
+      inputsFor([payloads[0], onWallet], {
+        isValidSignature: () => {
+          throw new Error("the chain read did not complete");
+        },
+      }),
+    ),
+  );
+});
+
 test("drops a relay body that is not an envelope at all", async () => {
   // The relay takes anybody's bytes under anybody's key. One blob that is not hex must not end the
   // run, or a stranger can turn every auction into a timeout refund.

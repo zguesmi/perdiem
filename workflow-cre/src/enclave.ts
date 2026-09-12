@@ -27,7 +27,7 @@ export interface EnclaveInputs {
   /** The address that placed each of those commitments, in the same order. */
   committers: readonly `0x${string}`[];
   sealedPolicy: Uint8Array;
-  /** The hex-encoded ciphertexts the relay holds, exactly as it returned them. */
+  /** The hex-encoded ciphertexts the relay holds, one per committer that posted one. */
   sealedBids: readonly string[];
   enclavePrivateKey: Uint8Array;
   /** ERC-1271 `isValidSignature` against the supplier's own account, for a contract account. */
@@ -97,28 +97,37 @@ export function runEnclave(inputs: EnclaveInputs): EnclaveResult {
  * signature that is not the supplier's, or a commitment that is not the one the stake was placed
  * behind. The relay takes anybody's bytes, so a blob that is not an envelope at all drops like the
  * rest rather than ending the run.
+ *
+ * Only decryption is caught. A signature check that cannot complete throws, because dropping a bid
+ * there would pay the runner-up and nothing on chain undoes that.
  */
 function verified(
   ciphertext: string,
   committed: ReadonlyMap<string, `0x${string}` | undefined>,
   inputs: EnclaveInputs,
 ): SealedBidPayload | null {
+  let payload: SealedBidPayload;
+
   try {
-    const envelope = hexToBytes(ciphertext as `0x${string}`);
-    const payload = openSealedBid(envelope, inputs.enclavePrivateKey, inputs.auctionId);
-    const { bid, salt, signature } = payload;
-    const digest = bidDigest(bid, inputs.sealedAuction);
-
-    const signed =
-      recoverSigner(digest, signature) === bid.supplier.toLowerCase() ||
-      inputs.isValidSignature(bid.supplier, digest, signature);
-
-    return signed && bidCommitment(bidHash(bid), salt) === committed.get(bid.supplier.toLowerCase())
-      ? payload
-      : null;
+    payload = openSealedBid(
+      hexToBytes(ciphertext as `0x${string}`),
+      inputs.enclavePrivateKey,
+      inputs.auctionId,
+    );
   } catch {
     return null;
   }
+
+  const { bid, salt, signature } = payload;
+  const digest = bidDigest(bid, inputs.sealedAuction);
+
+  const signed =
+    recoverSigner(digest, signature) === bid.supplier.toLowerCase() ||
+    inputs.isValidSignature(bid.supplier, digest, signature);
+
+  return signed && bidCommitment(bidHash(bid), salt) === committed.get(bid.supplier.toLowerCase())
+    ? payload
+    : null;
 }
 
 /**

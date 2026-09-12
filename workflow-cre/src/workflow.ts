@@ -139,14 +139,33 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
     ),
   });
 
-  const get = (path: string): string => {
+  /** `undefined` on 404, which is the relay saying it holds nothing under that key. */
+  const get = (path: string): string | undefined => {
     const response = httpClient.sendRequest(runtime, { url: `${relayUrl}${path}` }).result();
 
+    if (response.statusCode === 404) {
+      return undefined;
+    }
     if (!ok(response)) {
       throw new Error(`the relay answered ${response.statusCode} for ${path}`);
     }
     return text(response);
   };
+
+  const sealedPolicy = get(`/policies/${policyHash}`);
+
+  if (sealedPolicy === undefined) {
+    throw new Error("the relay holds no sealed policy for this auction");
+  }
+
+  // One request per committer, rather than one for the whole auction. The relay takes anybody's
+  // bytes under anybody's address, so asking for the list lets a stranger grow the answer past the
+  // HTTP capability's response ceiling and kill the run.
+  const sealedBids = committers.flatMap((committer) => {
+    const ciphertext = get(`/auctions/${auctionId}/bids/${committer}`);
+
+    return ciphertext === undefined ? [] : [ciphertext];
+  });
 
   const { settlement, scored, dropped } = runEnclave({
     auctionId,
@@ -154,31 +173,34 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
     sealedAuction,
     commitments,
     committers,
-    sealedPolicy: hexToBytes(get(`/policies/${policyHash}`) as `0x${string}`),
-    sealedBids: (JSON.parse(get(`/auctions/${auctionId}/bids`)) as { ciphertext: string }[]).map(
-      (bid) => bid.ciphertext,
-    ),
+    sealedPolicy: hexToBytes(sealedPolicy as `0x${string}`),
+    sealedBids,
     enclavePrivateKey: Buffer.from(
       runtime.getSecret({ id: "ENCLAVE_PRIVATE_KEY" }).result().value,
       "base64",
     ),
     isValidSignature: (supplier, digest, signature) => {
+      // Deliberately outside the `try`: a call that does not complete must stall the auction, which
+      // `timeoutRefund` undoes, rather than drop the bid and pay the runner-up, which nothing undoes.
+      const answer = call(
+        supplier,
+        encodeFunctionData({
+          abi: erc1271Abi,
+          functionName: "isValidSignature",
+          args: [digest, signature],
+        }),
+      );
+
       try {
         return (
           decodeFunctionResult({
             abi: erc1271Abi,
             functionName: "isValidSignature",
-            data: call(
-              supplier,
-              encodeFunctionData({
-                abi: erc1271Abi,
-                functionName: "isValidSignature",
-                args: [digest, signature],
-              }),
-            ),
+            data: answer,
           }) === VALID_SIGNATURE
         );
       } catch {
+        // An externally owned account answers nothing at all, which is not a valid signature.
         return false;
       }
     },
