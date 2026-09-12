@@ -9,7 +9,7 @@ import {
 } from "viem";
 
 import { USDC_DECIMALS } from "../../shared/chain.ts";
-import { sealedAuctionAbi } from "./abi.ts";
+import { sealedAuctionAbi } from "../../shared/abi.ts";
 
 /** Narrows `eth_getLogs` to this contract's own events, so a busy address costs nothing extra. */
 const sealedAuctionEvents = sealedAuctionAbi.filter((entry) => entry.type === "event");

@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { hexToBytes } from "viem";
 import { z } from "zod";
 
-import { sealedAuctionAbi } from "./abi.ts";
+import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { runBidder } from "./bidder.ts";
 import { createArcClient } from "./chain.ts";
 import {

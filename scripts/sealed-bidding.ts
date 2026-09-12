@@ -10,12 +10,13 @@
  * `TermsPublished` and never derive an identifier. `scripts/demo-sealed-bidding.sh` starts them.
  */
 import assert from "node:assert/strict";
-import { createPublicClient, createWalletClient, decodeEventLog, erc20Abi, http } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, http, parseEventLogs } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 
+import { sealedAuctionAbi } from "../shared/abi.ts";
 import { addressSchema } from "../shared/bid.ts";
-import { arc } from "../supplier/src/chain.ts";
+import { arc } from "../shared/chain.ts";
 import { hashPolicy } from "../shared/policy-hash.ts";
 import { publicRequirements } from "../shared/policy.ts";
 import { referencePolicy } from "../shared/reference-policy.ts";
@@ -30,57 +31,6 @@ const PAYOUT_CAP = 750_000_000n;
 const SUPPLIERS = 3;
 const DEADLINE_MILLISECONDS = 120_000;
 const POLL_MILLISECONDS = 2_000;
-
-const buyerAbi = [
-  {
-    type: "function",
-    name: "createAuction",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "policyHash", type: "bytes32" },
-      {
-        name: "requirements",
-        type: "tuple",
-        components: [
-          { name: "city", type: "string" },
-          { name: "checkin", type: "string" },
-          { name: "checkout", type: "string" },
-          { name: "minStars", type: "uint8" },
-          { name: "roomType", type: "string" },
-          { name: "numberOfRooms", type: "uint8" },
-          { name: "tradeDownStars", type: "uint8" },
-        ],
-      },
-      { name: "payoutCap", type: "uint256" },
-    ],
-    outputs: [{ type: "bytes32" }],
-  },
-  {
-    type: "function",
-    name: "commitments",
-    stateMutability: "view",
-    inputs: [{ type: "bytes32" }],
-    outputs: [{ type: "bytes32[]" }],
-  },
-  {
-    type: "function",
-    name: "committers",
-    stateMutability: "view",
-    inputs: [{ type: "bytes32" }],
-    outputs: [{ type: "address[]" }],
-  },
-  {
-    type: "event",
-    name: "AuctionCreated",
-    inputs: [
-      { name: "auctionId", type: "bytes32", indexed: true },
-      { name: "buyer", type: "address", indexed: true },
-      { name: "createdAt", type: "uint64" },
-      { name: "bidDeadline", type: "uint64" },
-      { name: "finalizeDeadline", type: "uint64" },
-    ],
-  },
-] as const;
 
 const environment = z
   .object({
@@ -125,7 +75,7 @@ console.log(`approve            ${approved}`);
 
 const opened = await send({
   address: sealedAuction,
-  abi: buyerAbi,
+  abi: sealedAuctionAbi,
   functionName: "createAuction",
   args: [policyHash, publicRequirements(referencePolicy), PAYOUT_CAP],
 });
@@ -134,15 +84,11 @@ console.log(`createAuction      ${opened}`);
 
 // The identifier is read from the log, not derived. It hashes the whole auction record, deadlines
 // included, so only the chain knows it.
-const created = receipt.logs
-  .map((log) => {
-    try {
-      return decodeEventLog({ abi: buyerAbi, ...log });
-    } catch {
-      return undefined;
-    }
-  })
-  .find((event) => event?.eventName === "AuctionCreated");
+const [created] = parseEventLogs({
+  abi: sealedAuctionAbi,
+  eventName: "AuctionCreated",
+  logs: receipt.logs,
+});
 assert.ok(created, "createAuction emitted no AuctionCreated");
 const auctionId = created.args.auctionId;
 console.log(`auction            ${auctionId}`);
@@ -174,7 +120,7 @@ while (commitments.length < SUPPLIERS || relay.bids.length < SUPPLIERS) {
   await new Promise((resolve) => setTimeout(resolve, POLL_MILLISECONDS));
   commitments = await reader.readContract({
     address: sealedAuction,
-    abi: buyerAbi,
+    abi: sealedAuctionAbi,
     functionName: "commitments",
     args: [auctionId],
   });
@@ -190,7 +136,7 @@ while (commitments.length < SUPPLIERS || relay.bids.length < SUPPLIERS) {
 
 const committers = await reader.readContract({
   address: sealedAuction,
-  abi: buyerAbi,
+  abi: sealedAuctionAbi,
   functionName: "committers",
   args: [auctionId],
 });

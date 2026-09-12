@@ -3,13 +3,15 @@ import { z } from "zod";
 
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
+import { payoutCapFor, type Funder } from "./funding.ts";
 import type { IntentAgent } from "./intent.ts";
+import { PolicyRefusedError } from "./privy.ts";
 
 /**
  * The purchaser service is the buyer's side of the desk. It does two things and no more:
  *
  * 1. Turns one English sentence into a Policy, with a single model call and one retry at most.
- * 2. Hashes the Policy the buyer confirmed, with the encoder every other package uses.
+ * 2. Hashes the Policy the buyer confirmed, and funds the auction that commits to that hash.
  */
 export interface PurchaserOptions {
   /**
@@ -18,6 +20,16 @@ export interface PurchaserOptions {
    * validation, the retry and the hashing without a key, a network or a bill.
    */
   intentAgent: IntentAgent;
+  /**
+   * How the confirmed Policy becomes a funded auction. Injected for the same reason as the intent
+   * agent: the route tests drive the whole confirmation with no Privy app and no chain.
+   */
+  funder: Funder;
+  /**
+   * The step the payout cap is rounded up to, in USDC minor units. It is what the cap leaks: the
+   * band the maximum price falls in, and nothing sharper.
+   */
+  payoutCapBucket: bigint;
 }
 
 /** A candidate that fails validation buys exactly one more model call. Then the request fails. */
@@ -47,7 +59,11 @@ async function body(context: Context): Promise<unknown> {
   }
 }
 
-export function createPurchaserApp({ intentAgent }: PurchaserOptions): Hono {
+export function createPurchaserApp({
+  intentAgent,
+  funder,
+  payoutCapBucket,
+}: PurchaserOptions): Hono {
   const app = new Hono();
 
   // One sentence in, a Policy out. Nothing is hashed here: the buyer has not confirmed yet.
@@ -72,7 +88,7 @@ export function createPurchaserApp({ intentAgent }: PurchaserOptions): Hono {
     return context.json({ error: "the model could not produce a valid policy" }, 422);
   });
 
-  // The buyer confirms. Canonicalize and hash, and publish the half of the Policy suppliers see.
+  // The buyer confirms. Canonicalize, hash, lock the payout cap in escrow and open the auction.
   // An invalid Policy is never hashed: a hash is a commitment, and this one reaches the chain.
   app.post("/confirm", async (context) => {
     const request = confirmRequest.safeParse(await body(context));
@@ -81,10 +97,25 @@ export function createPurchaserApp({ intentAgent }: PurchaserOptions): Hono {
       return context.json({ error: "the policy does not match the schema" }, 422);
     }
 
-    return context.json({
-      policyHash: hashPolicy(policy.data),
-      publicRequirements: publicRequirements(policy.data),
-    });
+    const policyHash = hashPolicy(policy.data);
+    const requirements = publicRequirements(policy.data);
+    const payoutCap = payoutCapFor(BigInt(policy.data.maxPrice), payoutCapBucket);
+
+    try {
+      return context.json({
+        policyHash,
+        publicRequirements: requirements,
+        payoutCap: String(payoutCap),
+        ...(await funder(policyHash, requirements, payoutCap)),
+      });
+    } catch (reason) {
+      // A price the organization will not fund is an answer to the buyer, not a fault. They lower
+      // it and confirm again.
+      if (reason instanceof PolicyRefusedError) {
+        return context.json({ error: reason.message, payoutCap: String(payoutCap) }, 422);
+      }
+      throw reason;
+    }
   });
 
   return app;

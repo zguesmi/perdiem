@@ -5,7 +5,7 @@ import { z } from "zod";
 import { bidCommitment, bidHash, bidSchema, type Bid } from "../../shared/bid.ts";
 import { sealBid } from "../../shared/sealed-bid.ts";
 import type { AgentConfig, BookingCredentials } from "./config.ts";
-import { sealedAuctionAbi, usdcAbi } from "./abi.ts";
+import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
 import type { Signer } from "./signer.ts";
 
 /** The terms an agent reads from the log. It never derives an auction identifier. */

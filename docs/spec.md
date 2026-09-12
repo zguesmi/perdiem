@@ -115,10 +115,13 @@ numberOfRooms, `tradeDown.stars`. Never emitted: `maxPrice`, `tradeDown.required
 `preferences`. They have their own event because `AuctionCreated` carries only the identifier, the
 buyer and the deadlines.
 
-The Payout Cap is padded above `maxPrice`, because `transferFrom` is public and an exact cap would
-publish the ceiling. Demo: Payout Cap 750, maximum price 520, Payout 440, refund 310. A workaround,
-not a fix: the ceiling stays bounded from above by what anyone can see. The name is deliberate: the
-cap bounds the Payout and states nothing about what the buyer is willing to pay.
+The Payout Cap is `maxPrice` rounded up to the next whole bucket of 250, because `transferFrom` is
+public and an exact cap would publish the ceiling. Strictly up, so a `maxPrice` on a boundary is
+padded to the next bucket. Demo: maximum price 520, Payout Cap 750, Payout 440, refund 310.
+
+The bucket is what the cap leaks: which 250 band `maxPrice` falls in, and nothing sharper. A cap
+derived by adding a fixed pad would leak it exactly. The name is deliberate: the cap bounds the
+Payout and states nothing about what the buyer is willing to pay.
 
 ## Bid
 
@@ -559,15 +562,22 @@ Verified on Arc testnet, row V7:
   returns `App is not authorized to transact on chain eip155:5042002`.
 - Funding takes two signed transactions, so the spend policy needs two `ALLOW` rules. Both read the
   calldata, not just the destination address:
-  - `approve(spender, value)` on the USDC ERC-20, with `spender` equal to `SealedAuction`.
-  - `createAuction(...)` on `SealedAuction`, with the `payoutCap` argument within the signer's
-    ceiling.
+  - `approve(spender, value)` on the USDC ERC-20, with `spender` equal to `SealedAuction` and
+    `value` at most the maximum Payout Cap.
+  - `createAuction(...)` on `SealedAuction`, with `payoutCap` at most the maximum Payout Cap.
+  - Both carry the amount. The approval is the first of the two transactions, so a rule only on
+    `createAuction` lets it mine before the refusal and leaves a standing allowance behind.
 - A calldata rule is `field_source: ethereum_calldata` and needs the contract's JSON ABI in the
   condition. A rule on the destination address alone would let any call through, including one that
   approves a different spender.
 - Every rule also pins `chain_id` to 5042002 and uses `method: eth_signTransaction`.
-- The ceiling is 500 USDC and the demo Payout Cap is 750, so the quorum fires in the video every
-  time. A Payout Cap under 500 goes through on the policy alone, which is the path the tests use.
+- The maximum Payout Cap is 750 USDC. A buyer who asks above it derives a larger cap and is refused
+  by Privy with `policy_violation`, before anything is signed or mined. `POST /confirm` answers 422
+  with that message, the buyer lowers the price and confirms again. This is the demo: the
+  organization refuses the request, not the buyer's own service.
+- The quorum ceiling is 500 USDC and the demo Payout Cap is 750, so the quorum fires in the video
+  every time. A Payout Cap under 500 goes through on the policy alone, which is the path the tests
+  use.
 - The ceiling is a per-signer override policy, not a quorum threshold. A quorum threshold is fixed
   and cannot depend on the Payout Cap. The wallet carries two signers: a server authorization key
   capped at the ceiling, and a key quorum of two, travel manager and finance, with no cap. The
