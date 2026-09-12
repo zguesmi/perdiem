@@ -1,8 +1,8 @@
 import { short } from "../auction.ts";
-import { Field, Panel, TransactionLink, type PanelProps } from "./panel.tsx";
+import { Field, Panel, type PanelProps } from "./panel.tsx";
 
 /** The policy hash and the requirements every supplier may see. Never the policy itself. */
-export function Intent({ config, auction }: PanelProps) {
+export function Intent({ auction }: PanelProps) {
   return (
     <Panel title="Intent" note="The policy stays with the buyer. Only its hash reaches the chain.">
       <Field label="Policy hash" value={<code>{short(auction.policyHash)}</code>} />
@@ -20,7 +20,6 @@ export function Intent({ config, auction }: PanelProps) {
       ) : (
         <p className="note">Terms not published.</p>
       )}
-      <TransactionLink config={config} label="TermsPublished" hash={auction.termsTransaction} />
     </Panel>
   );
 }

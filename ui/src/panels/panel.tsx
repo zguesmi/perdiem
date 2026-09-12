@@ -1,8 +1,6 @@
-import type { Hex } from "viem";
+import type { AuctionView } from "../auction.ts";
 
-import { explorerLink, short, type AuctionView, type Config } from "../auction.ts";
-
-export type PanelProps = { config: Config; auction: AuctionView };
+export type PanelProps = { auction: AuctionView };
 
 export function Panel({
   title,
@@ -27,37 +25,6 @@ export function Field({ label, value }: { label: string; value: React.ReactNode 
     <p className="field">
       <span className="label">{label}</span>
       <span>{value}</span>
-    </p>
-  );
-}
-
-/** A deployment with no explorer shows the hash as text rather than a dead link. */
-export function TransactionLink({
-  config,
-  label,
-  hash,
-}: {
-  config: Config;
-  label: string;
-  hash?: Hex;
-}) {
-  if (!hash) {
-    return null;
-  }
-  const href = explorerLink(config, hash);
-
-  return (
-    <p className="field">
-      <span className="label">{label}</span>
-      <span>
-        {href ? (
-          <a href={href} target="_blank" rel="noreferrer">
-            <code>{short(hash)}</code>
-          </a>
-        ) : (
-          <code>{short(hash)}</code>
-        )}
-      </span>
     </p>
   );
 }

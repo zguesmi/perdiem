@@ -1,13 +1,12 @@
 import { formatUsdc, short } from "../auction.ts";
-import { Field, Panel, TransactionLink, type PanelProps } from "./panel.tsx";
+import { Field, Panel, type PanelProps } from "./panel.tsx";
 
 /** Who was paid, how much, and the booking that justified it. */
-export function Settlement({ config, auction }: PanelProps) {
+export function Settlement({ auction }: PanelProps) {
   if (auction.timedOutTransaction) {
     return (
       <Panel title="Settlement" note="No settlement landed in time.">
         <Field label="Refunded" value={formatUsdc(auction.payoutCap)} />
-        <TransactionLink config={config} label="timeoutRefund" hash={auction.timedOutTransaction} />
       </Panel>
     );
   }
@@ -23,7 +22,7 @@ export function Settlement({ config, auction }: PanelProps) {
     );
   }
 
-  const { winner, payout, bookingId, finalizedTransaction } = auction.settlement;
+  const { winner, payout, bookingId } = auction.settlement;
   const noWinner = payout === 0n;
 
   return (
@@ -40,7 +39,6 @@ export function Settlement({ config, auction }: PanelProps) {
       <Field label="Payout" value={formatUsdc(payout)} />
       <Field label="Refund to buyer" value={formatUsdc(auction.payoutCap - payout)} />
       {bookingId && <Field label="Booking" value={<code>{bookingId}</code>} />}
-      <TransactionLink config={config} label="settlement" hash={finalizedTransaction} />
     </Panel>
   );
 }

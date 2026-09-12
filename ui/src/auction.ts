@@ -19,6 +19,9 @@ const STATES = ["None", "Created", "Bidding", "Settling", "Finalized", "Timeout"
 
 export type AuctionState = (typeof STATES)[number];
 
+/** One on-chain write, as the page shows it: which block it landed in, and what to link to. */
+export type Transaction = { hash: Hex; blockNumber: bigint };
+
 /**
  * Everything the page needs. No private field can reach it: the maximum price and the preferences
  * are inside the policy, and only the policy's hash is on chain.
@@ -31,16 +34,16 @@ export type AuctionView = {
   payoutCap: bigint;
   bidDeadline: number;
   finalizeDeadline: number;
-  createdTransaction: Hex;
+  createdTransaction: Transaction;
   requirements?: PublicRequirements;
-  termsTransaction?: Hex;
+  termsTransaction?: Transaction;
   bidsRoot: Hex;
-  claimedTransaction?: Hex;
+  claimedTransaction?: Transaction;
   bids: BidRow[];
   /** False when the relay did not answer, which is not the same as a relay holding nothing. */
   relayReachable: boolean;
   settlement?: Settlement;
-  timedOutTransaction?: Hex;
+  timedOutTransaction?: Transaction;
 };
 
 export type PublicRequirements = {
@@ -60,7 +63,7 @@ export type PublicRequirements = {
 export type BidRow = {
   commitment: Hex;
   supplier?: Address;
-  committedTransaction?: Hex;
+  committedTransaction?: Transaction;
   sealedBytes?: number;
 };
 
@@ -68,7 +71,7 @@ export type Settlement = {
   winner: Address;
   payout: bigint;
   bookingId: string;
-  finalizedTransaction: Hex;
+  finalizedTransaction: Transaction;
 };
 
 export type Config = {
@@ -167,11 +170,11 @@ export async function readAuction(
     finalizeDeadline: Number(auction[4]),
     policyHash: auction[5],
     payoutCap: auction[6],
-    createdTransaction: created.transactionHash,
+    createdTransaction: transaction(created),
     requirements: terms?.args.requirements,
-    termsTransaction: terms?.transactionHash,
+    termsTransaction: terms && transaction(terms),
     bidsRoot,
-    claimedTransaction: claimed?.transactionHash,
+    claimedTransaction: claimed && transaction(claimed),
     relayReachable: sealed !== undefined,
     bids: commitments.map((commitment) => {
       const log = committed.find((entry) => entry.args.commitment === commitment);
@@ -179,7 +182,7 @@ export async function readAuction(
       return {
         commitment,
         supplier,
-        committedTransaction: log?.transactionHash,
+        committedTransaction: log && transaction(log),
         sealedBytes: supplier ? sealed?.get(supplier.toLowerCase()) : undefined,
       };
     }),
@@ -187,10 +190,15 @@ export async function readAuction(
       winner: finalized.args.winner,
       payout: finalized.args.payout,
       bookingId: finalized.args.bookingId,
-      finalizedTransaction: finalized.transactionHash,
+      finalizedTransaction: transaction(finalized),
     },
-    timedOutTransaction: timedOut?.transactionHash,
+    timedOutTransaction: timedOut && transaction(timedOut),
   };
+}
+
+/** A log carries both halves of a transaction row, so nothing has to be read back per hash. */
+function transaction(log: { transactionHash: Hex; blockNumber: bigint }): Transaction {
+  return { hash: log.transactionHash, blockNumber: log.blockNumber };
 }
 
 /**
@@ -223,6 +231,11 @@ async function readSealedBids(
 /** A hash or an address, short enough to read from the back of a room. */
 export function short(value: string): string {
   return `${value.slice(0, 10)}…${value.slice(-6)}`;
+}
+
+/** Shorter again, for the stepper, where four of these share the width of one panel. */
+export function shorter(value: string): string {
+  return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }
 
 export function formatUsdc(minorUnits: bigint): string {

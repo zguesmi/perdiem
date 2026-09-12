@@ -1,9 +1,9 @@
 import { formatTime, formatUsdc, short } from "../auction.ts";
 import type { Funding as FundingAnswer } from "../purchaser.ts";
-import { Field, Panel, TransactionLink, type PanelProps } from "./panel.tsx";
+import { Field, Panel, type PanelProps } from "./panel.tsx";
 
 /** What the buyer locked in escrow, and the call that locked it. */
-export function Funding({ config, auction, funding }: PanelProps & { funding?: FundingAnswer }) {
+export function Funding({ auction, funding }: PanelProps & { funding?: FundingAnswer }) {
   return (
     <Panel
       title="Funding"
@@ -14,19 +14,15 @@ export function Funding({ config, auction, funding }: PanelProps & { funding?: F
       <Field label="Bidding closes" value={formatTime(auction.bidDeadline)} />
       <Field label="Refundable after" value={formatTime(auction.finalizeDeadline)} />
       {funding && (
-        <>
-          <Field
-            label="Authorized by"
-            value={
-              funding.quorumSigned
-                ? "The spend policy and the two-signer key quorum"
-                : "The spend policy alone"
-            }
-          />
-          <TransactionLink config={config} label="approve" hash={funding.approveHash} />
-        </>
+        <Field
+          label="Authorized by"
+          value={
+            funding.quorumSigned
+              ? "The spend policy and the two-signer key quorum"
+              : "The spend policy alone"
+          }
+        />
       )}
-      <TransactionLink config={config} label="createAuction" hash={auction.createdTransaction} />
     </Panel>
   );
 }

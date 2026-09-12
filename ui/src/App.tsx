@@ -58,16 +58,15 @@ export default function App() {
           <p className="note">
             Auction <code>{short(auction.auctionId)}</code>
           </p>
-          <Stepper auction={auction} />
-          <Intent config={config} auction={auction} />
+          <Stepper config={config} auction={auction} />
+          <Intent auction={auction} />
           <Funding
-            config={config}
             auction={auction}
             funding={funding?.auctionId === auction.auctionId ? funding : undefined}
           />
-          <Bids config={config} auction={auction} />
-          <Enclave config={config} auction={auction} />
-          <Settlement config={config} auction={auction} />
+          <Bids auction={auction} />
+          <Enclave auction={auction} />
+          <Settlement auction={auction} />
         </>
       )}
     </main>
