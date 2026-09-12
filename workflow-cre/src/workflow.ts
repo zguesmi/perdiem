@@ -92,8 +92,10 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
   });
 
   if (auctionId === zeroHash) {
-    return "no auction pending";
+    return "No pending auction";
   }
+
+  runtime.log(`Pending auction: ${auctionId}`);
 
   const write = (report: `0x${string}`): void => {
     const receipt = evmClient
@@ -111,6 +113,7 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
 
   // Before any bid is fetched, so a stalled run and a rejected settlement are told apart on chain.
   write(encodeClaimReport(auctionId));
+  runtime.log(`Claimed auction: ${auctionId}`);
 
   // The generated getter returns the auction record member by member, in declaration order.
   const [, , , , , policyHash] = decodeFunctionResult({
@@ -236,10 +239,13 @@ export const onCronTrigger = (runtime: TeeRuntime<Config>): string => {
     book: (payload, stay) => book(sendBooking, payload, stay, auctionId),
   });
 
+  const droppedBids = dropped.decrypt + dropped.signature + dropped.commitment;
+
   runtime.log(
-    `bids scored=${scored} dropped decrypt=${dropped.decrypt} signature=${dropped.signature} commitment=${dropped.commitment}`,
+    `ScoredBids:${scored}, droppedBids:${droppedBids} (decrypt=${dropped.decrypt}, signature=${dropped.signature} commitment=${dropped.commitment})`,
   );
   write(encodeSettlementReport(settlement));
+  runtime.log(`Settled auction: ${auctionId}`);
 
   return `settled ${auctionId}`;
 };

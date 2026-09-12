@@ -66,7 +66,7 @@ fails with code `5000`. A buyer states a trip, never a person, so there is nobod
 `docs/scratch/verification/evidence/simulate-2026-09-12.log`. A local node, the relay, three agents,
 one auction, three sealed bids, then `cre workflow simulate`.
 
-- `bids scored=3 dropped decrypt=0 signature=0 commitment=0`.
+- `ScoredBids:3, droppedBids:0 (decrypt=0, signature=0 commitment=0)`.
 - The winner's booking at the supplier API: `NvqEFr87F`, `CONFIRMED`, Hôtel Dame des Arts,
   2026-10-12 to 2026-10-14. Read back by `clientReference`, which is the `auctionId`.
 - The log greps clean for the policy, the maximum price, the preferences, the enclave private key,
