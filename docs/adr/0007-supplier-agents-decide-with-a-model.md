@@ -21,10 +21,10 @@ The model holds one tool, `submitBid`. It takes the price, the refundable and br
 room type and the room count, and it builds, signs, seals, commits and posts one Bid.
 
 The hotel is not one of the model's decisions. An operator reads the supplier's catalogue once and
-writes the identifier, the name and the star level into `agents/config/<name>.json`. Cost: the model
-no longer picks a hotel, and a new supplier needs an operator to look one up. Gain: one less network
-call in the loop, one less key on the agent, and a model that cannot bid a room its supplier does
-not sell.
+writes the identifier, the name and the star level into `supplier/config/<name>.json`. Cost: the
+model no longer picks a hotel, and a new supplier needs an operator to look one up. Gain: one less
+network call in the loop, one less key on the agent, and a model that cannot bid a room its supplier
+does not sell.
 
 `submitBid` runs entirely in Node. It validates the fields, hashes the Bid with EIP-712, signs
 through the signer interface, draws a salt, computes the Bid Commitment, seals the envelope, commits
@@ -58,7 +58,7 @@ Agent C must stay below 490 or it ties B and loses on price.
 
 So each agent's configuration carries a `priceRange`. `submitBid` refuses a price outside it and
 names the range in the error. The model corrects on the next turn. The range is configuration, not a
-hidden rule, and `agents/scripts/check-demo-prices.ts` states each agent's price.
+hidden rule, and `supplier/scripts/check-demo-prices.ts` states each agent's price.
 
 A silent clamp was rejected. It always terminates and never costs a turn, but the model then
 believes it bid a price it did not bid.
@@ -71,9 +71,9 @@ LiteAPI still supplies a real hotel identifier, and the Enclave still books agai
 number is the supplier's own list price. The claim is "three agents priced one request by their own
 published rules", not "three agents priced against the market".
 
-There is no fallback. `agents/src/rate-plan.ts` and its tests are deleted, so the model is the only
-pricing path. An Anthropic API outage means no bid at all. Cost of keeping a second path: two code
-paths for one decision, and a fallback nobody exercises.
+There is no fallback. `supplier/src/rate-plan.ts` and its tests are deleted, so the model is the
+only pricing path. An Anthropic API outage means no bid at all. Cost of keeping a second path: two
+code paths for one decision, and a fallback nobody exercises.
 
 Every bid costs tokens and a round trip. A deterministic agent bid in milliseconds for nothing.
 

@@ -1,0 +1,19 @@
+{
+  "name": "@perdiem/supplier",
+  "version": "0.0.0",
+  "description": "Three supplier agents, one codebase. A model prices one bid; two tools fetch hotels and bind it.",
+  "private": true,
+  "scripts": {
+    "test": "tsx --test 'test/**/*.test.ts'",
+    "build": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/index.ts",
+    "check:prices": "tsx scripts/check-demo-prices.ts"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "tsx": "^4.23.13",
+    "typescript": "~6.0.3"
+  }
+}

@@ -47,6 +47,6 @@ as code, not as spec: if a deployed enclave rejects the read, the workflow passe
 and the guarantee degrades as the ticket described.
 
 Evidence:
-[02 — The chain read and confidential HTTP inside `handlerInTee`](../../../evidence/02-enclave-chain-read-and-confidential-http.md).
+[02 — The chain read and confidential HTTP inside `handlerInTee`](../evidence/02-enclave-chain-read-and-confidential-http.md).
 
 ## Comments

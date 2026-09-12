@@ -1,0 +1,16 @@
+{
+  "name": "@perdiem/workflow-cre",
+  "version": "0.0.0",
+  "description": "The Chainlink CRE workflow. Scoring happens inside the confidential handler and nowhere else.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "tsx --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "tsx": "^4.23.13",
+    "typescript": "~6.0.3"
+  }
+}

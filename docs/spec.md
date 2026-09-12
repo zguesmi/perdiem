@@ -41,25 +41,25 @@ not compared with the bid price, and no cancellation path exists.
 
 ## Architecture
 
-| Directory      | What it is                                                                   |
-| -------------- | ---------------------------------------------------------------------------- |
-| `onchain/`     | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
-| `workflow/`    | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
-| `agents/`      | Three supplier agents. A model prices, one tool executes                     |
-| `requisition/` | The buyer's service: intent parsing, policy commit, Privy funding            |
-| `relay/`       | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
-| `web/`         | One page, five panels                                                        |
-| `shared/`      | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
+| Directory       | What it is                                                                   |
+| --------------- | ---------------------------------------------------------------------------- |
+| `onchain/`      | `SealedAuction.sol` on Arc testnet. Hardhat 3, solc 0.8.34                   |
+| `workflow-cre/` | The Chainlink CRE workflow. Scoring runs inside `handlerInTee`               |
+| `supplier/`     | Three supplier agents. A model prices, one tool executes                     |
+| `purchaser/`    | The buyer's service: intent parsing, policy commit, Privy funding            |
+| `relay/`        | A blind store for Sealed Bids. Holds ciphertext, serves the Enclave          |
+| `ui/`           | One page, five panels                                                        |
+| `shared/`       | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
 
 ### Flow
 
-1. The buyer types one sentence. `requisition/` makes one model call and returns a Policy, validated
+1. The buyer types one sentence. `purchaser/` makes one model call and returns a Policy, validated
    against its schema. One retry at most, then it fails.
-2. The buyer confirms. `requisition/` canonicalizes the Policy and computes the Policy Hash.
-3. `requisition/` uploads the Policy as a workflow secret, then calls `createAuction`, which pulls
-   the Payout Cap in the same call. State is `Created`. The enclave private key is not its business:
-   an independent party uploads that one.
-4. Privy signs that call from the organization wallet and `requisition/` broadcasts it. Above the
+2. The buyer confirms. `purchaser/` canonicalizes the Policy and computes the Policy Hash.
+3. `purchaser/` uploads the Policy as a workflow secret, then calls `createAuction`, which pulls the
+   Payout Cap in the same call. State is `Created`. The enclave private key is not its business: an
+   independent party uploads that one.
+4. Privy signs that call from the organization wallet and `purchaser/` broadcasts it. Above the
    ceiling, the key quorum approves.
 5. Each agent builds one Bid, signs it with EIP-712, commits `keccak256(abi.encode(bidHash, salt))`
    with its Stake, and posts the Sealed Bid to the relay. Both before `bidDeadline`, in either
@@ -101,7 +101,7 @@ regenerated fixture.
 
 - Every number is an integer: money in USDC minor units. A fraction has more than one shortest
   decimal form, and one digit of disagreement between two encoders produces two Policy Hashes.
-- The requisition service converts what the buyer typed into these integers once, before the buyer
+- The purchaser service converts what the buyer typed into these integers once, before the buyer
   confirms. Nothing downstream converts anything.
 - A Preference Bonus is a flat number, not a rate: "20 a night" becomes what it is worth on this
   trip. Cost of that: a bonus no longer scales with the bid price.
@@ -339,7 +339,7 @@ units.
 | C   | 4     | 440   | yes        | yes       | Score 80 + 50 + 40 = **170. Wins**                                                     |
 
 Payout 440, refund 310. All three Stakes come back at settlement. This table is a test in
-`workflow/`.
+`workflow-cre/`.
 
 ### Every USDC in and out
 
@@ -463,7 +463,7 @@ no-winner path; the timeout path.
 - Encode the Settlement as an action `2` report and write it to `SealedAuction`. Two `writeReport`
   calls fit one run and the second sees the state the first committed, so the claim and the
   settlement need no second cron tick. Row V8.
-- Save one full `cre workflow simulate` run to `docs/evidence/`.
+- Save one full `cre workflow simulate` run to `docs/scratch/verification/evidence/`.
 
 The relay runs on `http://localhost:8787` and the handler reads it there: in simulation the HTTP
 capability runs in the CLI's own process, so localhost resolves, plain HTTP is allowed and no host
@@ -496,7 +496,7 @@ The model derives two things from the auction rather than the prompt: nights fro
 February, named in the system prompt so nothing guesses.
 
 The hotel is configuration, not a decision. An operator reads the supplier's catalogue once and
-writes the identifier, the name and the star level into `agents/config/<name>.json`. Any valid
+writes the identifier, the name and the star level into `supplier/config/<name>.json`. Any valid
 identifier is acceptable. The Enclave books against it, so it has to exist, and nothing else about
 it is scored. Cost: a new supplier needs an operator to look one up.
 
@@ -545,13 +545,13 @@ Verified on Arc testnet, row V7:
 - The session is email OTP and lasts 28 days. A human types the code once per agent, and creating or
   changing a policy needs another. Nothing else in the run is interactive.
 
-## Requisition service
+## Purchaser service
 
 - `POST /intent` — one model call with a fixed system prompt, stored at `docs/ai/intent-prompt.md`,
   validated against the Policy schema. One retry, then it fails.
 - `POST /confirm` — canonicalize, hash, upload the Policy as a workflow secret, call `createAuction`
   with the Payout Cap. It never holds the enclave private key.
-- Privy: the organization wallet signs with `eth_signTransaction` and the requisition service
+- Privy: the organization wallet signs with `eth_signTransaction` and the purchaser service
   broadcasts the signed RLP to `ARC_RPC_URL`. Privy does not broadcast on Arc: `eth_sendTransaction`
   returns `App is not authorized to transact on chain eip155:5042002`.
 - Funding takes two signed transactions, so the spend policy needs two `ALLOW` rules. Both read the
@@ -568,7 +568,7 @@ Verified on Arc testnet, row V7:
 - The ceiling is a per-signer override policy, not a quorum threshold. A quorum threshold is fixed
   and cannot depend on the Payout Cap. The wallet carries two signers: a server authorization key
   capped at the ceiling, and a key quorum of two, travel manager and finance, with no cap. The
-  requisition service picks the signer from the Payout Cap. Unverified: the override-policy path is
+  purchaser service picks the signer from the Payout Cap. Unverified: the override-policy path is
   documented and has not been run.
 
 ## Links

@@ -43,4 +43,4 @@ A reverted report is still invisible to the workflow. Both the skipped receiver 
 reverting `onReport` report `txStatus=2` with `errorMessage` unset, and only
 `ReportProcessed.result` says otherwise.
 
-Evidence: `docs/evidence/08-two-writes-per-workflow-run.md`.
+Evidence: `docs/scratch/verification/evidence/08-two-writes-per-workflow-run.md`.

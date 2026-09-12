@@ -20,8 +20,8 @@ Full account, phase by phase: [`docs/ai/README.md`](docs/ai/README.md).
 Requires Node 22 or later and pnpm 12.3.4 (`corepack enable` picks up the pinned version).
 
 ```sh
-pnpm install                  # the workspace: packages/*, onchain, requisition, relay, agents, web
-pnpm --dir workflow install   # workflow/ is outside the workspace and installs on its own
+pnpm install                  # the workspace: onchain, purchaser, relay, supplier, ui
+pnpm --dir workflow-cre install   # workflow-cre/ is outside the workspace and installs on its own
 cp .env.example .env
 ```
 
@@ -36,11 +36,11 @@ pnpm typecheck   # type-check every package
 pnpm lint        # lint every package that has a lint script
 ```
 
-`workflow/` is not a workspace member, so the recursive scripts skip it. Run it directly:
+`workflow-cre/` is not a workspace member, so the recursive scripts skip it. Run it directly:
 
 ```sh
-pnpm --dir workflow test
-pnpm --dir workflow typecheck
+pnpm --dir workflow-cre test
+pnpm --dir workflow-cre typecheck
 ```
 
 One package at a time:
@@ -52,11 +52,11 @@ pnpm --filter @perdiem/relay dev
 
 Run the services for the demo, one terminal each:
 
-| Command                                  | What it starts          | Port                     |
-| ---------------------------------------- | ----------------------- | ------------------------ |
-| `pnpm --filter @perdiem/relay dev`       | the sealed-bid relay    | 8787, `RELAY_PORT`       |
-| `pnpm --filter @perdiem/requisition dev` | the requisition service | 8788, `REQUISITION_PORT` |
-| `pnpm --filter @perdiem/web dev`         | the demo page           | 5173                     |
+| Command                                | What it starts        | Port                   |
+| -------------------------------------- | --------------------- | ---------------------- |
+| `pnpm --filter @perdiem/relay dev`     | the sealed-bid relay  | 8787, `RELAY_PORT`     |
+| `pnpm --filter @perdiem/purchaser dev` | the purchaser service | 8788, `PURCHASER_PORT` |
+| `pnpm --filter @perdiem/ui dev`        | the demo page         | 5173                   |
 
 ## The sealed bidding slice
 

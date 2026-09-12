@@ -82,7 +82,7 @@ what the number means: a `refundable` bonus is worth that much on this trip, and
 
 ### Services
 
-**Requisition**: The buyer's service. Turns an Intent into a Policy, gets the spend approved through
+**Purchaser**: The buyer's service. Turns an Intent into a Policy, gets the spend approved through
 Privy, and funds the auction. _Avoid_: Desk, backend, API
 
 **Relay**: The blind store for Sealed Bids. Holds ciphertext, serves the enclave, and can read

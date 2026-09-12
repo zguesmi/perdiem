@@ -120,7 +120,7 @@ supplier=0
 for agent in "${AGENTS[@]}"; do
   supplier=$((supplier + 1))
   key=SUPPLIER_${supplier}_PRIVATE_KEY
-  AGENT_PRIVATE_KEY=${!key} start "${LOGS}/${agent}.log" npx tsx agents/src/index.ts "${agent}"
+  AGENT_PRIVATE_KEY=${!key} start "${LOGS}/${agent}.log" npx tsx supplier/src/index.ts "${agent}"
 done
 for agent in "${AGENTS[@]}"; do
   await "${agent}" 60 grep -q "listening to" "${LOGS}/${agent}.log"

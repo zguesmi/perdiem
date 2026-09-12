@@ -1,11 +1,11 @@
 packages:
   - "onchain"
-  - "requisition"
+  - "purchaser"
   - "relay"
-  - "agents"
-  - "web"
+  - "supplier"
+  - "ui"
 
-# workflow/ is deliberately absent. The Chainlink CRE CLI generates and regenerates its own
+# workflow-cre/ is deliberately absent. The Chainlink CRE CLI generates and regenerates its own
 # package.json, and a workspace member it does not know about is a member it will overwrite.
 # It reaches shared/ through a relative import, which needs no dependency entry at all.
 # pnpm refuses to run a dependency's install scripts unless it is allowed here.

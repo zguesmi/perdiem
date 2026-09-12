@@ -29,8 +29,8 @@ externally owned account holding a demo key. The Arc track asks for Circle Agent
 
 ## The three demo prices are unverified
 
-`agents/scripts/check-demo-prices.ts` checks 330, 400 and 440 against the reference auction. It is a
-script, not a test, because no test in this repository calls a model. No run has been recorded.
+`supplier/scripts/check-demo-prices.ts` checks 330, 400 and 440 against the reference auction. It is
+a script, not a test, because no test in this repository calls a model. No run has been recorded.
 
 ## A price range covers one auction shape
 
@@ -39,7 +39,7 @@ auction prices below the range and `submitBid` refuses it.
 
 ## An Anthropic outage means no bid
 
-The model is the only pricing path. `agents/src/rate-plan.ts` was deleted with its deterministic
+The model is the only pricing path. `supplier/src/rate-plan.ts` was deleted with its deterministic
 fallback.
 
 ## The payout cap bounds the maximum price from above
@@ -47,7 +47,7 @@ fallback.
 `transferFrom` is public, so anyone reads the payout cap. The demo pads it: cap 750 against a
 maximum price of 520. The ceiling stays bounded, which is a workaround and not a fix.
 
-## The requisition service holds the enclave private key
+## The purchaser service holds the enclave private key
 
 An independent party should generate the X25519 keypair, and only the public half should reach the
 deployment. Whoever holds the private half reads every sealed bid and every supplier's booking

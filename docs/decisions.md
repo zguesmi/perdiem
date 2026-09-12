@@ -25,8 +25,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   `ERR_NO_TYPESCRIPT`; `tsx` runs the same `node:test` API. Ran both.
 - pnpm 12 allows install scripts through `allowBuilds:` in `pnpm-workspace.yaml`, not
   `onlyBuiltDependencies`. pnpm wrote the key itself.
-- `pnpm install` inside `workflow/` installs the root workspace unless `workflow/` has its own
-  `pnpm-workspace.yaml`. Ran it.
+- `pnpm install` inside `workflow-cre/` installs the root workspace unless `workflow-cre/` has its
+  own `pnpm-workspace.yaml`. Ran it.
 
 ## Arc testnet
 
@@ -47,12 +47,13 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
 ## Privy
 
 - V6 — server wallets sign on chain id 5042002 with `eth_signTransaction`, and a policy rule pins
-  the chain id. `eth_sendTransaction` refuses Arc, so Privy signs and the requisition service
+  the chain id. `eth_sendTransaction` refuses Arc, so Privy signs and the purchaser service
   broadcasts to `ARC_RPC_URL`. A 2-of-2 key quorum enforces on the app in use, so there is no
   policy-only fallback.
   - Ticket:
     [06 — Privy server wallets on Arc](scratch/verification/issues/06-privy-server-wallets-on-arc.md)
-  - Evidence: [06 — Privy server wallets on Arc testnet](evidence/06-privy-server-wallets-on-arc.md)
+  - Evidence:
+    [06 — Privy server wallets on Arc testnet](scratch/verification/evidence/06-privy-server-wallets-on-arc.md)
 
 ## Chainlink CRE
 
@@ -63,7 +64,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   anyway. `arc-testnet` is in the chain-selectors registry, selector `3034092155422581607`.
   - Ticket:
     [01 — CRE simulate writes to Arc](scratch/verification/issues/01-cre-simulate-writes-to-arc.md)
-  - Evidence: [01 — CRE simulate writing to Arc testnet](evidence/01-cre-simulate-writes-to-arc.md)
+  - Evidence:
+    [01 — CRE simulate writing to Arc testnet](scratch/verification/evidence/01-cre-simulate-writes-to-arc.md)
 - V2 — `handlerInTee` reads the chain and calls confidential HTTP in simulation. The Enclave builds
   the Bids Root itself, the preferred path. `EVMClient.callContract` is typed for `Runtime`, so the
   `TeeRuntime` goes through a cast; the cast costs nothing, because `TeeRuntimeImpl.callCapability`
@@ -73,7 +75,7 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [02 — Enclave chain read and confidential HTTP](scratch/verification/issues/02-enclave-chain-read-and-confidential-http.md)
   - Evidence:
-    [02 — The chain read and confidential HTTP inside handlerInTee](evidence/02-enclave-chain-read-and-confidential-http.md)
+    [02 — The chain read and confidential HTTP inside handlerInTee](scratch/verification/evidence/02-enclave-chain-read-and-confidential-http.md)
 - V3 — the enclave decrypts a sealed bid. `runtime.getSecret()` returns a 32-byte X25519 private key
   inside `handlerInTee` and a sealed bid opens in 11 ms, three in 30 ms. The runtime exposes no
   crypto of its own: `crypto`, `crypto.subtle`, `crypto.getRandomValues` and `WebAssembly` are
@@ -84,7 +86,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   `@hpke/core` does not.
   - Ticket:
     [03 — Enclave decrypts sealed bids](scratch/verification/issues/03-enclave-decrypts-sealed-bids.md)
-  - Evidence: [03 — The enclave decrypts a sealed bid](evidence/03-enclave-decrypts-sealed-bids.md)
+  - Evidence:
+    [03 — The enclave decrypts a sealed bid](scratch/verification/evidence/03-enclave-decrypts-sealed-bids.md)
 - V4 — `secrets.yaml` maps a secret id to an environment variable name and holds no values, and
   `-e .env` is required for the CLI to resolve them. The limit is 131,072 bytes per secret and it is
   the operating system's, not CRE's: 131,100 characters fail the build with `E2BIG`. The canonical
@@ -92,7 +95,8 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   Vault DON path is unverified, because `cre secrets create` needs deploy access.
   - Ticket:
     [04 — Workflow secrets in simulation](scratch/verification/issues/04-workflow-secrets-in-simulation.md)
-  - Evidence: [04 — Workflow secrets in simulation](evidence/04-workflow-secrets-in-simulation.md)
+  - Evidence:
+    [04 — Workflow secrets in simulation](scratch/verification/evidence/04-workflow-secrets-in-simulation.md)
 - V8 — one workflow run makes two `writeReport` calls to the same contract, both `TxStatus.SUCCESS`,
   both under one `workflowExecutionId`, and the second sees the state the first committed:
   `writeReport` blocks until its transaction is mined, about 1.4 seconds each on Arc testnet. So the
@@ -104,14 +108,14 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [08 — Two writes per workflow run](scratch/verification/issues/08-two-writes-per-workflow-run.md)
   - Evidence:
-    [08 — Two chain writes in one workflow run](evidence/08-two-writes-per-workflow-run.md)
+    [08 — Two chain writes in one workflow run](scratch/verification/evidence/08-two-writes-per-workflow-run.md)
 - V10 — the Confidential Workflows private beta gates deployment, not simulation.
   `cre workflow simulate` ran the confidential template on an account with no deploy access, and the
   secret resolved inside `handlerInTee`. The simulator is not a real TEE and attests nothing.
   - Ticket:
     [10 — Confidential Workflows beta access](scratch/verification/issues/10-confidential-workflows-beta-access.md)
   - Evidence:
-    [10 — Confidential Workflows without beta approval](evidence/10-confidential-workflows-beta-access.md)
+    [10 — Confidential Workflows without beta approval](scratch/verification/evidence/10-confidential-workflows-beta-access.md)
 - V13 — the handler reaches a relay on `http://localhost:8787` in simulation, `200` in 5 to 7 ms,
   because the HTTP capability runs in the CLI's own process and the request arrives from
   `127.0.0.1`. No allow list and no TLS: plain `http` is permitted and `https` against an HTTP
@@ -121,7 +125,7 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [13 — Can the enclave reach the relay](scratch/verification/issues/13-can-the-enclave-reach-the-relay.md)
   - Evidence:
-    [13 — The confidential handler reaches a relay on localhost](evidence/13-can-the-enclave-reach-the-relay.md)
+    [13 — The confidential handler reaches a relay on localhost](scratch/verification/evidence/13-can-the-enclave-reach-the-relay.md)
 - V14 — the handler calls `POST` with a body through the same
   `cre.capabilities.HTTPClient().sendRequest` row V2 used, and `Date.now()` works inside it. Search,
   prebook and book chained took 7,650 ms against a 10 s per-request timeout. A duplicate write under
@@ -135,7 +139,7 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [14 — Enclave books through the supplier API](scratch/verification/issues/14-enclave-books-through-the-supplier-api.md)
   - Evidence:
-    [14 — The confidential handler books through a supplier API](evidence/14-enclave-books-through-the-supplier-api.md)
+    [14 — The confidential handler books through a supplier API](scratch/verification/evidence/14-enclave-books-through-the-supplier-api.md)
 
 ## Circle
 
@@ -147,7 +151,7 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [07 — Circle Agent Stack wallets](scratch/verification/issues/07-circle-agent-stack-wallets.md)
   - Evidence:
-    [07 — Circle Agent Stack wallets on Arc testnet](evidence/07-circle-agent-stack-wallets.md)
+    [07 — Circle Agent Stack wallets on Arc testnet](scratch/verification/evidence/07-circle-agent-stack-wallets.md)
 - Circle spending policies are mainnet only. `circle wallet limit` refuses a testnet chain, so an
   agent wallet on Arc testnet runs on Circle's default policy.
 - The CLI authenticates as a Circle user against `agentic-wallet.circle.com`, on `/v1/w3s/user/...`
@@ -165,4 +169,4 @@ and the evidence file, and are never repeated here. Rows are sorted by ticket nu
   - Ticket:
     [09 — LiteAPI booking id and payment method](scratch/verification/issues/09-liteapi-booking-id-and-payment-method.md)
   - Evidence:
-    [09 — The LiteAPI booking id and the sandbox payment method](evidence/09-liteapi-booking-id-and-payment-method.md)
+    [09 — The LiteAPI booking id and the sandbox payment method](scratch/verification/evidence/09-liteapi-booking-id-and-payment-method.md)

@@ -67,5 +67,5 @@ The cost: one more key type in the demo, and a public key that has to travel in 
   against, like the canonical encoder.
 - `auctionId` inside `info` means an agent cannot seal one bid and post it to two auctions.
 - The enclave cannot generate its own keypair: it has no randomness, and a Vault DON secret must
-  exist before the run that reads it. `requisition/` generates the pair, so the buyer can decrypt
+  exist before the run that reads it. `purchaser/` generates the pair, so the buyer can decrypt
   every Sealed Bid. Stated in `docs/spec.md`, not fixed.

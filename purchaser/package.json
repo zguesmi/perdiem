@@ -1,0 +1,23 @@
+{
+  "name": "@perdiem/purchaser",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/purchaser/src/index.js",
+    "test": "tsx --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "hono": "^4.13.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.3"
+  },
+  "version": "0.0.0",
+  "description": "Turns one English sentence into a committed, funded auction: parse, hash, approve the spend, lock the budget.",
+  "private": true
+}

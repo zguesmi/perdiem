@@ -12,7 +12,8 @@ Confirm which crypto library the enclave runtime exposes beyond hashing.
 ## Acceptance criteria
 
 - [x] Row V3 is answered, naming the crypto the enclave runtime exposes beyond hashing.
-- [x] A sealed box decrypted inside the handler is in `docs/evidence/`, or the failure is.
+- [x] A sealed box decrypted inside the handler is in `docs/scratch/verification/evidence/`, or the
+      failure is.
 - [x] A no answer produces a written decision on the reveal deadline, not silence. The answer is
       yes, so `docs/adr/0001-no-reveal-phase.md` stands unchanged.
 
@@ -37,8 +38,8 @@ ms). A wrong key and a flipped ciphertext byte both fail with `invalid tag`. HPK
 
 The enclave cannot generate a keypair — `crypto.getRandomValues must be defined`. Sealing needs
 randomness and opening does not, so the agents seal on Node and nothing in the design breaks. It
-does confirm that `requisition/` has to generate the keypair, so the buyer holding the private half
+does confirm that `purchaser/` has to generate the keypair, so the buyer holding the private half
 stays a stated limitation.
 
 The chosen scheme and the rejected ones are in `docs/adr/0005-sealed-bid-envelope-scheme.md`.
-Evidence: `docs/evidence/03-enclave-decrypts-sealed-bids.md`.
+Evidence: `docs/scratch/verification/evidence/03-enclave-decrypts-sealed-bids.md`.

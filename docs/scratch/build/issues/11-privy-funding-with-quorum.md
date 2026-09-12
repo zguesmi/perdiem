@@ -23,7 +23,7 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
       ceiling is a per-signer override policy, not a quorum threshold: the wallet carries a server
       authorization key capped at 500 and a key quorum of two with no cap, and the service picks the
       signer from the Payout Cap. The override-policy path is unverified.
-- [ ] The requisition service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
+- [ ] The purchaser service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
       broadcast on Arc.
 
 ## Comments
@@ -31,7 +31,7 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
 Verification 06 is closed. Key quorums work on the app in use, so the policy-only fallback is
 dropped. Privy signs but does not broadcast on Arc: `eth_sendTransaction` returns
 `App is not authorized to transact on chain eip155:5042002`. Use `eth_signTransaction` and send the
-RLP to `ARC_RPC_URL`. See `docs/evidence/06-privy-server-wallets-on-arc.md`.
+RLP to `ARC_RPC_URL`. See `docs/scratch/verification/evidence/06-privy-server-wallets-on-arc.md`.
 
 Funding is two signed transactions, not one. `createAuction` pulls the Payout Cap with
 `transferFrom`, so an `approve` on the USDC ERC-20 has to be signed first. A policy that allows only

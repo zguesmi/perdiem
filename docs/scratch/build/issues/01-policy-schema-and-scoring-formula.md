@@ -37,7 +37,7 @@ Four things this ticket had left implicit, now decided:
   because every comparison in scoring is between two amounts in the same unit.
 - **Canonical encoding is one function over integers**, not the looser "sorted keys, no whitespace,
   UTF-8" prose, which two conformant implementations can satisfy while producing different bytes.
-  `shared/` ships that one encoder, and the requisition service and the Enclave both call it. See
+  `shared/` ships that one encoder, and the purchaser service and the Enclave both call it. See
   `docs/adr/0003-canonical-encoding.md`.
 - **`version`, `currency` and `nights` stay in the hash and are read by nothing during scoring.**
   Their purpose is written down in `docs/spec.md` so nobody later removes them as dead fields and

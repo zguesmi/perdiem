@@ -1,11 +1,6 @@
 node_modules/
 pnpm-lock.yaml
-docs/evidence/
+docs/scratch/verification/evidence/
 
 # Agent skill files: line breaks are load-bearing for the agents that read them.
 **/SKILL.md
-
-# RFC 8785 reference vectors. The conformance test compares them byte for byte, and the outputs
-# deliberately end without a newline.
-packages/core/test/vectors/input/
-packages/core/test/vectors/output/

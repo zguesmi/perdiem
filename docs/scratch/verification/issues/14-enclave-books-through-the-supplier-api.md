@@ -22,8 +22,8 @@ every one of them is unverified against rows V2 and V13, which are `GET` only:
       run against.
 - [x] It records whether a deterministic idempotency key collapses duplicate writes, with the
       observed refusal.
-- [x] One full simulation run lands in `docs/evidence/`, with no API key and no guest data beyond
-      the invented sandbox values.
+- [x] One full simulation run lands in `docs/scratch/verification/evidence/`, with no API key and no
+      guest data beyond the invented sandbox values.
 
 ## Answer
 
@@ -59,6 +59,6 @@ KB and a request at 120 KB. A plain city search returned 589,856 bytes and faile
 to bound the response in the request.
 
 Evidence:
-[14 — The confidential handler books through a supplier API](../../../evidence/14-enclave-books-through-the-supplier-api.md).
+[14 — The confidential handler books through a supplier API](../evidence/14-enclave-books-through-the-supplier-api.md).
 
 ## Comments

@@ -9,7 +9,7 @@ credentials. Its holder can read every price and spend on three supplier account
 
 So an independent party generates the X25519 keypair, neither the buyer nor any supplier, and
 uploads the private half as a workflow secret. Only the public half reaches the deployment, as the
-`SealedAuction` constructor argument. The requisition service must not generate it.
+`SealedAuction` constructor argument. The purchaser service must not generate it.
 
 The enclave cannot generate the pair itself. It has no randomness, and
 `x25519.utils.randomPrivateKey()` throws `crypto.getRandomValues must be defined` there. Row V3.
@@ -20,7 +20,7 @@ README rather than claiming a property the code does not have.
 
 ## Acceptance criteria
 
-- [ ] A documented key-generation step runs outside `requisition/`, and `requisition/` no longer
+- [ ] A documented key-generation step runs outside `purchaser/`, and `purchaser/` no longer
       generates the keypair.
 - [ ] The private half is uploaded as a workflow secret by that party. The buyer never holds it.
 - [ ] The README names who holds the private half and what its holder can read: every Sealed Bid and

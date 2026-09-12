@@ -12,4 +12,4 @@ node_modules/
 # Hardhat Ignition's record of the local deployment.
 onchain/ignition/deployments/hardhat/
 
-!docs/evidence/*.log
+!docs/scratch/verification/evidence/*.log

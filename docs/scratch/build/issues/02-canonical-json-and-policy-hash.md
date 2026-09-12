@@ -57,14 +57,14 @@ Verified outside this codebase, because a fixture our own encoder generated prov
 
 Two things this ticket did not cover:
 
-- `workflow/test/scoring.test.ts` held whole USDC and `distanceKm` against a Policy in minor units
-  and metres, so the new type broke its typecheck and two of its assertions would have passed
+- `workflow-cre/test/scoring.test.ts` held whole USDC and `distanceKm` against a Policy in minor
+  units and metres, so the new type broke its typecheck and two of its assertions would have passed
   without exercising the rule they name. The fixtures move to minor units and metres and
   `Bid.distanceKm` becomes `distanceMeters`. `settle` stays unimplemented, which is ticket 06.
-- `workflow/` reaches `packages/core` through `file:`, which pnpm hard-links rather than symlinks.
-  Any write that replaces the file breaks the link, and the enclave-side test then scores against a
-  stale `goldenPolicy`. Flagged, not fixed. Run `pnpm install` inside `workflow/` after changing
-  `packages/core`.
+- `workflow-cre/` reaches `packages/core` through `file:`, which pnpm hard-links rather than
+  symlinks. Any write that replaces the file breaks the link, and the enclave-side test then scores
+  against a stale `goldenPolicy`. Flagged, not fixed. Run `pnpm install` inside `workflow-cre/`
+  after changing `packages/core`.
 
 ## Comments
 

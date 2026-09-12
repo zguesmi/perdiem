@@ -9,11 +9,11 @@ scoring a supplier can import, read, and brute-force its own price against. The 
 selection rule is private from the platform and from the suppliers; a shared scoring function makes
 that claim false in the repository itself, where any judge can see it.
 
-Scoring is in `workflow/`, which nothing else depends on, and it runs inside `handlerInTee`.
+Scoring is in `workflow-cre/`, which nothing else depends on, and it runs inside `handlerInTee`.
 
 ## Consequences
 
-The demo scoring table is tested in `workflow/`, not in `shared/`. The web UI cannot recompute why a
-bid won; it renders the Settlement and, after the auction, the revealed Policy. The hashing code
-stays shared, because the buyer and the enclave producing different bytes is what kills an auction,
-and that risk is worth a shared package. The scoring code does not carry that risk.
+The demo scoring table is tested in `workflow-cre/`, not in `shared/`. The web UI cannot recompute
+why a bid won; it renders the Settlement and, after the auction, the revealed Policy. The hashing
+code stays shared, because the buyer and the enclave producing different bytes is what kills an
+auction, and that risk is worth a shared package. The scoring code does not carry that risk.

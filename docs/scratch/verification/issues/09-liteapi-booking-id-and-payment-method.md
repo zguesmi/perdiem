@@ -8,8 +8,8 @@ response and whatever the UI displays beside the on-chain hash.
 ## Acceptance criteria
 
 - [x] Row V9 is answered with the booking id field name and the sandbox payment method string.
-- [x] One prebook and one book response are saved in `docs/evidence/`, with sandbox test guest data
-      only.
+- [x] One prebook and one book response are saved in `docs/scratch/verification/evidence/`, with
+      sandbox test guest data only.
 - [x] The id is confirmed stable between the booking response and any later read.
 
 ## Comments
@@ -48,9 +48,9 @@ one booking per auction and lets a lost book response be read back instead of bo
 An `offerId` goes stale: a prebook of an offer from a search minutes earlier failed with `400` code
 `2001`, `"no prebook availability"`. Search, then prebook, then book, in one go.
 
-`agents/src/lite-api/client.ts` cannot carry this yet: `prebook` takes a `rateId` where the API
+`supplier/src/lite-api/client.ts` cannot carry this yet: `prebook` takes a `rateId` where the API
 wants the offer's `offerId`, `book` has nowhere for `payment.method`, `holder`, `guests` or
 `clientReference`, and there is no read path. The list is in the evidence file. Implementing
 `createSandboxLiteApiClient` is a build ticket, not this one.
 
-Evidence: `docs/evidence/09-liteapi-booking-id-and-payment-method.md`.
+Evidence: `docs/scratch/verification/evidence/09-liteapi-booking-id-and-payment-method.md`.
