@@ -578,11 +578,12 @@ Verified on Arc testnet, row V7:
 - The quorum ceiling is 500 USDC and the demo Payout Cap is 750, so the quorum fires in the video
   every time. A Payout Cap under 500 goes through on the policy alone, which is the path the tests
   use.
-- The ceiling is a per-signer override policy, not a quorum threshold. A quorum threshold is fixed
-  and cannot depend on the Payout Cap. The wallet carries two signers: a server authorization key
-  capped at the ceiling, and a key quorum of two, travel manager and finance, with no cap. The
-  purchaser service picks the signer from the Payout Cap. Unverified: the override-policy path is
-  documented and has not been run.
+- The buyer holds two wallets, and the ceiling picks between them. A Privy wallet has one owner: a
+  quorum-owned wallet refuses every request carrying fewer signatures than its threshold, so no path
+  through it is authorized by the spend policy alone. One wallet has no owner and signs on the
+  policy at or under the ceiling. The other is owned by a 2-of-2 key quorum, travel manager and
+  finance, and signs above it. Both carry the same spend policy, and an owner signature does not
+  override it: the quorum wallet is refused a Payout Cap over the maximum as well.
 
 ## Links
 

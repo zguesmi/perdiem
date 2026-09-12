@@ -36,6 +36,7 @@ const environment = z
     PRIVY_APP_ID: z.string().min(1),
     PRIVY_APP_SECRET: z.string().min(1),
     PRIVY_WALLET_ID: z.string().min(1),
+    PRIVY_QUORUM_WALLET_ID: z.string().min(1),
     /** At or below this many USDC minor units, the spend policy authorizes on its own. */
     PRIVY_QUORUM_CEILING: z.coerce.bigint().nonnegative(),
     PRIVY_SERVER_KEYS: keys,
@@ -43,17 +44,21 @@ const environment = z
   })
   .parse(process.env);
 
-const wallet = createPrivyWallet({
-  appId: environment.PRIVY_APP_ID,
-  appSecret: environment.PRIVY_APP_SECRET,
-  walletId: environment.PRIVY_WALLET_ID,
-});
+/** A Privy wallet has one owner, so the quorum needs a wallet of its own. */
+function organizationWallet(walletId: string) {
+  return createPrivyWallet({
+    appId: environment.PRIVY_APP_ID,
+    appSecret: environment.PRIVY_APP_SECRET,
+    walletId,
+  });
+}
 
 const app = createPurchaserApp({
   intentAgent: createIntentAgent(environment.INTENT_MODEL),
   payoutCapBucket: environment.PAYOUT_CAP_BUCKET,
   funder: createFunder({
-    wallet,
+    wallet: organizationWallet(environment.PRIVY_WALLET_ID),
+    quorumWallet: organizationWallet(environment.PRIVY_QUORUM_WALLET_ID),
     rpcUrl: environment.ARC_RPC_URL,
     sealedAuction: environment.SEALED_AUCTION_ADDRESS,
     maxPayoutCap: environment.MAX_PAYOUT_CAP,

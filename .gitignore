@@ -9,8 +9,9 @@ node_modules/
 .pnpm-store/
 .pnpm-cache/
 
-# Hardhat Ignition's record of what it deployed. The addresses reach the rest of the repository
-# through the environment file, and the artifacts beside them are a megabyte per deployment.
-onchain/ignition/deployments/
+# Hardhat Ignition's record of what it deployed. A local node is a new chain on every restart, so
+# only the Arc deployment is worth keeping.
+onchain/ignition/deployments/*
+!onchain/ignition/deployments/arcTestnet/
 
 !docs/scratch/verification/evidence/*.log

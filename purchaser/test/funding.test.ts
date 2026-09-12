@@ -3,12 +3,22 @@ import { createPublicKey, generateKeyPairSync, verify } from "node:crypto";
 import { test } from "node:test";
 
 import { canonicalJson } from "../../shared/canonical-json.ts";
-import { payoutCapFor, signingKeys } from "../src/funding.ts";
-import { authorizationSignature, createPrivyWallet, type PrivyTransaction } from "../src/privy.ts";
+import { payoutCapFor, signerFor } from "../src/funding.ts";
+import {
+  authorizationSignature,
+  createPrivyWallet,
+  type PrivyTransaction,
+  type PrivyWallet,
+} from "../src/privy.ts";
 
 const serverKeys = ["server"];
 const quorumKeys = ["travel-manager", "finance"];
 const quorumCeiling = 500_000_000n;
+
+/** Only which wallet comes back is asserted, so neither stub needs behaviour. */
+const policyWallet = {} as PrivyWallet;
+const quorumWallet = {} as PrivyWallet;
+const wallets = { wallet: policyWallet, quorumWallet };
 
 const bucket = 250_000_000n;
 
@@ -28,23 +38,26 @@ test("pads a maximum price that lands on a bucket boundary to the next one", () 
 
 test("the spend policy authorizes a payout cap at or under the ceiling", () => {
   for (const payoutCap of [1n, quorumCeiling]) {
-    const chosen = signingKeys({ payoutCap, quorumCeiling, serverKeys, quorumKeys });
+    const chosen = signerFor({ payoutCap, quorumCeiling, serverKeys, quorumKeys, ...wallets });
 
     assert.deepEqual(chosen.keys, serverKeys);
+    assert.equal(chosen.wallet, policyWallet);
     assert.equal(chosen.quorumSigned, false);
   }
 });
 
 test("a payout cap over the ceiling needs both quorum members", () => {
   // The demo's 750 cap sits above the 500 ceiling, so the two approvals show every run.
-  const chosen = signingKeys({
+  const chosen = signerFor({
     payoutCap: quorumCeiling + 1n,
     quorumCeiling,
     serverKeys,
     quorumKeys,
+    ...wallets,
   });
 
   assert.deepEqual(chosen.keys, quorumKeys);
+  assert.equal(chosen.wallet, quorumWallet);
   assert.equal(chosen.quorumSigned, true);
 });
 
@@ -53,11 +66,12 @@ test("refuses a cap over the ceiling with nobody to sign for it", () => {
   // gave. The cap is known at startup, so this fails there rather than at the deadline.
   assert.throws(
     () =>
-      signingKeys({
+      signerFor({
         payoutCap: quorumCeiling + 1n,
         quorumCeiling,
         serverKeys,
         quorumKeys: [],
+        ...wallets,
       }),
     /quorum keys/,
   );

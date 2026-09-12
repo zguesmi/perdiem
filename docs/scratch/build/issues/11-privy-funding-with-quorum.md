@@ -12,17 +12,17 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
 
 - [ ] The organization wallet signs `createAuction` on Arc testnet, and the transaction hash appears
       on the page.
-- [ ] The spend policy has two `ALLOW` rules, both reading the calldata with
+- [x] The spend policy has two `ALLOW` rules, both reading the calldata with
       `field_source: ethereum_calldata` and the contract ABI: `approve(spender, value)` on the USDC
       ERC-20 with `spender` equal to `SealedAuction`, and `createAuction(...)` on `SealedAuction`
       with the Payout Cap within the ceiling. Every rule pins `chain_id` to 5042002 and uses
       `method: eth_signTransaction`.
-- [ ] A refused `approve` to another spender is captured as evidence.
+- [x] A refused `approve` to another spender is captured as evidence.
 - [ ] A Payout Cap under the 500 ceiling passes on the policy alone. That is the path the tests use.
 - [ ] The 750 Payout Cap fires the two-signer key quorum, and both approvals show in the UI. The
-      ceiling is a per-signer override policy, not a quorum threshold: the wallet carries a server
-      authorization key capped at 500 and a key quorum of two with no cap, and the service picks the
-      signer from the Payout Cap. The override-policy path is unverified.
+      ceiling picks between two wallets: one with no owner, authorized by the spend policy alone at
+      or under 500, and one owned by a 2-of-2 key quorum above it. A Privy wallet has a single
+      owner, so a per-signer override on one wallet is not available.
 - [ ] The purchaser service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
       broadcast on Arc.
 
@@ -64,6 +64,31 @@ Two criteria are stale after #47:
 - The `createAuction` rule caps `payoutCap` at `MAX_PAYOUT_CAP`, 750 USDC. Refusing above it is the
   demo: the buyer asks 800, Privy answers `policy_violation`, the buyer retries at 520 and funds.
   Cost: the cap leaks which 250 band `maxPrice` falls in. The fixed cap leaked nothing.
+
+### 2026-09-12 — the policy and the quorum are live, no funding has been mined
+
+`SealedAuction` is deployed on Arc testnet at `0x95ca62b68899741BE9fF0b7EaB074e248008A33b`.
+Evidence: `docs/scratch/verification/evidence/privy-spend-policy-and-quorum.md`.
+
+Settled by the run:
+
+- The two calldata rules are attached to both buyer wallets, and nine signature requests are each
+  answered as the policy states. The probe exits 1 if any row is signed where a refusal is stated.
+- The spend policy is enforced for quorum-signed requests. Both owners sign and Privy still refuses
+  a `payoutCap` above the maximum, so the over-budget refusal fires on either wallet.
+- The snake_case transaction fields and the `chain_id` string in the condition are correct as sent.
+- `POST /v1/key_quorums` now takes `public_keys`, not the `authorization_keys` the V6 run sent.
+- The ceiling cannot be a per-signer override. A Privy wallet has one owner, and a quorum-owned
+  wallet refuses any request under its threshold, so the buyer holds two wallets and the service
+  picks one by the payout cap.
+
+Left:
+
+- A mined funding run. Both buyer wallets hold 1 USDC and the smallest derived cap is 250 USDC, so
+  `POST /confirm` needs a faucet. No Privy-signed transaction has reached Arc through the purchaser
+  service. The deployment and the gas transfers were broadcast from the deployer key by Hardhat and
+  by viem, and the one quorum-signed transfer on chain was broadcast by curl during the V6 run.
+- The page has to call `POST /confirm` and show `quorumSigned`.
 
 ## Dev review
 

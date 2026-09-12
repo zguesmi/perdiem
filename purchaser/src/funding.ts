@@ -22,7 +22,10 @@ export interface Funding {
 }
 
 export interface FunderOptions {
+  /** The wallet with no owner: its spend policy is the whole authorization. */
   wallet: PrivyWallet;
+  /** The wallet owned by the key quorum. Every request to it carries both approvals. */
+  quorumWallet: PrivyWallet;
   rpcUrl: string;
   sealedAuction: `0x${string}`;
   /** The largest cap the spend policy will sign. Privy refuses anything above it. */
@@ -56,28 +59,36 @@ export function payoutCapFor(maxPrice: bigint, bucket: bigint): bigint {
 }
 
 /**
- * Who authorizes this funding, decided by the payout cap and nothing else.
+ * Which wallet funds this auction and who authorizes it, decided by the payout cap and nothing
+ * else.
  *
  * Above the ceiling the key quorum approves: the travel manager and finance both sign the request.
- * At or below it the wallet's spend policy is the whole authorization, so the list is normally
+ * At or below it the wallet's spend policy is the whole authorization, so the key list is normally
  * empty. The cap is known before any request leaves, so the choice is made once per auction.
  *
- * A quorum with no keys is refused rather than reported. Privy would sign on the spend policy
- * alone and the page would show two approvals that nobody gave.
+ * It is two wallets because a Privy wallet has one owner. A quorum-owned wallet needs both
+ * approvals on every request, which leaves no path the spend policy authorizes on its own.
+ *
+ * A quorum with no keys is refused rather than reported. Privy would answer the request on the
+ * spend policy alone and the page would show two approvals that nobody gave.
  */
-export function signingKeys(options: {
+export function signerFor(options: {
   payoutCap: bigint;
   quorumCeiling: bigint;
+  wallet: PrivyWallet;
+  quorumWallet: PrivyWallet;
   serverKeys: readonly string[];
   quorumKeys: readonly string[];
-}): { keys: readonly string[]; quorumSigned: boolean } {
+}): { wallet: PrivyWallet; keys: readonly string[]; quorumSigned: boolean } {
   const quorumSigned = options.payoutCap > options.quorumCeiling;
 
   if (quorumSigned && options.quorumKeys.length === 0) {
     throw new Error("a payout cap above the ceiling needs quorum keys to sign it");
   }
 
-  return { keys: quorumSigned ? options.quorumKeys : options.serverKeys, quorumSigned };
+  return quorumSigned
+    ? { wallet: options.quorumWallet, keys: options.quorumKeys, quorumSigned }
+    : { wallet: options.wallet, keys: options.serverKeys, quorumSigned };
 }
 
 /**
@@ -92,11 +103,11 @@ export function createFunder(options: FunderOptions): Funder {
 
   // The cap is per-auction now, so the signer is chosen per call. The largest cap the spend policy
   // allows still settles at startup whether a quorum can ever be needed.
-  signingKeys({ ...options, payoutCap: options.maxPayoutCap });
+  signerFor({ ...options, payoutCap: options.maxPayoutCap });
 
   return async (policyHash, requirements, payoutCap) => {
-    const { keys: authorizationKeys, quorumSigned } = signingKeys({ ...options, payoutCap });
-    const from = await options.wallet.address();
+    const { wallet, keys: authorizationKeys, quorumSigned } = signerFor({ ...options, payoutCap });
+    const from = await wallet.address();
     const usdc = await client.readContract({
       address: options.sealedAuction,
       abi: sealedAuctionAbi,
@@ -123,10 +134,7 @@ export function createFunder(options: FunderOptions): Funder {
         type: 2,
       };
 
-      const serializedTransaction = await options.wallet.signTransaction(
-        transaction,
-        authorizationKeys,
-      );
+      const serializedTransaction = await wallet.signTransaction(transaction, authorizationKeys);
       const hash = await client.sendRawTransaction({ serializedTransaction });
       const receipt = await client.waitForTransactionReceipt({ hash });
 
