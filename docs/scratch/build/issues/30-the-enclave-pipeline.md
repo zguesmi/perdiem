@@ -72,7 +72,11 @@ stub already declares, and adapts `shared/bid.ts`'s `Bid` to the one scoring tak
   expands no variable inside a config file and the contract address changes on every deploy.
 - Step 11 is a seam: `book` returns an empty booking id, which reports no winner and refunds
   everything. Ticket 14 closes it.
-- `cre workflow build` compiles the handler to WASM. `cre workflow simulate` is ticket 13.
+- `cre workflow simulate` runs against Arc testnet and returns `no auction pending`, so the chain
+  read and the config are proven end to end. A run with bids on chain is ticket 13.
+- `pnpm run config` and `pnpm run simulate` take a network, default `arcTestnet`, and read
+  `.env.<network>`. The CRE chain name stays `arc-testnet` either way: the local node runs with
+  `--chain-id $ARC_CHAIN_ID`, so both networks are chain 5042002.
 
 ## Dev review
 

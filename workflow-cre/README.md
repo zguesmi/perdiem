@@ -38,9 +38,9 @@ overwrites the shape of every one of them, so local edits to those eight files a
 re-apply by hand.
 
 `config.json` carries the `SealedAuction` address, which changes on every deploy, so it is generated
-rather than committed: `pnpm run config` reads `.env.arcTestnet` and writes it. The CRE CLI expands
-nothing inside a config file, which is why `project.yaml` can hold `${ARC_RPC_URL}` and this one
-cannot.
+rather than committed: `pnpm run config <network>` reads `.env.<network>` and writes it. The CRE CLI
+expands nothing inside a config file, which is why `project.yaml` can hold `${ARC_RPC_URL}` and this
+one cannot.
 
 Both targets exist and both simulate. They differ by name only, because nothing is deployed and
 `cre workflow simulate` runs either. Two targets mean `--target` is no longer optional.
@@ -105,13 +105,20 @@ This package is outside the pnpm workspace, so the root scripts skip it and it i
 
 ```sh
 pnpm --dir workflow-cre install
-pnpm --dir workflow-cre test        # tsx --test over test/**/*.test.ts
-pnpm --dir workflow-cre typecheck   # tsc --noEmit
-pnpm --dir workflow-cre config      # write config.json from .env.arcTestnet
-pnpm --dir workflow-cre simulate    # config, then cre workflow simulate against staging
+pnpm --dir workflow-cre test                # tsx --test over test/**/*.test.ts
+pnpm --dir workflow-cre typecheck           # tsc --noEmit
+pnpm --dir workflow-cre config              # write config.json from .env.arcTestnet
+pnpm --dir workflow-cre config localhost    # the same, from .env.localhost
+pnpm --dir workflow-cre simulate            # config, then cre workflow simulate
+pnpm --dir workflow-cre simulate localhost  # the same, against the local node
 ```
 
-`simulate` needs `ARC_RPC_URL` in `.env.arcTestnet`, because the CLI checks every RPC in
+Both commands take a network, named after the Hardhat network and its `.env.<network>` file, and
+default to `arcTestnet`. The CRE chain name is not one of those values: the local node runs with
+`--chain-id $ARC_CHAIN_ID`, so both networks are chain 5042002 and both answer to `arc-testnet`.
+`project.yaml` reads `${ARC_RPC_URL}`, which each file sets to its own node.
+
+`simulate` needs `ARC_RPC_URL` in the file it reads, because the CLI checks every RPC in
 `project.yaml` before it compiles, and it needs every variable `secrets.yaml` names.
 
 ## Status

@@ -2,13 +2,18 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 
 /**
- * Writes `workflow-cre/config.json` from a deployment's environment file. The CRE CLI reads that
+ * Writes `workflow-cre/config.json` from one deployment's environment file. The CRE CLI reads that
  * file verbatim and expands nothing in it, and the contract address changes on every deploy, so the
  * workflow's config is generated from the same file every other service reads.
+ *
+ * The argument is a network, named after the Hardhat network and its `.env.<network>` file. The CRE
+ * chain name is not one of these values: the local node runs with `--chain-id $ARC_CHAIN_ID`, so
+ * both networks are chain 5042002 and both answer to `arc-testnet`.
  */
 
 const ROOT = path.join(import.meta.dirname, "..");
-const ENV_FILE = process.argv[2] ?? ".env.arcTestnet";
+const NETWORK = process.argv[2] ?? "arcTestnet";
+const ENV_FILE = `.env.${NETWORK}`;
 
 process.loadEnvFile(path.join(ROOT, ENV_FILE));
 
