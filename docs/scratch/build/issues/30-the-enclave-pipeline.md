@@ -1,6 +1,6 @@
 # Run the enclave pipeline from the cron to the settlement
 
-Status: ready-for-agent Type: task Blocked by: 29
+Status: resolved Type: task Blocked by: 29
 
 Step 7 of `docs/spec.md` has no owner. Ticket 06 owns the scoring function, ticket 14 owns the
 booking, ticket 13 captures the simulation evidence. Everything between the cron tick and
@@ -46,23 +46,37 @@ stub already declares, and adapts `shared/bid.ts`'s `Bid` to the one scoring tak
 
 ## Acceptance criteria
 
-- [ ] The cron exits on `bytes32(0)` without a write.
-- [ ] The claim report lands before any bid is fetched or opened.
-- [ ] The Policy is fetched by Policy Hash, opened, and rejected when `hashPolicy` disagrees. A
+- [x] The cron exits on `bytes32(0)` without a write.
+- [x] The claim report lands before any bid is fetched or opened.
+- [x] The Policy is fetched by Policy Hash, opened, and rejected when `hashPolicy` disagrees. A
       rejected Policy writes no settlement.
-- [ ] A bid that fails decryption, the signature check or the commitment check is dropped, and the
+- [x] A bid that fails decryption, the signature check or the commitment check is dropped, and the
       log carries a count and nothing else.
-- [ ] A contract-account supplier passes through ERC-1271 and an EOA through `ecrecover`. One test
+- [x] A contract-account supplier passes through ERC-1271 and an EOA through `ecrecover`. One test
       each.
-- [ ] The Bids Root is built from the chain's commitment array, and a committer with no ciphertext
+- [x] The Bids Root is built from the chain's commitment array, and a committer with no ciphertext
       at the relay does not change it. One test states it.
-- [ ] No eligible bid writes a settlement with `winner = address(0)`, `payout = 0` and an empty
+- [x] No eligible bid writes a settlement with `winner = address(0)`, `payout = 0` and an empty
       `bookingId`.
-- [ ] The claim and the settlement both write in one run.
-- [ ] The test output greps clean for the Policy, the maximum price, the preference numbers, the
+- [x] The claim and the settlement both write in one run.
+- [x] The test output greps clean for the Policy, the maximum price, the preference numbers, the
       enclave private key, any decrypted bid and any booking credential.
 
 ## Comments
+
+- `workflow-cre/src/enclave.ts` holds steps 4 to 11 as a plain function, so the pipeline is tested
+  without a CRE runtime. `workflow.ts` supplies the capabilities and nothing else.
+- `ecrecover` is `@noble/curves`, not viem: viem's recovery is asynchronous and the handler runs one
+  synchronous pass.
+- `config.json` is generated from the `.env` by `scripts/workflow-config.ts`, because the CRE CLI
+  expands no variable inside a config file and the contract address changes on every deploy.
+- Step 11 is a seam: `book` returns an empty booking id, which reports no winner and refunds
+  everything. Ticket 14 closes it.
+- `cre workflow simulate` runs against Arc testnet and returns `no auction pending`, so the chain
+  read and the config are proven end to end. A run with bids on chain is ticket 13.
+- `pnpm run config` and `pnpm run simulate` take a network, default `arcTestnet`, and read
+  `.env.<network>`. The CRE chain name stays `arc-testnet` either way: the local node runs with
+  `--chain-id $ARC_CHAIN_ID`, so both networks are chain 5042002.
 
 ## Dev review
 

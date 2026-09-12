@@ -11,5 +11,5 @@ production-settings:
     workflow-name: "perdiem"
   workflow-artifacts:
     workflow-path: "./src/main.ts"
-    config-path: "./config.production.json"
+    config-path: "./config.json"
     secrets-path: "./secrets.yaml"

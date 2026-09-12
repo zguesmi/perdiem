@@ -235,12 +235,18 @@ auction state.
 | Call                                        | Behaviour                                                                                                     |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `PUT /auctions/{auctionId}/bids/{supplier}` | Body is the raw ciphertext. `201` on the first write for that pair, `409` on any later one, `413` over 16 KiB |
+| `GET /auctions/{auctionId}/bids/{supplier}` | `200` with the ciphertext as it was written. `404` for a pair it never saw                                    |
 | `GET /auctions/{auctionId}/bids`            | `200` with `[{ supplier, ciphertext }]`, in arrival order. `[]` for an unknown auction                        |
 | `PUT /policies/{policyHash}`                | Body is the raw ciphertext. `201` on the first write for that hash, `409` on any later one, `413` over 16 KiB |
 | `GET /policies/{policyHash}`                | `200` with the ciphertext as it was written. `404` for a hash it never saw                                    |
 
 First write wins, because the commitment is already on chain: overwriting would only swap the bid
 behind a fixed commitment, which the Enclave then drops. No delete, no auction listing.
+
+The Enclave reads one bid at a time, by the addresses `committers` names, and the page reads the
+list. Nobody staked behind a blob stored under any other address, so reading per supplier bounds
+what the Enclave fetches at `MAX_BIDS` answers of 16 KiB against the HTTP capability's 250 KB
+ceiling. The list endpoint has no such bound.
 
 What open access costs: a supplier can fetch a rival's ciphertext and count the bids. No price
 leaks, because only the Enclave holds the private key. Bearer tokens are the obvious hardening and
@@ -478,11 +484,11 @@ no-winner path; the timeout path.
 - A cron trigger, every 60 seconds in simulation, calls `pendingSettlement()`. On `bytes32(0)`,
   exit.
 - Claim the auction with an action `1` report before any scoring work.
-- Inside `handlerInTee`: load the enclave private key from secrets; read the Policy Hash and the
-  commitments from the chain; fetch the sealed Policy from the relay by that hash and check what it
-  opens against it; fetch the Sealed Bids with `cre.capabilities.HTTPClient`; decrypt; check
-  signatures; check commitments; build the Bids Root; score; book the winner; return only the
-  Settlement.
+- Inside `handlerInTee`: load the enclave private key from secrets; read the Policy Hash, the
+  commitments and the committers from the chain; fetch the sealed Policy from the relay by that hash
+  and check what it opens against it; fetch one Sealed Bid per committer with
+  `cre.capabilities.HTTPClient`; decrypt; check signatures; check commitments; build the Bids Root;
+  score; book the winner; return only the Settlement.
 - The same `HTTPClient.sendRequest` carries the booking, with `method` and a `body`. The capability
   caps a request at 120 KB and a response at 250 KB, and times out at 10 s per request, so every
   call to a supplier API bounds its own answer. Row V14.

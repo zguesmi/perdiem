@@ -2,3 +2,9 @@ node_modules/
 
 # The CRE toolchain bundles and compiles beside the workflow entry point.
 .cre_build_tmp.*
+
+# Written by `pnpm run config` from the deployment's environment file.
+config.json
+
+# `cre workflow build` writes the compiled workflow here.
+binary.wasm

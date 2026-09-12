@@ -59,8 +59,17 @@ export function createRelayApp(): Hono {
     return store(context, auction, context.req.param("supplier").toLowerCase());
   });
 
-  // The workflow collects every sealed bid for an auction. The order is arrival order: the enclave
-  // matches each bid to its own on-chain commitment, and the bids root follows the chain's array.
+  // The enclave asks for one supplier's sealed bid, by the address the chain says committed. Every
+  // answer is one blob under the size cap, so nobody can grow the enclave's read by posting bids
+  // under addresses that never staked.
+  app.get("/auctions/:auctionId/bids/:supplier", (context) => {
+    const auction = bids.get(context.req.param("auctionId"));
+    const ciphertext = auction?.get(context.req.param("supplier").toLowerCase());
+
+    return ciphertext === undefined ? context.body(null, 404) : context.text(ciphertext);
+  });
+
+  // The page reads them all at once. The order is arrival order.
   app.get("/auctions/:auctionId/bids", (context) => {
     const auction = bids.get(context.req.param("auctionId")) ?? new Map<string, string>();
 
