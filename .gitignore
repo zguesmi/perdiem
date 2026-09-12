@@ -9,7 +9,8 @@ node_modules/
 .pnpm-store/
 .pnpm-cache/
 
-# Hardhat Ignition's record of the local deployment.
-onchain/ignition/deployments/hardhat/
+# Hardhat Ignition's record of what it deployed. The addresses reach the rest of the repository
+# through the environment file, and the artifacts beside them are a megabyte per deployment.
+onchain/ignition/deployments/
 
 !docs/scratch/verification/evidence/*.log

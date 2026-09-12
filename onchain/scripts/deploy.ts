@@ -5,16 +5,21 @@ import { x25519 } from "@noble/curves/ed25519.js";
 import { network } from "hardhat";
 import { bytesToHex, isAddress } from "viem";
 
+import arcDeployment from "../ignition/modules/Arc.ts";
 import localDeployment from "../ignition/modules/Local.ts";
 
 /**
- * Deploys the stand-in USDC and `SealedAuction` to a local node, so that the rest of the repository
- * has an address to call.
+ * Deploys `SealedAuction`, and on a local node the stand-in USDC it pulls from, so that the rest of
+ * the repository has an address to call.
  *
  * ```sh
  * npx hardhat node                                        # one terminal
  * npx hardhat run scripts/deploy.ts --network localhost   # another, writing .env.localhost
+ * npx hardhat run scripts/deploy.ts --network arcTestnet  # writing .env.arcTestnet
  * ```
+ *
+ * Arc carries a real USDC and real balances, so a deployment there is `SealedAuction` alone: no
+ * token, no minting, and the addresses it would have minted to are not read.
  *
  * Run it twice and the second run deploys nothing: the enclave key is reused from the environment
  * file, and Ignition recognises the deployment it already recorded.
@@ -24,17 +29,14 @@ import localDeployment from "../ignition/modules/Local.ts";
 const ROOT = path.resolve(import.meta.dirname, "../..");
 
 /**
- * The forwarder the Chainlink CRE simulator sends reports from. `SealedAuction` accepts a
- * settlement from this address alone, so a local deployment that names anything else can never be
- * settled.
+ * The forwarder the Chainlink CRE simulator sends reports from, on Arc as on a local node.
+ * `SealedAuction` accepts a settlement from this address alone, so a deployment that names
+ * anything else can never be settled.
  */
-const CRE_SIMULATOR_FORWARDER = "0x6e9ee680ef59ef64aa8c7371279c27e496b5edc1";
+const CRE_FORWARDER = "0x6e9ee680ef59ef64aa8c7371279c27e496b5edc1";
 
 /** Native balance given to each account, so it can pay gas on the local node. 10 ETH. */
 const GAS_GRANT = "0x8ac7230489e80000";
-
-/** Ignition's name for this deployment, and so the directory it records it in. */
-const DEPLOYMENT_ID = "hardhat";
 
 const USDC_DECIMALS = 6;
 const X25519_KEY_LENGTH = 32;
@@ -87,12 +89,11 @@ const ENV_PATH = path.join(ROOT, ENV_FILE);
 
 process.loadEnvFile(ENV_PATH);
 
-const accounts = {
-  buyer: readAddress(ACCOUNT_VARIABLES.buyer),
-  supplier1: readAddress(ACCOUNT_VARIABLES.supplier1),
-  supplier2: readAddress(ACCOUNT_VARIABLES.supplier2),
-  supplier3: readAddress(ACCOUNT_VARIABLES.supplier3),
-};
+/** Arc has its own token and its own balances, so only a local node deploys and mints one. */
+const onArc = connection.networkName === "arcTestnet";
+
+/** Ignition's name for this deployment, and so the directory it records it in. */
+const DEPLOYMENT_ID = connection.networkName;
 
 // Generated on the first run only, and base64 because that is how the workflow secret carries it.
 // The public half is a constructor argument, so a new key would mean a new contract, and every
@@ -112,10 +113,6 @@ if (stored === undefined || stored === "") {
   console.log(`Generated an enclave keypair. The private half is in ${ENV_FILE}.`);
 }
 
-for (const address of Object.values(accounts)) {
-  await connection.provider.request({ method: "hardhat_setBalance", params: [address, GAS_GRANT] });
-}
-
 // Ignition's record outlives the node. A restarted node holds no code at the addresses the record
 // names, and without this `deploy` reports those addresses and deploys nothing.
 const deploymentDir = path.join(import.meta.dirname, "../ignition/deployments", DEPLOYMENT_ID);
@@ -132,28 +129,50 @@ if (code.length > 0 && code.every((bytecode) => bytecode === "0x")) {
   await rm(deploymentDir, { recursive: true, force: true });
 }
 
-const { usdc, sealedAuction } = await connection.ignition.deploy(localDeployment, {
-  parameters: {
-    [localDeployment.id]: {
-      forwarder: CRE_SIMULATOR_FORWARDER,
-      enclavePublicKey: bytesToHex(x25519.getPublicKey(enclavePrivateKey)),
-      ...accounts,
-    },
-  },
-  deploymentId: DEPLOYMENT_ID,
-  displayUi: true,
-});
+const enclavePublicKey = bytesToHex(x25519.getPublicKey(enclavePrivateKey));
 
-// The addresses reach every other package through the environment file, the same two variables an
-// Arc deployment fills in. Ignition's record under `ignition/deployments/` stays the deployment history, and
-// nothing outside `onchain/` reads it.
-await updateEnvFile({
-  SEALED_AUCTION_ADDRESS: sealedAuction.address,
-  USDC_ADDRESS: usdc.address,
-  USDC_DECIMALS: String(USDC_DECIMALS),
-});
+// The addresses reach every other package through the environment file. Ignition's record under
+// `ignition/deployments/` stays the deployment history, and nothing outside `onchain/` reads it.
+if (onArc) {
+  const usdc = readAddress("USDC_ADDRESS");
+  const { sealedAuction } = await connection.ignition.deploy(arcDeployment, {
+    parameters: { [arcDeployment.id]: { usdc, forwarder: CRE_FORWARDER, enclavePublicKey } },
+    deploymentId: DEPLOYMENT_ID,
+    displayUi: true,
+  });
 
-console.log();
-console.log(`SealedAuction  ${sealedAuction.address}`);
-console.log(`USDC           ${usdc.address}`);
+  await updateEnvFile({ SEALED_AUCTION_ADDRESS: sealedAuction.address });
+
+  console.log();
+  console.log(`SealedAuction  ${sealedAuction.address}`);
+  console.log(`USDC           ${usdc}, already on the chain`);
+} else {
+  const accounts = {
+    buyer: readAddress(ACCOUNT_VARIABLES.buyer),
+    supplier1: readAddress(ACCOUNT_VARIABLES.supplier1),
+    supplier2: readAddress(ACCOUNT_VARIABLES.supplier2),
+    supplier3: readAddress(ACCOUNT_VARIABLES.supplier3),
+  };
+
+  for (const address of Object.values(accounts)) {
+    await connection.provider.request({ method: "hardhat_setBalance", params: [address, GAS_GRANT] });
+  }
+
+  const { usdc, sealedAuction } = await connection.ignition.deploy(localDeployment, {
+    parameters: { [localDeployment.id]: { forwarder: CRE_FORWARDER, enclavePublicKey, ...accounts } },
+    deploymentId: DEPLOYMENT_ID,
+    displayUi: true,
+  });
+
+  await updateEnvFile({
+    SEALED_AUCTION_ADDRESS: sealedAuction.address,
+    USDC_ADDRESS: usdc.address,
+    USDC_DECIMALS: String(USDC_DECIMALS),
+  });
+
+  console.log();
+  console.log(`SealedAuction  ${sealedAuction.address}`);
+  console.log(`USDC           ${usdc.address}`);
+}
+
 console.log(`Addresses written to ${ENV_FILE}.`);
