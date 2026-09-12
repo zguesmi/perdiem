@@ -1,7 +1,7 @@
 import type { PublicClient } from "viem";
 
 import type { PublicRequirements } from "../../shared/policy.ts";
-import { sealedAuctionAbi } from "./abi.ts";
+import { sealedAuctionAbi } from "../../shared/abi.ts";
 import type { AuctionTerms } from "./tools.ts";
 
 /** How long the watcher waits between two reads of the chain. */
