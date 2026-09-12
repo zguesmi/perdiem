@@ -72,7 +72,7 @@ Evidence: `docs/scratch/verification/evidence/privy-spend-policy-and-quorum.md`.
 
 Settled by the run:
 
-- The two calldata rules are attached to both buyer wallets, and eight signature requests are each
+- The two calldata rules are attached to both buyer wallets, and nine signature requests are each
   answered as the policy states. The probe exits 1 if any row is signed where a refusal is stated.
 - The spend policy is enforced for quorum-signed requests. Both owners sign and Privy still refuses
   a `payoutCap` above the maximum, so the over-budget refusal fires on either wallet.
