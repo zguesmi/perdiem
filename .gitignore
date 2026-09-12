@@ -15,3 +15,4 @@ onchain/ignition/deployments/*
 !onchain/ignition/deployments/arcTestnet/
 
 !docs/scratch/verification/evidence/*.log
+.claude/worktrees
