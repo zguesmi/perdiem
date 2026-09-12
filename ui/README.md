@@ -14,6 +14,7 @@ Then a stepper, and under it five panels, read top to bottom during the demo:
 4. **Bids** — one row per on-chain commitment, with the size of its ciphertext at the relay.
 5. **Enclave** — state and bids root.
 6. **Settlement** — winner, payout, refund and booking id.
+7. **Balances** — the USDC held by the escrow, the buyer and every supplier that committed.
 
 The page reads `auctions` and `commitments` on a 2 second timer and holds no auction state of its
 own. It shows the newest auction and nothing else.

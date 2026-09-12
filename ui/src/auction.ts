@@ -9,7 +9,7 @@ import {
 } from "viem";
 
 import { USDC_DECIMALS } from "../../shared/chain.ts";
-import { sealedAuctionAbi } from "../../shared/abi.ts";
+import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
 
 /** Narrows `eth_getLogs` to this contract's own events, so a busy address costs nothing extra. */
 const sealedAuctionEvents = sealedAuctionAbi.filter((entry) => entry.type === "event");
@@ -44,6 +44,8 @@ export type AuctionView = {
   relayReachable: boolean;
   settlement?: Settlement;
   timedOutTransaction?: Transaction;
+  /** USDC, by lower-cased address, for the escrow, the buyer and every supplier that committed. */
+  balances: Map<string, bigint>;
 };
 
 export type PublicRequirements = {
@@ -148,10 +150,13 @@ export async function readAuction(
       Extract<(typeof logs)[number], { eventName: Name }> | undefined;
 
   const contract = { address: config.sealedAuction, abi: sealedAuctionAbi } as const;
-  const [auction, commitments, bidsRoot] = await Promise.all([
+  // The token comes from the contract rather than from configuration: it is immutable there, and a
+  // configured address is one more thing that can disagree with the auction it claims to fund.
+  const [auction, commitments, bidsRoot, usdc] = await Promise.all([
     client.readContract({ ...contract, functionName: "auctions", args: [auctionId] }),
     client.readContract({ ...contract, functionName: "commitments", args: [auctionId] }),
     client.readContract({ ...contract, functionName: "bidsRoot", args: [auctionId] }),
+    client.readContract({ ...contract, functionName: "usdc" }),
   ]);
 
   const terms = find("TermsPublished");
@@ -160,7 +165,14 @@ export async function readAuction(
   const timedOut = find("AuctionTimedOut");
 
   const committed = forThisAuction.filter((log) => log.eventName === "Committed");
-  const sealed = await readSealedBids(config, auctionId);
+  const [sealed, balances] = await Promise.all([
+    readSealedBids(config, auctionId),
+    readBalances(client, usdc, [
+      config.sealedAuction,
+      auction[1],
+      ...committed.map((log) => log.args.supplier),
+    ]),
+  ]);
 
   return {
     auctionId,
@@ -193,7 +205,32 @@ export async function readAuction(
       finalizedTransaction: transaction(finalized),
     },
     timedOutTransaction: timedOut && transaction(timedOut),
+    balances,
   };
+}
+
+/**
+ * One `balanceOf` per address, in one batch of reads. A failure here fails the whole poll, which
+ * leaves the last balances on screen rather than blanking the panel.
+ */
+async function readBalances(
+  client: PublicClient,
+  usdc: Address,
+  addresses: Address[],
+): Promise<Map<string, bigint>> {
+  const wanted = [...new Set(addresses.map((address) => address.toLowerCase()))] as Address[];
+  const balances = await Promise.all(
+    wanted.map((address) =>
+      client.readContract({
+        address: usdc,
+        abi: usdcAbi,
+        functionName: "balanceOf",
+        args: [address],
+      }),
+    ),
+  );
+
+  return new Map(wanted.map((address, index) => [address, balances[index] as bigint]));
 }
 
 /** A log carries both halves of a transaction row, so nothing has to be read back per hash. */

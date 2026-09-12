@@ -19,6 +19,7 @@ function auction(state: AuctionState, overrides: Partial<AuctionView> = {}): Auc
     bidsRoot: "0x04",
     bids: [],
     relayReachable: true,
+    balances: new Map(),
     ...overrides,
   };
 }
