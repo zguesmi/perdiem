@@ -11,6 +11,9 @@ import {
 import { USDC_DECIMALS } from "../../shared/chain.ts";
 import { sealedAuctionAbi } from "./abi.ts";
 
+/** Narrows `eth_getLogs` to this contract's own events, so a busy address costs nothing extra. */
+const sealedAuctionEvents = sealedAuctionAbi.filter((entry) => entry.type === "event");
+
 /** `SealedAuction.State`, in declaration order. The read returns the index. */
 const STATES = ["None", "Created", "Bidding", "Settling", "Finalized", "Timeout"] as const;
 
@@ -34,6 +37,8 @@ export type AuctionView = {
   bidsRoot: Hex;
   claimedTransaction?: Hex;
   bids: BidRow[];
+  /** False when the relay did not answer, which is not the same as a relay holding nothing. */
+  relayReachable: boolean;
   settlement?: Settlement;
   timedOutTransaction?: Hex;
 };
@@ -114,7 +119,11 @@ export async function readAuction(
 ): Promise<AuctionView | null> {
   const logs = parseEventLogs({
     abi: sealedAuctionAbi,
-    logs: await client.getLogs({ address: config.sealedAuction, fromBlock: config.fromBlock }),
+    logs: await client.getLogs({
+      address: config.sealedAuction,
+      events: sealedAuctionEvents,
+      fromBlock: config.fromBlock,
+    }),
   });
 
   const created = logs.filter((log) => log.eventName === "AuctionCreated").at(-1);
@@ -156,6 +165,7 @@ export async function readAuction(
     termsTransaction: terms?.transactionHash,
     bidsRoot,
     claimedTransaction: claimed?.transactionHash,
+    relayReachable: sealed !== undefined,
     bids: commitments.map((commitment) => {
       const log = committed.find((entry) => entry.args.commitment === commitment);
       const supplier = log?.args.supplier;
@@ -163,7 +173,7 @@ export async function readAuction(
         commitment,
         supplier,
         committedTransaction: log?.transactionHash,
-        sealedBytes: supplier ? sealed.get(supplier.toLowerCase()) : undefined,
+        sealedBytes: supplier ? sealed?.get(supplier.toLowerCase()) : undefined,
       };
     }),
     settlement: finalized && {
@@ -177,14 +187,18 @@ export async function readAuction(
 }
 
 /**
- * Ciphertext sizes, by lower-cased supplier address. A relay that is down is not an error: the
- * chain half of the bids panel still reads.
+ * Ciphertext sizes, by lower-cased supplier address, or `undefined` when the relay did not answer.
+ * The two cases have to stay apart: an empty map says no supplier sealed a bid, which is a claim
+ * the page cannot make about a relay it never reached.
  */
-async function readSealedBids(config: Config, auctionId: Hex): Promise<Map<string, number>> {
+async function readSealedBids(
+  config: Config,
+  auctionId: Hex,
+): Promise<Map<string, number> | undefined> {
   try {
     const response = await fetch(`${config.relayUrl}/auctions/${auctionId}/bids`);
     if (!response.ok) {
-      return new Map();
+      return undefined;
     }
     const bids = (await response.json()) as { supplier: string; ciphertext: string }[];
     // A supplier posts the envelope as a `0x` hex string, so two characters are one byte.
@@ -195,7 +209,7 @@ async function readSealedBids(config: Config, auctionId: Hex): Promise<Map<strin
       ]),
     );
   } catch {
-    return new Map();
+    return undefined;
   }
 }
 

@@ -19,9 +19,9 @@ export function createRelayApp(): Hono {
 
   const app = new Hono();
 
-  // The page reads the sealed bids from a browser on another origin. Everything served here is
-  // already public: the store holds ciphertext and no authentication guards it.
-  app.use("/auctions/*", cors());
+  // The page reads the sealed bids from a browser on another origin. Reads only: a cross-origin
+  // PUT would let any page a supplier visits burn that supplier's first-write-wins slot.
+  app.use("/auctions/*", cors({ origin: "*", allowMethods: ["GET"] }));
 
   // A supplier submits its sealed bid. First write wins, because the commitment is already on
   // chain: a later write could only swap the bid behind a fixed commitment, which the enclave drops.

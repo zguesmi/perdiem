@@ -48,7 +48,10 @@ export default function App() {
     }
     const client = createClient(config);
     let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
 
+    // Each poll schedules the next one only after it finishes. On an interval a slow read can
+    // resolve after a fast later one and walk the panels backwards, from settled to still bidding.
     const poll = async (): Promise<void> => {
       try {
         const next = await readAuction(client, config);
@@ -61,13 +64,15 @@ export default function App() {
           setReadError((cause as Error).message);
         }
       }
+      if (!stopped) {
+        timer = setTimeout(() => void poll(), POLL_MILLISECONDS);
+      }
     };
 
     void poll();
-    const timer = setInterval(() => void poll(), POLL_MILLISECONDS);
     return () => {
       stopped = true;
-      clearInterval(timer);
+      clearTimeout(timer);
     };
   }, [config]);
 
@@ -170,11 +175,7 @@ function Bids({ config, auction }: PanelProps) {
               </>
             }
           />
-          <p className="note">
-            {bid.sealedBytes === undefined
-              ? "No sealed bid at the relay."
-              : `${bid.sealedBytes} bytes of ciphertext at the relay.`}
-          </p>
+          <p className="note">{sealedBidNote(auction.relayReachable, bid.sealedBytes)}</p>
           <TransactionLink config={config} label="commit" hash={bid.committedTransaction} />
         </div>
       ))}
@@ -194,7 +195,9 @@ function Enclave({ config, auction }: PanelProps) {
       {auction.claimedTransaction ? (
         <TransactionLink config={config} label="claim" hash={auction.claimedTransaction} />
       ) : (
-        <p className="note">Not claimed yet. The workflow claims the auction after bidding closes.</p>
+        <p className="note">
+          Not claimed yet. The workflow claims the auction after bidding closes.
+        </p>
       )}
     </Panel>
   );
@@ -214,7 +217,10 @@ function Settlement({ config, auction }: PanelProps) {
   if (!auction.settlement) {
     return (
       <Panel title="Settlement" note="Not settled yet.">
-        <p className="note">The contract pays only against a matching policy hash, a matching bids root and a booking id.</p>
+        <p className="note">
+          The contract pays only against a matching policy hash, a matching bids root and a booking
+          id.
+        </p>
       </Panel>
     );
   }
@@ -229,7 +235,9 @@ function Settlement({ config, auction }: PanelProps) {
     >
       <Field
         label="Winner"
-        value={noWinner ? "None. No eligible bid, or the booking failed." : <code>{short(winner)}</code>}
+        value={
+          noWinner ? "None. No eligible bid, or the booking failed." : <code>{short(winner)}</code>
+        }
       />
       <Field label="Payout" value={formatUsdc(payout)} />
       <Field label="Refund to buyer" value={formatUsdc(auction.payoutCap - payout)} />
@@ -237,6 +245,16 @@ function Settlement({ config, auction }: PanelProps) {
       <TransactionLink config={config} label="settlement" hash={finalizedTransaction} />
     </Panel>
   );
+}
+
+/** A relay that never answered says nothing about whether a supplier sealed a bid. */
+function sealedBidNote(relayReachable: boolean, sealedBytes?: number): string {
+  if (!relayReachable) {
+    return "The relay did not answer.";
+  }
+  return sealedBytes === undefined
+    ? "No sealed bid at the relay."
+    : `${sealedBytes} bytes of ciphertext at the relay.`;
 }
 
 function Panel({
