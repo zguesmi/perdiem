@@ -37,6 +37,34 @@ Funding is two signed transactions, not one. `createAuction` pulls the Payout Ca
 `transferFrom`, so an `approve` on the USDC ERC-20 has to be signed first. A policy that allows only
 transfers to `SealedAuction` blocks that `approve` and the funding flow fails.
 
+### 2026-09-12 — the code landed, nothing ran against Privy
+
+Merged: #43 shares the contract ABI, #44 funds from the Privy wallet, #45 writes the spend policy,
+#47 derives the payout cap.
+
+No criterion is verified. Zero requests reached `api.privy.io`. The 97 tests use an injected funder
+and a stubbed `fetch`, so they exercise no Privy path.
+
+Three things remain:
+
+- A live run with real credentials. It settles the snake_case transaction fields, the `chain_id`
+  string in the policy condition, and whether Privy evaluates the policy for quorum-signed requests.
+  An owner signature that overrides the policy stops the refusal demo firing.
+- The probe evidence file. `pnpm --filter @perdiem/purchaser privy:policy probe` prints a refused
+  `approve` to a spender the policy never names. Nothing sits in
+  `docs/scratch/verification/evidence/` yet.
+- The page has to call `POST /confirm`. `grep -rn "/confirm" ui/src` returns nothing, because #42
+  wired the page to the chain and the relay only. The `createAuction` hash already shows, read from
+  `AuctionCreated`. `quorumSigned` does not.
+
+Two criteria are stale after #47:
+
+- The Payout Cap is derived, not fixed. It is `maxPrice` rounded up to the next `PAYOUT_CAP_BUCKET`
+  of 250 USDC. A cap under the 500 quorum ceiling now means a `maxPrice` at or under 250.
+- The `createAuction` rule caps `payoutCap` at `MAX_PAYOUT_CAP`, 750 USDC. Refusing above it is the
+  demo: the buyer asks 800, Privy answers `policy_violation`, the buyer retries at 520 and funds.
+  Cost: the cap leaks which 250 band `maxPrice` falls in. The fixed cap leaked nothing.
+
 ## Dev review
 
 The Budget is the Payout Cap. The spend policy rule reads the `payoutCap` argument of
