@@ -3,10 +3,19 @@
 The purchaser is the buying side of the auction, the counterpart of `supplier/`. It takes one
 English sentence from the buyer and ends with a funded auction on chain.
 
-1. `POST /intent` — one LLM call with a fixed system prompt, validated against the Policy schema.
-   One retry, then it gives up.
-2. `POST /confirm` — canonicalize the Policy, hash it, upload the Policy and the enclave private key
-   as workflow secrets, and call `createAuction` with the Budget.
+1. `POST /intent` — one model call with the system prompt at `prompts/intent.md`, validated against
+   the Policy schema. One retry, then it gives up.
+2. `POST /confirm` — canonicalize the Policy and hash it, and return the public half of it.
+
+The prompt does the conversion the buyer never should: "20 a night" and "12% more" become flat USDC
+minor units for this trip, so the buyer confirms concrete numbers and no formula reaches the Policy.
+
+Intent parsing runs on `claude-opus-5`. Set `INTENT_MODEL` to move it. This is the model that reads
+a buyer's sentence at runtime, which is a different fact from the model used to build the project.
+
+The model client is injected into `createPurchaserApp`, so the route tests drive the service with a
+canned completion and no network. `test/live-intent.test.ts` is the exception and is skipped without
+`ANTHROPIC_API_KEY`.
 
 Funding goes through a Privy organization wallet. Its spend policy allows USDC transfers to the
 `SealedAuction` contract and nothing else, and anything above the ceiling needs a key quorum: the
@@ -23,13 +32,12 @@ Run from the repository root, after `pnpm install`.
 pnpm --filter @perdiem/purchaser dev         # tsx watch, reloads on change
 pnpm --filter @perdiem/purchaser test        # tsx --test over test/**/*.test.ts
 pnpm --filter @perdiem/purchaser typecheck   # tsc --noEmit
-pnpm --filter @perdiem/purchaser build       # emits dist/
-pnpm --filter @perdiem/purchaser start       # runs dist/index.js, needs build first
+pnpm --filter @perdiem/purchaser start       # tsx src/index.ts
 ```
 
 The server listens on port 8788. Set `PURCHASER_PORT` to move it.
 
 ## Status
 
-Both routes answer `501`. The tests are red, and the Policy shape they assume is blocked on
-`docs/scratch/build/issues/01-policy-schema-and-scoring-formula.md`.
+Funding is not wired yet: `POST /confirm` hashes the Policy and returns it, and does not upload the
+workflow secrets or call `createAuction`.

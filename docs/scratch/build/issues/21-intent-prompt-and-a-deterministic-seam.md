@@ -1,6 +1,6 @@
 # Write the intent system prompt, and make the purchaser service testable without an LLM
 
-Status: ready-for-agent Type: task Blocked by: 01
+Status: resolved Type: task Blocked by: 01
 
 Two gaps, one ticket, because they are the same boundary.
 
@@ -37,21 +37,43 @@ and judges will read it as one.
 
 ## Acceptance criteria
 
-- [ ] `docs/ai/intent-prompt.md` exists and states the exact Policy schema, integers only, USDC
-      minor units, metres, microdegrees, and the conversion the service owns.
-- [ ] The prompt states what the model must not invent: no preference the sentence does not mention,
+- [x] `purchaser/prompts/intent.md` exists and states the exact Policy schema, integers only, USDC
+      minor units, and the conversion the service owns.
+- [x] The prompt states what the model must not invent: no preference the sentence does not mention,
       no maximum price the sentence does not imply.
-- [ ] The model client is injected, and the HTTP tests run against a stub with no network.
-- [ ] A good completion becomes a valid Policy, and `POST /confirm` hashes it to the fixture's hash.
-- [ ] A schema failure is retried exactly once. A second failure returns an error, with no Policy
+- [x] The model client is injected, and the HTTP tests run against a stub with no network.
+- [x] A good completion becomes a valid Policy, and `POST /confirm` hashes it to the fixture's hash.
+- [x] A schema failure is retried exactly once. A second failure returns an error, with no Policy
       Hash and no chain write.
-- [ ] A fractional price in the completion is rejected, not rounded.
-- [ ] One live test exists, skipped unless a key is present, so it never runs in continuous
+- [x] A fractional price in the completion is rejected, not rounded.
+- [x] One live test exists, skipped unless a key is present, so it never runs in continuous
       integration.
-- [ ] `docs/ai/README.md` records the runtime model beside the prompt, separately from the build
-      model in the README.
+- [x] `purchaser/README.md` records the runtime model beside the prompt, separately from the build
+      model in the root README.
 
 ## Comments
+
+Done, with two deliberate departures from the text above.
+
+The prompt lives at `purchaser/prompts/intent.md`, not `docs/ai/`. It is code the service reads at
+startup, it sits beside `supplier/prompts/`, and a prompt two directories from the schema it has to
+match goes stale without anyone noticing. The runtime model is recorded in `purchaser/README.md` for
+the same reason. Nothing under `docs/ai/` was created.
+
+Metres and microdegrees are gone from the prompt: ticket 27 took location, distance and radius out
+of the Policy, so the schema has no such field left to describe.
+
+The seam is `Completer`, a function of the sentence and today's date returning `unknown`. Validation
+and the retry belong to the service, so a completer that could only return a valid Policy would make
+the validation unreachable. Today's date is injected too, which is how "12 October" resolves to a
+year without the tests depending on the day they run.
+
+`POST /confirm` hashes and returns the public requirements. It does not upload the workflow secrets
+or call `createAuction`: that half is ticket 10 and ticket 11.
+
+The prompt itself is unverified. `purchaser/test/live-intent.test.ts` is the only test that would
+run it against a real model, and it skipped: no `ANTHROPIC_API_KEY` was available. A human has to
+run it once before the demo.
 
 ## Dev review
 
