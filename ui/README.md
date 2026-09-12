@@ -1,4 +1,4 @@
-# @perdiem/web
+# @perdiem/ui
 
 One page, five panels, read top to bottom during the demo:
 
@@ -22,11 +22,11 @@ its configuration, the generated file is left alone.
 Run from the repository root, after `pnpm install`.
 
 ```sh
-pnpm --filter @perdiem/web dev         # vite dev server on port 5173
-pnpm --filter @perdiem/web build       # tsc -b, then vite build into dist/
-pnpm --filter @perdiem/web preview     # serves the built dist/
-pnpm --filter @perdiem/web typecheck   # tsc -b
-pnpm --filter @perdiem/web lint        # oxlint
+pnpm --filter @perdiem/ui dev         # vite dev server on port 5173
+pnpm --filter @perdiem/ui build       # tsc -b, then vite build into dist/
+pnpm --filter @perdiem/ui preview     # serves the built dist/
+pnpm --filter @perdiem/ui typecheck   # tsc -b
+pnpm --filter @perdiem/ui lint        # oxlint
 ```
 
 This package has no test script.

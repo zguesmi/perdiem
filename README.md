@@ -20,7 +20,7 @@ Full account, phase by phase: [`docs/ai/README.md`](docs/ai/README.md).
 Requires Node 22 or later and pnpm 12.3.4 (`corepack enable` picks up the pinned version).
 
 ```sh
-pnpm install                  # the workspace: packages/*, onchain, requisition, relay, supplier, web
+pnpm install                  # the workspace: packages/*, onchain, requisition, relay, supplier, ui
 pnpm --dir workflow-cre install   # workflow-cre/ is outside the workspace and installs on its own
 cp .env.example .env
 ```
@@ -56,7 +56,7 @@ Run the services for the demo, one terminal each:
 | ---------------------------------------- | ----------------------- | ------------------------ |
 | `pnpm --filter @perdiem/relay dev`       | the sealed-bid relay    | 8787, `RELAY_PORT`       |
 | `pnpm --filter @perdiem/requisition dev` | the requisition service | 8788, `REQUISITION_PORT` |
-| `pnpm --filter @perdiem/web dev`         | the demo page           | 5173                     |
+| `pnpm --filter @perdiem/ui dev`          | the demo page           | 5173                     |
 
 ## The sealed bidding slice
 

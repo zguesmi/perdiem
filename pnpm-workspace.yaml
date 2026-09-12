@@ -3,7 +3,7 @@ packages:
   - "requisition"
   - "relay"
   - "supplier"
-  - "web"
+  - "ui"
 
 # workflow-cre/ is deliberately absent. The Chainlink CRE CLI generates and regenerates its own
 # package.json, and a workspace member it does not know about is a member it will overwrite.
