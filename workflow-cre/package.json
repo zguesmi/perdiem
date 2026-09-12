@@ -5,7 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "simulate": "cre workflow simulate . --non-interactive --target staging-settings --trigger-index 0 -e ../.env.arcTestnet",
+    "config": "tsx ../scripts/workflow-config.ts",
+    "simulate": "../scripts/workflow-simulate.sh",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   },

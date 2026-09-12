@@ -5,13 +5,16 @@ claims it with a claim report, and the confidential handler does the rest.
 
 What happens inside `handlerInTee`, and nowhere else:
 
-- The Policy and the enclave private key are loaded from workflow secrets.
+- The enclave private key is loaded from workflow secrets.
+- The sealed policy is fetched from the relay by the policy hash the chain carries, opened, and
+  rejected unless it hashes back to that hash.
 - The sealed bids are fetched from the relay and decrypted.
 - Every bid's EIP-712 signature is checked, then its commitment is checked against the chain.
 - The bids root is built over **all** on-chain commitments, including any committer whose sealed bid
   never arrived. Building it over only the scored bids would turn one missing blob into a dead
   auction.
 - Eligibility, scoring, and the winner.
+- The booking, which is the only step still missing.
 
 Only the settlement leaves the enclave. The policy, the maximum price, the preferences, the enclave
 private key and every decrypted bid stay inside it, and none of them are ever logged.
@@ -21,19 +24,23 @@ private key and every decrypted bid stay inside it, and none of them are ever lo
 The CRE project root and the workflow folder are the same directory, so there is one `package.json`
 and one `tsconfig.json` rather than two of each.
 
-| File                     | What it is                                                        |
-| ------------------------ | ----------------------------------------------------------------- |
-| `project.yaml`           | Targets and their RPCs. `${ARC_RPC_URL}` resolves from the `.env` |
-| `workflow.yaml`          | Which entry point, config and secrets file each target uses       |
-| `config.json`            | The workflow's own config, validated by `configSchema`            |
-| `config.production.json` | The same, for the production target                               |
-| `secrets.yaml`           | Secret id to environment variable name. It holds no values        |
-| `src/main.ts`            | The entry point. It must export `main`                            |
-| `src/workflow.ts`        | The cron trigger and the confidential handler                     |
+| File              | What it is                                                                |
+| ----------------- | ------------------------------------------------------------------------- |
+| `project.yaml`    | Targets and their RPCs. `${ARC_RPC_URL}` resolves from the `.env`         |
+| `workflow.yaml`   | Which entry point, config and secrets file each target uses               |
+| `config.json`     | Written by `pnpm run config` from the `.env`, validated by `configSchema` |
+| `secrets.yaml`    | Secret id to environment variable name. It holds no values                |
+| `src/main.ts`     | The entry point. It must export `main`                                    |
+| `src/workflow.ts` | The cron trigger and the confidential handler                             |
 
-The CRE CLI generates all seven, plus `package.json` and `tsconfig.json`. Regenerating the template
-overwrites the shape of every one of them, so local edits to those nine files are the edits to
+The CRE CLI generates all six, plus `package.json` and `tsconfig.json`. Regenerating the template
+overwrites the shape of every one of them, so local edits to those eight files are the edits to
 re-apply by hand.
+
+`config.json` carries the `SealedAuction` address, which changes on every deploy, so it is generated
+rather than committed: `pnpm run config <network>` reads `.env.<network>` and writes it. The CRE CLI
+expands nothing inside a config file, which is why `project.yaml` can hold `${ARC_RPC_URL}` and this
+one cannot.
 
 Both targets exist and both simulate. They differ by name only, because nothing is deployed and
 `cre workflow simulate` runs either. Two targets mean `--target` is no longer optional.
@@ -98,18 +105,28 @@ This package is outside the pnpm workspace, so the root scripts skip it and it i
 
 ```sh
 pnpm --dir workflow-cre install
-pnpm --dir workflow-cre test        # tsx --test over test/**/*.test.ts
-pnpm --dir workflow-cre typecheck   # tsc --noEmit
-pnpm --dir workflow-cre simulate    # cre workflow simulate against the staging target
+pnpm --dir workflow-cre test                # tsx --test over test/**/*.test.ts
+pnpm --dir workflow-cre typecheck           # tsc --noEmit
+pnpm --dir workflow-cre config              # write config.json from .env.arcTestnet
+pnpm --dir workflow-cre config localhost    # the same, from .env.localhost
+pnpm --dir workflow-cre simulate            # config, then cre workflow simulate
+pnpm --dir workflow-cre simulate localhost  # the same, against the local node
 ```
 
-`simulate` needs `ARC_RPC_URL` in `.env.arcTestnet`, because the CLI checks every RPC in
+Both commands take a network, named after the Hardhat network and its `.env.<network>` file, and
+default to `arcTestnet`. The CRE chain name is not one of those values: the local node runs with
+`--chain-id $ARC_CHAIN_ID`, so both networks are chain 5042002 and both answer to `arc-testnet`.
+`project.yaml` reads `${ARC_RPC_URL}`, which each file sets to its own node.
+
+`simulate` needs `ARC_RPC_URL` in the file it reads, because the CLI checks every RPC in
 `project.yaml` before it compiles, and it needs every variable `secrets.yaml` names.
 
 ## Status
 
-The scaffolding runs and the handler is a placeholder: it logs that the enclave was reached and
-reports no pending auction. The scoring rule is implemented and the demo table is green.
+The handler runs the whole pipeline: the cron read, the claim report, the policy, the sealed bids,
+the signature and commitment checks, the bids root, scoring and the settlement report. The booking
+is the one seam still open, and until it closes the enclave reports no winner, which refunds the
+payout cap and every stake.
 
 Evidence rule: a fake runner may execute the handler while it is being built. Only
 `cre workflow simulate` produces the logs in `docs/scratch/verification/evidence/`.
