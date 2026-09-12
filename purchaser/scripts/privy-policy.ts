@@ -185,7 +185,8 @@ if (command === "create") {
   const cases = [
     ["approve 250 to the auction", policyWallet, approve(sealedAuction, 250_000_000n), [], "signed"],
     ["approve the maximum cap to a spender the policy never names", policyWallet, approve(wrongSpender, environment.MAX_PAYOUT_CAP), [], "refused"],
-    [`createAuction above the maximum cap`, policyWallet, createAuction(environment.MAX_PAYOUT_CAP + 1n), [], "refused"],
+    ["approve above the maximum cap", policyWallet, approve(sealedAuction, environment.MAX_PAYOUT_CAP + 1n), [], "refused"],
+    ["createAuction above the maximum cap", policyWallet, createAuction(environment.MAX_PAYOUT_CAP + 1n), [], "refused"],
     ["approve the maximum cap, no quorum signature", quorumWallet, approve(sealedAuction, environment.MAX_PAYOUT_CAP), [], "refused"],
     ["approve the maximum cap, one quorum signature", quorumWallet, approve(sealedAuction, environment.MAX_PAYOUT_CAP), quorumKeys.slice(0, 1), "refused"],
     ["approve the maximum cap, both quorum signatures", quorumWallet, approve(sealedAuction, environment.MAX_PAYOUT_CAP), quorumKeys, "signed"],

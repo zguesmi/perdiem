@@ -33,7 +33,7 @@ string, names `method: eth_signTransaction`, and reads the calldata with
 
 The `abi` field takes the whole exported ABI array, not only the function the rule reads.
 
-## 2. Eight signature requests, each answered as the policy states
+## 2. Nine signature requests, each answered as the policy states
 
 `pnpm --filter @perdiem/purchaser privy:policy probe`. Nothing is broadcast, so no row costs gas or
 changes state. Gas figures are fixed rather than estimated, because `createAuction` reverts until
@@ -43,6 +43,8 @@ its approval is mined.
 ok  policy wallet: approve 250 to the auction
     0x02f8b4834cef5280843b9aca008506fc23ac0083030000943600…
 ok  policy wallet: approve the maximum cap to a spender the policy never names
+    Error: RPC request denied due to policy violation
+ok  policy wallet: approve above the maximum cap
     Error: RPC request denied due to policy violation
 ok  policy wallet: createAuction above the maximum cap
     Error: RPC request denied due to policy violation
@@ -59,6 +61,9 @@ ok  quorum wallet: createAuction above the maximum cap, both quorum signatures
 ```
 
 Exit code 0. The script exits 1 if any row is signed where the policy states a refusal.
+
+The third row is the one the buyer meets. `approve` is the first of the two transactions, so an
+over-budget request is refused before anything mines and no allowance is left behind.
 
 ## 3. The spend policy is enforced for quorum-signed requests
 
