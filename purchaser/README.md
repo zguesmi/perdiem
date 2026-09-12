@@ -39,6 +39,12 @@ quorum approves and every key in `PRIVY_QUORUM_KEYS` signs the request, comma-se
 `privy-authorization-signature` header. At or below it, `PRIVY_SERVER_KEYS` signs, and an empty
 list means the wallet's spend policy is the whole authorization.
 
+The spend policy carries two `ALLOW` rules, and both read the calldata rather than the destination
+address: a rule on the destination alone would allow any call to the USDC token, an `approve` to a
+different spender included. `pnpm privy:policy create` builds them from the deployed addresses and
+the contract's own ABI and prints a policy id to attach to the wallet; `pnpm privy:policy probe`
+then asks the wallet to approve a spender the policy does not name, and prints the refusal.
+
 `POST /confirm` refuses a Policy whose maximum price is above the payout cap. The payout is the
 winning bid's price, so a cap under it would let the contract reject a legitimate winner at
 settlement, after every supplier had already staked.

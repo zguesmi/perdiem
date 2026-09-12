@@ -6,7 +6,8 @@
     "start": "tsx src/index.ts",
     "test": "tsx --test 'test/**/*.test.ts'",
     "typecheck": "tsc --noEmit",
-    "check:intent": "tsx scripts/check-intent.ts"
+    "check:intent": "tsx scripts/check-intent.ts",
+    "privy:policy": "tsx scripts/privy-policy.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
