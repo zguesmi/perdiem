@@ -7,11 +7,11 @@ auction terms off the chain, applies the rules, and submits exactly one bid.
 The model derives two things from the auction rather than the prompt: the number of nights, and the
 season. That is what the model is for. See `docs/adr/0007-supplier-agents-decide-with-a-model.md`.
 
-| Agent                    | Hotel                      | Stars | Demo price |
-| ------------------------ | -------------------------- | ----- | ---------- |
-| `hotel-astoria-agent`    | Hotel Astoria - Astotel    | 3     | 330        |
-| `victoria-palace-agent`  | Victoria Palace Hotel      | 4     | 400        |
-| `grands-voyageurs-agent` | Hôtel Des Grands Voyageurs | 4     | 440        |
+| Agent                   | Hotel                   | Stars | Demo price |
+| ----------------------- | ----------------------- | ----- | ---------- |
+| `hotel-astoria-agent`   | Hotel Astoria - Astotel | 3     | 330        |
+| `victoria-palace-agent` | Victoria Palace Hotel   | 4     | 400        |
+| `dame-des-arts-agent`   | Hôtel Dame des Arts     | 4     | 440        |
 
 ## The one tool
 
@@ -150,7 +150,7 @@ Run from the repository root, after `pnpm install`.
 ```sh
 pnpm --filter @perdiem/supplier test                          # tsx --test, no network
 pnpm --filter @perdiem/supplier typecheck                     # tsc --noEmit
-pnpm --filter @perdiem/supplier start grands-voyageurs-agent  # one agent
+pnpm --filter @perdiem/supplier start dame-des-arts-agent     # one agent
 pnpm --filter @perdiem/supplier check:prices                  # calls the model, costs money
 ```
 

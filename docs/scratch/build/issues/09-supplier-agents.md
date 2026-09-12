@@ -142,7 +142,7 @@ model that cannot bid a room its supplier does not sell. The three identifiers a
 `POST /hotels/rates` for the reference dates.
 
 The three agents are named after their hotels: `hotel-astoria-agent`, `victoria-palace-agent` and
-`grands-voyageurs-agent`.
+`dame-des-arts-agent`.
 
 ## Dev review
 
@@ -152,7 +152,7 @@ ships here so the bid flow runs.
 `pnpm --filter @perdiem/supplier check:prices`, 2026-09-11, against `claude-opus-5`:
 
 ```
-grands-voyageurs-agent: 440000000 (expected 440000000) ok
+dame-des-arts-agent: 440000000 (expected 440000000) ok
 hotel-astoria-agent: 330000000 (expected 330000000) ok
 victoria-palace-agent: 400000000 (expected 400000000) ok
 ```

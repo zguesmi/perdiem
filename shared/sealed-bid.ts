@@ -24,7 +24,9 @@ export const sealedBidPayloadSchema = z
     ),
     // Beside the bid for the reason the salt is: a member the type does not have cannot reach
     // `hashStruct`. Only the enclave reads them, and nothing logs them.
-    bookingUrl: z.url(),
+    // `z.url()` needs the `URL` global, which the enclave's runtime does not carry: every envelope
+    // then fails validation after decrypting cleanly, and the whole auction drops in silence.
+    bookingUrl: z.string().startsWith("https://"),
     bookingApiKey: z.string().min(1),
   })
   .strict();

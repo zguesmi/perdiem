@@ -37,7 +37,7 @@ const auction: AuctionTerms = {
 const EXPECTED: Record<string, number> = {
   "hotel-astoria-agent": 330_000_000,
   "victoria-palace-agent": 400_000_000,
-  "grands-voyageurs-agent": 440_000_000,
+  "dame-des-arts-agent": 440_000_000,
 };
 
 const ENCLAVE_KEY = new Uint8Array(32).fill(7);

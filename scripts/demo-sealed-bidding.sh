@@ -25,7 +25,7 @@ RELAY_URL=http://localhost:${RELAY_PORT}
 # Overridable, so a second terminal can `tail -f` a known path instead of hunting for it.
 LOGS=${LOGS:-$(mktemp -d)}
 mkdir -p "${LOGS}"
-AGENTS=(hotel-astoria-agent victoria-palace-agent grands-voyageurs-agent)
+AGENTS=(hotel-astoria-agent victoria-palace-agent dame-des-arts-agent)
 
 step() { printf '\n== %s\n' "$1"; }
 
