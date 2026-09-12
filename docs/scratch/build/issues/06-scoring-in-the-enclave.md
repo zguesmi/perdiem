@@ -1,6 +1,6 @@
 # Implement scoring inside the workflow
 
-Status: ready-for-agent Type: task Blocked by: 01, 27
+Status: resolved Type: task Blocked by: 01, 27
 
 `workflow-cre/src/scoring.ts` still declares `distanceKm` and plain `number` prices. Ticket 27
 removes distance from the Bid, and ticket 01 settled on integer minor units, so correcting the
@@ -19,15 +19,15 @@ not a decrypted bid. Grep the logs before committing any evidence.
 
 ## Acceptance criteria
 
-- [ ] The demo table test passes: A ineligible, B scores 120, C scores 170, winner C, payout
+- [x] The demo table test passes: A ineligible, B scores 120, C scores 170, winner C, payout
       `440000000`.
-- [ ] `cheapestEligibleAtMinStars` is computed before any trade-down check, and one test covers the
+- [x] `cheapestEligibleAtMinStars` is computed before any trade-down check, and one test covers the
       case where no such bid exists, where a trade-down bid is eligible on `price <= maxPrice`
       alone.
-- [ ] Ties break on lower price, then on lower supplier address. One test each.
-- [ ] No eligible bid returns no winner and a payout of zero.
-- [ ] The rule does not live in `shared/`, per `docs/adr/0002-scoring-is-not-shared.md`.
-- [ ] The test output greps clean for the Policy, the maximum price, the preference numbers and any
+- [x] Ties break on lower price, then on lower supplier address. One test each.
+- [x] No eligible bid returns no winner and a payout of zero.
+- [x] The rule does not live in `shared/`, per `docs/adr/0002-scoring-is-not-shared.md`.
+- [x] The test output greps clean for the Policy, the maximum price, the preference numbers and any
       decrypted bid.
 
 ## Comments
