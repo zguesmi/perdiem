@@ -51,7 +51,7 @@ export function banner(title: string, rows: readonly (readonly [string, string])
   const lines = rows.flatMap(([label, value]) => {
     const [first, ...rest] = value.split("\n");
     return [
-      `  ${dim(label.padEnd(width))}  ${first}`,
+      `  ${dim(label.padEnd(width))}  ${first}`.trimEnd(),
       ...rest.map((line) => `  ${" ".repeat(width)}  ${line}`),
     ];
   });
@@ -59,8 +59,16 @@ export function banner(title: string, rows: readonly (readonly [string, string])
   return [bold(title), ...lines].join("\n");
 }
 
+/**
+ * A hash as a line can carry it: the first four bytes and the last three. Enough to match one log
+ * line against another, and against the head of a hash on an explorer.
+ */
+export function shortHex(hex: string): string {
+  return hex.length <= 15 ? hex : `${hex.slice(0, 6)}...${hex.slice(-6)}`;
+}
+
 /** The label column of a step line. Long enough for the longest label any service prints. */
-const STEP_WIDTH = 10;
+const STEP_WIDTH = 16;
 
 /**
  * One step a service finished, written so the steps of a run line up under each other. The value

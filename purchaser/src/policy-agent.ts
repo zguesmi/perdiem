@@ -49,7 +49,7 @@ export async function parseIntent(
 const promptPath = new URL("../prompts/intent.md", import.meta.url);
 
 /** The opening clause of the prompt, for the startup block: what the agent is told it is. */
-export async function policyAgentRule(): Promise<string> {
+export async function policyAgentRole(): Promise<string> {
   const [opening = ""] = (await readFile(promptPath, "utf8")).split(/[:.\n]/);
   return `${opening.trim()}...`;
 }
@@ -127,13 +127,13 @@ export function createPolicyAgent(model: string): PolicyAgent {
 
       const answer = intentAnswer.safeParse(call.input);
       if (answer.success) {
-        console.log(step("created", describePolicy(answer.data.policy)));
-        console.log(step("validated", green(`✅ candidate ${round} matches the schema`)));
+        console.log(step("Policy created", describePolicy(answer.data.policy)));
+        console.log(step("Policy validated", `${green("✓")} candidate ${round} matches the schema`));
         return call.input;
       }
 
       const problems = z.prettifyError(answer.error);
-      console.error(red(`❌ candidate ${round} of ${ROUNDS} was rejected:\n${problems}`));
+      console.error(red(`candidate ${round} of ${ROUNDS} was rejected:\n${problems}`));
 
       messages.push(
         // The whole content, thinking blocks included: the API refuses a thinking turn that comes

@@ -9,7 +9,7 @@ import {
 
 import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
 import { arc, ARC_CHAIN_ID } from "../../shared/chain.ts";
-import { cyan, step, usdcAmount } from "../../shared/log.ts";
+import { bold, cyan, shortHex, step, usdcAmount } from "../../shared/log.ts";
 import type { PublicRequirements } from "../../shared/policy.ts";
 import type { PrivyTransaction, PrivyWallet } from "./privy.ts";
 
@@ -147,8 +147,8 @@ export function createFunder(options: FunderOptions): Funder {
 
     console.log(
       step(
-        "funding",
-        `${usdcAmount(payoutCap)} USDC from ${cyan(from)}, ` +
+        "Funding",
+        `${bold(`${usdcAmount(payoutCap)} USDC`)} from ${cyan(from)}, ` +
           `${quorumSigned ? "signed by the key quorum" : "on the spend policy alone"}`,
       ),
     );
@@ -162,7 +162,9 @@ export function createFunder(options: FunderOptions): Funder {
       }),
     );
 
-    console.log(step("approved", `${usdcAmount(payoutCap)} USDC allowance on ${cyan(usdc)}`));
+    console.log(
+      step("USDC approved", `${bold(`${usdcAmount(payoutCap)} USDC`)} allowance on ${cyan(usdc)}`),
+    );
 
     const created = await send(
       options.sealedAuction,
@@ -185,8 +187,12 @@ export function createFunder(options: FunderOptions): Funder {
       throw new Error("createAuction emitted no AuctionCreated event");
     }
 
-    console.log(step("opened", cyan(created.transactionHash)));
-    console.log(step("auction", cyan(event.args.auctionId)));
+    console.log(
+      step(
+        "Auction created",
+        `[id: ${cyan(shortHex(event.args.auctionId))}, tx: ${cyan(shortHex(created.transactionHash))}]`,
+      ),
+    );
 
     return {
       auctionId: event.args.auctionId,
