@@ -42,12 +42,32 @@ export function usdcAmount(minorUnits: bigint | number): string {
  * A service's startup block: a title, then one labelled row per line, with the values in a column.
  * It is what an operator reads to check they started the process they meant to, so a row that
  * would carry a key, a price or a policy does not belong in one.
+ *
+ * A value with newlines in it keeps the column: every line after the first is indented to where
+ * the value starts, so a row can carry a list without a second layout.
  */
 export function banner(title: string, rows: readonly (readonly [string, string])[]): string {
   const width = Math.max(...rows.map(([label]) => label.length));
-  const lines = rows.map(([label, value]) => `  ${dim(label.padEnd(width))}  ${value}`);
+  const lines = rows.flatMap(([label, value]) => {
+    const [first, ...rest] = value.split("\n");
+    return [
+      `  ${dim(label.padEnd(width))}  ${first}`,
+      ...rest.map((line) => `  ${" ".repeat(width)}  ${line}`),
+    ];
+  });
 
   return [bold(title), ...lines].join("\n");
+}
+
+/** The label column of a step line. Long enough for the longest label any service prints. */
+const STEP_WIDTH = 10;
+
+/**
+ * One step a service finished, written so the steps of a run line up under each other. The value
+ * is what an operator can act on: a hash to look up, an amount, a status.
+ */
+export function step(label: string, value: string): string {
+  return `  ${dim(label.padEnd(STEP_WIDTH))}  ${value}`;
 }
 
 /** How far down a cause chain is worth printing. Past this the top of the chain is already clear. */

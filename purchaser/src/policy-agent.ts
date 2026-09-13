@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
-import { red } from "../../shared/log.ts";
-import { policySchema } from "../../shared/policy.ts";
+import { green, red, step } from "../../shared/log.ts";
+import { policySchema, type Policy } from "../../shared/policy.ts";
 
 /**
  * The seam between the buyer's sentence and the model. An intent agent produces one candidate
@@ -47,6 +47,25 @@ export async function parseIntent(
 }
 
 const promptPath = new URL("../prompts/intent.md", import.meta.url);
+
+/** The opening clause of the prompt, for the startup block: what the agent is told it is. */
+export async function policyAgentRule(): Promise<string> {
+  const [opening = ""] = (await readFile(promptPath, "utf8")).split(/[:.\n]/);
+  return `${opening.trim()}...`;
+}
+
+/**
+ * A Policy as a line an operator may read. The public half only: the maximum price, the preference
+ * bonuses and the trade-down discount are what the whole design keeps private.
+ */
+export function describePolicy(policy: Policy): string {
+  const { city, checkin, checkout, numberOfRooms, roomType, minStars } = policy.hardRequirements;
+
+  return (
+    `${city}, ${checkin} to ${checkout}, ${policy.nights} nights, ` +
+    `${numberOfRooms} ${roomType}, ${minStars} stars or better`
+  );
+}
 
 /**
  * The agent's tool. It answers with the same schema the service validates against, so a model that
@@ -108,11 +127,13 @@ export function createPolicyAgent(model: string): PolicyAgent {
 
       const answer = intentAnswer.safeParse(call.input);
       if (answer.success) {
+        console.log(step("created", describePolicy(answer.data.policy)));
+        console.log(step("validated", green(`✅ candidate ${round} matches the schema`)));
         return call.input;
       }
 
       const problems = z.prettifyError(answer.error);
-      console.error(red(`intent: candidate ${round} of ${ROUNDS} was rejected:\n${problems}`));
+      console.error(red(`❌ candidate ${round} of ${ROUNDS} was rejected:\n${problems}`));
 
       messages.push(
         // The whole content, thinking blocks included: the API refuses a thinking turn that comes
