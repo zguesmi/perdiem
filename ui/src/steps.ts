@@ -193,7 +193,7 @@ function created(auction: AuctionView, status: Status, now: number) {
   const requirements = auction.requirements;
   return {
     headline: "The booking rules are locked and the escrow is funded.",
-    tip: "Only a hash of the rules reaches the chain, and it lands before any bid exists. The budget and the preferences never leave the travel desk.",
+    tip: "The chain stores a hash of the rules. The budget and the preferences are encrypted and readable only by the CRE enclave.",
     items: [
       row("Auction", code(short(auction.auctionId))),
       row("Policy hash", code(short(auction.policyHash))),
@@ -224,7 +224,7 @@ function bidding(auction: AuctionView, status: Status, now: number) {
   const count = auction.bids.length;
   return {
     headline: `${count} ${count === 1 ? "supplier" : "suppliers"} staked and sealed a bid.`,
-    tip: "A commitment binds a bid without revealing it. The bid itself is ciphertext that only the enclave can open, so no supplier sees another's price.",
+    tip: "Each supplier writes a hash of its bid on chain and encrypts the bid with the enclave key. No supplier can read another's price.",
     items: [
       ...auction.bids.map(
         (bid): Item => ({
@@ -246,9 +246,9 @@ function settling(auction: AuctionView, status: Status, now: number) {
   return {
     headline:
       status === "live"
-        ? "The enclave is scoring the sealed bids and booking the winner."
-        : "The enclave scored the sealed bids inside the confidential handler.",
-    tip: "Scoring and booking run inside a confidential handler. The rules are loaded there, used once and logged nowhere. Only the result leaves it.",
+        ? "The enclave claimed the auction and is scoring the sealed bids and booking the winner."
+        : "The enclave claimed the auction and scored the sealed bids inside the confidential handler.",
+    tip: "The enclave decrypts the rules and the bids inside the confidential handler. Only the winner, the payout and the booking reference come back out.",
     items: [
       ...(auction.claimedTransaction
         ? [row("Claim", transaction(auction.claimedTransaction))]
@@ -269,7 +269,7 @@ function finalized(auction: AuctionView, booking?: Booking) {
     headline: won
       ? "The winning bid is paid and the room is booked."
       : "No bid qualified. The escrow is refunded in full.",
-    tip: "The contract pays only against a matching policy hash, a matching set of commitments and a booking reference the enclave read back from the supplier's own API.",
+    tip: "The contract pays only if the settlement carries the correct policy hash, the same commitments, and a booking reference.",
     items: [
       ...(won && settlement
         ? [
@@ -303,7 +303,7 @@ function finalized(auction: AuctionView, booking?: Booking) {
 function timedOut(auction: AuctionView) {
   return {
     headline: "No settlement arrived in time. Everything is refunded.",
-    tip: "Anyone can refund an auction once the finalize deadline passes. It is the way out when the enclave never reports, not a step on the way to a booking.",
+    tip: "Anyone can refund an auction after the finalize deadline if it has not been settled.",
     items: [
       row("Refunded to the travel desk", text(formatUsdc(auction.payoutCap), true)),
       ...stakes(auction),

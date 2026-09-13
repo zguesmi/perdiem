@@ -149,7 +149,7 @@ export function createFunder(options: FunderOptions): Funder {
       step(
         "Funding",
         `${bold(`${usdcAmount(payoutCap)} USDC`)} from ${cyan(from)}, ` +
-          `${quorumSigned ? "signed by the key quorum" : "on the spend policy alone"}`,
+          `${quorumSigned ? "signed by the key quorum" : "on the spend policy"}`,
       ),
     );
 
@@ -163,7 +163,7 @@ export function createFunder(options: FunderOptions): Funder {
     );
 
     console.log(
-      step("USDC approved", `${bold(`${usdcAmount(payoutCap)} USDC`)} allowance on ${cyan(usdc)}`),
+      step("USDC approved", `${bold(`${usdcAmount(payoutCap)} USDC`)} allowance on ${cyan(usdc)} (USDC contract)`),
     );
 
     const created = await send(

@@ -115,7 +115,7 @@ export async function submitBid(
         `${usdcAmount(pricePerNight)} USDC x ${nights} ${nights === 1 ? "night" : "nights"}, ` +
         `${bid.refundable ? "refundable" : "non-refundable"}, ` +
         `${bid.breakfastIncluded ? "breakfast" : "no breakfast"}, ` +
-        `${context.auction.bidDeadline - now} s before the deadline`,
+        `(${context.auction.bidDeadline - now} s before the deadline)`,
     ),
   );
 
@@ -140,7 +140,7 @@ export async function submitBid(
     context.enclavePublicKey,
     context.auction.auctionId,
   );
-  console.log(step("Bid sealed", `${envelope.length} bytes to the enclave key`));
+  console.log(step("Bid sealed", `${envelope.length} bytes encrypted with the enclave key`));
 
   // The stake is pulled by `commit`, so the approval has to land first.
   started = Date.now();
@@ -153,7 +153,7 @@ export async function submitBid(
   console.log(
     step(
       "Stake approved",
-      `${bold(`${usdcAmount(context.stake)} USDC`)} allowance on ${cyan(context.usdc)}  ${took(started)}`,
+      `${bold(`${usdcAmount(context.stake)} USDC`)} allowance on ${cyan(context.usdc)} (USDC contract)  ${took(started)}`,
     ),
   );
 
@@ -187,7 +187,7 @@ export async function submitBid(
   console.log(
     step(
       "Bid uploaded",
-      `${green("✓")} the relay holds it under ${cyan(context.signer.address)}  ${took(started)}`,
+      `${green("✓")} encrypted bid available on the relay under ${cyan(context.signer.address)}  ${took(started)}`,
     ),
   );
 
