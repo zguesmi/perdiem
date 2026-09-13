@@ -170,8 +170,15 @@ export const sealedAuctionAbi = [
   },
 ] as const;
 
-/** Only the approval the escrow needs before it pulls a stake or a payout cap. */
+/** The approval the escrow needs before it pulls a stake or a payout cap, and the balances the page shows. */
 export const usdcAbi = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
   {
     type: "function",
     name: "approve",

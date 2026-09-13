@@ -48,7 +48,7 @@ not compared with the bid price, and no cancellation path exists.
 | `supplier/`     | Three supplier agents. A model prices, one tool executes                     |
 | `purchaser/`    | The buyer's service: intent parsing, policy commit, Privy funding            |
 | `relay/`        | A blind store for the sealed Policy and the Sealed Bids. Serves the Enclave  |
-| `ui/`           | One page, five panels                                                        |
+| `ui/`           | One page: a stepper, five panels                                             |
 | `shared/`       | Types, schemas, canonical JSON, hashing. Shared by everything except scoring |
 
 ### Flow

@@ -1,13 +1,13 @@
 # Show the auction as a stepper
 
-Status: ready-for-agent Type: task Blocked by: 01, 02
+Status: resolved Type: task Blocked by: 01, 02
 
 The page names the auction state in one line of text. A viewer cannot see which transitions already
 happened, which one is running, or how long is left before the next one.
 
 A stepper across the top of the page, above the panels: Created, Bidding, Settling, Finalized. A
-timed-out auction replaces the last step with Timeout rather than adding a sixth. Past steps read
-as done, the current step as live, later steps as pending.
+timed-out auction replaces the last step with Timeout rather than adding a sixth. Past steps read as
+done, the current step as live, later steps as pending.
 
 Each step carries one line and no more:
 
@@ -17,8 +17,8 @@ Each step carries one line and no more:
 - Finalized: the winner and the payout, or that no bid was eligible.
 - Timeout: what was refunded.
 
-The countdown ticks every second, separately from the two second chain poll. It reads zero and
-stops rather than counting into negative time.
+The countdown ticks every second, separately from the two second chain poll. It reads zero and stops
+rather than counting into negative time.
 
 ## Acceptance criteria
 
