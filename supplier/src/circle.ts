@@ -10,6 +10,14 @@ import type { Signer } from "./signer.ts";
 /** The Circle CLI's name for Arc testnet. It is the only Arc entry: there is no Arc mainnet. */
 const CHAIN = "ARC-TESTNET";
 
+/** The members of `bidDomain`, in the order it sets them. */
+const DOMAIN_TYPE = [
+  { name: "name", type: "string" },
+  { name: "version", type: "string" },
+  { name: "chainId", type: "uint256" },
+  { name: "verifyingContract", type: "address" },
+] as const;
+
 /**
  * The CLI is a workspace devDependency, so `pnpm` puts it on the path of anything it runs. An
  * agent started any other way needs it there too.
@@ -65,7 +73,10 @@ export function createCircleAgentSigner(options: {
 
     async signBid(bid, verifyingContract) {
       const typedData = JSON.stringify({
-        types: BID_TYPES,
+        // `EIP712Domain` is not in `BID_TYPES`, because viem derives it from the domain itself.
+        // Circle's API does not: without this member it answers
+        // `Service returned error 400: Invalid typed data in request.`
+        types: { EIP712Domain: DOMAIN_TYPE, ...BID_TYPES },
         primaryType: "Bid",
         domain: bidDomain(verifyingContract),
         // The one serializer, so this side and the enclave's cannot drift. `price` goes over as a
