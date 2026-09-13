@@ -4,8 +4,8 @@ import { z } from "zod";
 
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { addressSchema } from "../../shared/bid.ts";
-import { arc } from "../../shared/chain.ts";
-import { banner, cyan, describeError, dim, green, red, yellow } from "../../shared/log.ts";
+import { arc, ARC_CHAIN_ID } from "../../shared/chain.ts";
+import { banner, coral, cyan, describeError, dim, green, red, yellow } from "../../shared/log.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
 import { createPolicyAgent, policyAgentRole, VALIDATE_POLICY } from "./policy-agent.ts";
@@ -61,15 +61,22 @@ function organizationWallet(walletId: string) {
   });
 }
 
-/** One keypair per deployment, so the public half is read once at start and never again. */
-const enclavePublicKey = await createPublicClient({
+const client = createPublicClient({
   chain: arc(environment.ARC_RPC_URL),
   transport: http(environment.ARC_RPC_URL),
-}).readContract({
+});
+
+/** One keypair per deployment, so the public half is read once at start and never again. */
+const enclavePublicKey = await client.readContract({
   address: environment.SEALED_AUCTION_ADDRESS,
   abi: sealedAuctionAbi,
   functionName: "enclavePublicKey",
 });
+
+// Asked of the node rather than taken from the environment: the chain a service signs against is
+// whichever one answers on the RPC it was given.
+const chainId = await client.getChainId();
+const chainName = chainId === ARC_CHAIN_ID ? arc(environment.ARC_RPC_URL).name : "local chain";
 
 const wallet = organizationWallet(environment.PRIVY_WALLET_ID);
 const quorumWallet = organizationWallet(environment.PRIVY_QUORUM_WALLET_ID);
@@ -103,24 +110,22 @@ const [buyer, quorumBuyer] = await Promise.all([wallet.address(), quorumWallet.a
  * A service that starts is worth more than one that knows its own spend policy, so a Privy that
  * cannot answer costs a line and nothing else.
  */
-async function spendPolicy(source: PrivyWallet): Promise<string> {
+async function spendPolicy(source: PrivyWallet): Promise<string[]> {
   try {
     const policies = await source.policies();
     if (policies.length === 0) {
-      return yellow("none attached");
+      return [yellow("none attached")];
     }
 
-    return policies
-      .flatMap((policy) => [
-        policy.name,
-        ...policy.rules.map(
-          (rule) => `${rule.action === "ALLOW" ? green("✓") : red("✗")} ${rule.name}`,
-        ),
-      ])
-      .join("\n");
+    return policies.flatMap((policy) => [
+      policy.name,
+      ...policy.rules.map(
+        (rule) => `${rule.action === "ALLOW" ? green("✓") : red("✗")} ${rule.name}`,
+      ),
+    ]);
   } catch (reason) {
     console.error(red(`the spend policy could not be read: ${describeError(reason)}`));
-    return yellow("unavailable");
+    return [yellow("unavailable")];
   }
 }
 
@@ -131,17 +136,21 @@ serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
     banner(`Purchaser - listening on http://localhost:${info.port}`, [
       ["wallet", cyan(buyer)],
       ["quorum wallet", cyan(quorumBuyer)],
-      ["chain RPC", environment.ARC_RPC_URL],
+      ["chain", `${chainName} (${chainId})  ${environment.ARC_RPC_URL}`],
       ["auction contract", cyan(environment.SEALED_AUCTION_ADDRESS)],
       ["relay", environment.RELAY_URL],
-      ["Privy wallet policy", walletPolicy],
-      ["agent", ""],
+      ["Privy wallet policy", ""],
     ]),
   );
-  // Indented under the agent row rather than beside it: these three describe the agent, and the
-  // rows above describe the service it runs in.
+  // Indented under their row rather than beside it: a group reads as one thing that way, and the
+  // rows above it stay the service itself.
+  for (const line of walletPolicy) {
+    console.log(`      ${line}`);
+  }
+
+  console.log(`  ${dim("agent")}`);
   const agent: [string, string][] = [
-    ["model", environment.INTENT_MODEL],
+    ["model", coral(environment.INTENT_MODEL)],
     ["tools", VALIDATE_POLICY],
     ["role", `"${role}"`],
   ];
