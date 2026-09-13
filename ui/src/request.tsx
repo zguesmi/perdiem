@@ -1,15 +1,10 @@
 import { useState } from "react";
 
-import type { Config } from "../auction.ts";
-import {
-  confirmPolicy,
-  parseIntent,
-  type Draft,
-  type Funding as FundingAnswer,
-} from "../purchaser.ts";
+import type { Config } from "./auction.ts";
+import { confirmPolicy, parseIntent, type Draft } from "./purchaser.ts";
 
 /**
- * What the box starts with, so a reader can fund an auction without writing anything. Every number
+ * What the box starts with, so a reader can open an auction without writing anything. Every number
  * the policy needs is in it: the stay, the ceiling, both preferences and the trade-down.
  */
 const EXAMPLE_INTENT =
@@ -18,19 +13,13 @@ const EXAMPLE_INTENT =
   "breakfast 0.4 USDC. Take 3 stars only if it is at least 30% cheaper than the best 4-star bid.";
 
 /**
- * The buyer's half of the page: one sentence in, a funded auction out.
+ * One sentence in, a funded auction out.
  *
  * Two steps and not one, because the policy the service hashed is the policy the buyer read. The
  * summary is prose the model wrote and nothing downstream reads it; the policy behind it goes back
  * to `/confirm` byte for byte, and that is what gets hashed.
  */
-export function Desk({
-  config,
-  onFunded,
-}: {
-  config: Config;
-  onFunded: (funding: FundingAnswer) => void;
-}) {
+export function Request({ config }: { config: Config }) {
   const [intent, setIntent] = useState(EXAMPLE_INTENT);
   const [draft, setDraft] = useState<Draft>();
   const [busy, setBusy] = useState(false);
@@ -49,54 +38,56 @@ export function Desk({
   };
 
   return (
-    <section>
-      <h2>New auction</h2>
-      <p className="note">
-        One sentence. The service parses it, you approve what it read, and only then is anything
-        hashed or funded.
-      </p>
-
+    <section className="card compose">
+      <label className="ask" htmlFor="intent">
+        Just tell the agent what you are looking for
+      </label>
       <textarea
-        value={intent}
+        id="intent"
         rows={3}
+        spellCheck={false}
+        value={intent}
         disabled={busy || draft !== undefined}
-        placeholder={EXAMPLE_INTENT}
         onChange={(event) => setIntent(event.target.value)}
       />
 
-      {draft ? (
-        <>
-          <p className="field">
-            <span className="label">Parsed</span>
-            <span>{draft.summary}</span>
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                onFunded(await confirmPolicy(config.purchaserUrl, draft.policy));
-                setDraft(undefined);
-                setIntent("");
-              })
-            }
-          >
-            {busy ? "Funding…" : "Confirm and fund"}
-          </button>
-          <button type="button" disabled={busy} onClick={() => setDraft(undefined)}>
-            Start again
-          </button>
-        </>
-      ) : (
+      <div className="actions">
         <button
+          className="primary"
           type="button"
-          disabled={busy || intent.trim() === ""}
+          disabled={busy || draft !== undefined || intent.trim() === ""}
           onClick={() =>
             void run(async () => setDraft(await parseIntent(config.purchaserUrl, intent)))
           }
         >
-          {busy ? "Reading…" : "Read the request"}
+          {busy && !draft ? "Reading…" : "Send"}
         </button>
+      </div>
+
+      {draft && (
+        <div className="answer">
+          <div className="eyebrow who">Please confirm booking details</div>
+          <p className="summary">{draft.summary}</p>
+          <div className="actions">
+            <button
+              className="primary"
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await confirmPolicy(config.purchaserUrl, draft.policy);
+                  setDraft(undefined);
+                  setIntent("");
+                })
+              }
+            >
+              {busy ? "Funding…" : "Confirm"}
+            </button>
+            <button className="quiet" type="button" disabled={busy} onClick={() => setDraft(undefined)}>
+              Start again
+            </button>
+          </div>
+        </div>
       )}
 
       {error && <p className="error">{error}</p>}
