@@ -143,7 +143,6 @@ services:
       - purchaser
     environment:
       PUBLIC_HOST: ${PUBLIC_HOST:?set PUBLIC_HOST in .env}
-      ACME_EMAIL: ${ACME_EMAIL-}
       ACME_CA: ${ACME_CA-}
     ports:
       - "80:80"
