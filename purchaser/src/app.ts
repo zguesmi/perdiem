@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 
-import { describeError, red } from "../../shared/log.ts";
+import { cyan, describeError, green, red, shortHex, step } from "../../shared/log.ts";
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
 import { sealPolicy } from "../../shared/sealed-policy.ts";
@@ -105,8 +105,12 @@ export function createPurchaserApp({
     // Before the auction, never after: the enclave fetches the policy by the hash the chain
     // carries, and an auction whose policy never arrived pays nobody and refunds on timeout.
     const envelope = sealPolicy(policy.data, enclavePublicKey, policyHash);
+    console.log(step("Policy hashed", cyan(shortHex(policyHash))));
+    console.log(step("Policy sealed", `${envelope.length} bytes to the enclave key`));
+
     try {
       await uploadPolicy(policyHash, envelope);
+      console.log(step("Policy uploaded", `${green("✓")} the relay holds it under the hash`));
     } catch (reason) {
       // The reasons, not the error: a stack from this path can carry the policy that failed.
       console.error(

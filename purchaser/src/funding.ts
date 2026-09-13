@@ -9,6 +9,7 @@ import {
 
 import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
 import { arc, ARC_CHAIN_ID } from "../../shared/chain.ts";
+import { bold, cyan, shortHex, step, usdcAmount } from "../../shared/log.ts";
 import type { PublicRequirements } from "../../shared/policy.ts";
 import type { PrivyTransaction, PrivyWallet } from "./privy.ts";
 
@@ -144,6 +145,14 @@ export function createFunder(options: FunderOptions): Funder {
       return receipt;
     }
 
+    console.log(
+      step(
+        "Funding",
+        `${bold(`${usdcAmount(payoutCap)} USDC`)} from ${cyan(from)}, ` +
+          `${quorumSigned ? "signed by the key quorum" : "on the spend policy alone"}`,
+      ),
+    );
+
     const approved = await send(
       usdc,
       encodeFunctionData({
@@ -151,6 +160,10 @@ export function createFunder(options: FunderOptions): Funder {
         functionName: "approve",
         args: [options.sealedAuction, payoutCap],
       }),
+    );
+
+    console.log(
+      step("USDC approved", `${bold(`${usdcAmount(payoutCap)} USDC`)} allowance on ${cyan(usdc)}`),
     );
 
     const created = await send(
@@ -173,6 +186,13 @@ export function createFunder(options: FunderOptions): Funder {
     if (!event) {
       throw new Error("createAuction emitted no AuctionCreated event");
     }
+
+    console.log(
+      step(
+        "Auction created",
+        `[id: ${cyan(shortHex(event.args.auctionId))}, tx: ${cyan(shortHex(created.transactionHash))}]`,
+      ),
+    );
 
     return {
       auctionId: event.args.auctionId,

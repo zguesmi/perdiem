@@ -33,6 +33,8 @@ export interface PrivyTransaction {
  */
 export interface PrivyWallet {
   address(): Promise<`0x${string}`>;
+  /** Every spend policy attached to this wallet, as the organization wrote them. */
+  policies(): Promise<PrivyPolicy[]>;
   /**
    * @param authorizationKeys The keys that must sign the request itself. Empty when the wallet's
    * spend policy is the whole authorization; two when the key quorum has to approve.
@@ -51,7 +53,21 @@ export class PolicyRefusedError extends Error {}
 
 const refusal = z.object({ error: z.string(), code: z.literal("policy_violation") });
 
-const walletAnswer = z.object({ address: z.custom<`0x${string}`>((value) => typeof value === "string") });
+const walletAnswer = z.object({
+  address: z.custom<`0x${string}`>((value) => typeof value === "string"),
+  policy_ids: z.array(z.string()).default([]),
+});
+
+/** What the organization lets this wallet sign. One rule per line an operator can read back. */
+export interface PrivyPolicy {
+  name: string;
+  rules: { name: string; action: string }[];
+}
+
+const policyAnswer = z.object({
+  name: z.string(),
+  rules: z.array(z.object({ name: z.string(), action: z.string() })).default([]),
+});
 
 const signedAnswer = z.object({
   data: z.object({ signed_transaction: z.custom<`0x${string}`>((value) => typeof value === "string") }),
@@ -135,6 +151,16 @@ export function createPrivyWallet(options: PrivyOptions): PrivyWallet {
           throw reason;
         });
       return address;
+    },
+
+    async policies() {
+      const wallet = walletAnswer.parse(await call(`${PRIVY_API}/wallets/${options.walletId}`));
+
+      return Promise.all(
+        wallet.policy_ids.map(async (policyId) =>
+          policyAnswer.parse(await call(`${PRIVY_API}/policies/${policyId}`)),
+        ),
+      );
     },
 
     async signTransaction(transaction, authorizationKeys) {

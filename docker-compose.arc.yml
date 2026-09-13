@@ -21,8 +21,10 @@ x-environment-file: &environment-file
   target: /app/.env.arcTestnet
   read_only: true
 
+# Compose attaches a pipe rather than a TTY, and `shared/log.ts` drops its colour on a pipe.
 x-environment: &environment
   ENV_FILE: /app/.env.arcTestnet
+  FORCE_COLOR: "1"
 
 # The Circle CLI session, opened on the host with `circle wallet login <email> --testnet`. Writable,
 # because the CLI refreshes it in place.

@@ -4,13 +4,13 @@ import { z } from "zod";
 
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { addressSchema } from "../../shared/bid.ts";
-import { arc } from "../../shared/chain.ts";
-import { banner, cyan, usdcAmount, yellow } from "../../shared/log.ts";
+import { arc, ARC_CHAIN_ID } from "../../shared/chain.ts";
+import { banner, coral, cyan, describeError, dim, green, red, yellow } from "../../shared/log.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
-import { createPolicyAgent } from "./policy-agent.ts";
+import { createPolicyAgent, policyAgentRole, VALIDATE_POLICY } from "./policy-agent.ts";
 import { createPolicyUploader } from "./policy-upload.ts";
-import { createPrivyWallet } from "./privy.ts";
+import { createPrivyWallet, type PrivyWallet } from "./privy.ts";
 
 /** A comma-separated list of authorization keys, in the order the quorum expects them. */
 const keys = z
@@ -61,15 +61,22 @@ function organizationWallet(walletId: string) {
   });
 }
 
-/** One keypair per deployment, so the public half is read once at start and never again. */
-const enclavePublicKey = await createPublicClient({
+const client = createPublicClient({
   chain: arc(environment.ARC_RPC_URL),
   transport: http(environment.ARC_RPC_URL),
-}).readContract({
+});
+
+/** One keypair per deployment, so the public half is read once at start and never again. */
+const enclavePublicKey = await client.readContract({
   address: environment.SEALED_AUCTION_ADDRESS,
   abi: sealedAuctionAbi,
   functionName: "enclavePublicKey",
 });
+
+// Asked of the node rather than taken from the environment: the chain a service signs against is
+// whichever one answers on the RPC it was given.
+const chainId = await client.getChainId();
+const chainName = chainId === ARC_CHAIN_ID ? arc(environment.ARC_RPC_URL).name : "local chain";
 
 const wallet = organizationWallet(environment.PRIVY_WALLET_ID);
 const quorumWallet = organizationWallet(environment.PRIVY_QUORUM_WALLET_ID);
@@ -96,25 +103,59 @@ const app = createPurchaserApp({
 // and it is the one an operator can look up on a block explorer.
 const [buyer, quorumBuyer] = await Promise.all([wallet.address(), quorumWallet.address()]);
 
+/**
+ * What the organization lets the buyer sign, read back from Privy rather than from this repository.
+ * A rule an operator edited in the dashboard is the rule that will refuse the funding call.
+ *
+ * A service that starts is worth more than one that knows its own spend policy, so a Privy that
+ * cannot answer costs a line and nothing else.
+ */
+async function spendPolicy(source: PrivyWallet): Promise<string[]> {
+  try {
+    const policies = await source.policies();
+    if (policies.length === 0) {
+      return [yellow("none attached")];
+    }
+
+    return policies.flatMap((policy) => [
+      policy.name,
+      ...policy.rules.map(
+        (rule) => `${rule.action === "ALLOW" ? green("✓") : red("✗")} ${rule.name}`,
+      ),
+    ]);
+  } catch (reason) {
+    console.error(red(`the spend policy could not be read: ${describeError(reason)}`));
+    return [yellow("unavailable")];
+  }
+}
+
+const [walletPolicy, role] = await Promise.all([spendPolicy(wallet), policyAgentRole()]);
+
 serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
   console.log(
-    banner("Agent: purchaser", [
-      ["model", environment.INTENT_MODEL],
-      // The intent agent holds none. It answers with one JSON document, and the service does every
-      // step that touches a key or a chain itself.
-      ["tools", yellow("none")],
+    banner(`Purchaser - listening on http://localhost:${info.port}`, [
       ["wallet", cyan(buyer)],
       ["quorum wallet", cyan(quorumBuyer)],
-      ["chain", `${cyan(environment.SEALED_AUCTION_ADDRESS)} on ${environment.ARC_RPC_URL}`],
+      ["chain", `${chainName} (${chainId})  ${environment.ARC_RPC_URL}`],
+      ["auction contract", cyan(environment.SEALED_AUCTION_ADDRESS)],
       ["relay", environment.RELAY_URL],
-      ["page", environment.PAGE_ORIGIN],
-      [
-        "caps",
-        `bucket ${usdcAmount(environment.PAYOUT_CAP_BUCKET)}, ` +
-          `maximum ${usdcAmount(environment.MAX_PAYOUT_CAP)}, ` +
-          `quorum above ${usdcAmount(environment.PRIVY_QUORUM_CEILING)} USDC`,
-      ],
+      ["Privy wallet policy", ""],
     ]),
   );
-  console.log(`listening on http://localhost:${info.port}`);
+  // Indented under their row rather than beside it: a group reads as one thing that way, and the
+  // rows above it stay the service itself.
+  for (const line of walletPolicy) {
+    console.log(`      ${line}`);
+  }
+
+  console.log(`  ${dim("agent")}`);
+  const agent: [string, string][] = [
+    ["model", coral(environment.INTENT_MODEL)],
+    ["tools", VALIDATE_POLICY],
+    ["role", `"${role}"`],
+  ];
+
+  for (const [label, value] of agent) {
+    console.log(`      ${dim(label.padEnd(5))}  ${value}`);
+  }
 });

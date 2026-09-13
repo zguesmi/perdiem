@@ -9,7 +9,7 @@ const coloured =
   process.env.NO_COLOR === undefined &&
   (process.env.FORCE_COLOR !== undefined || process.stdout.isTTY === true);
 
-function paint(code: number, text: string): string {
+function paint(code: number | string, text: string): string {
   return coloured ? `\u001b[${code}m${text}\u001b[0m` : text;
 }
 
@@ -19,6 +19,8 @@ export const red = (text: string): string => paint(31, text);
 export const green = (text: string): string => paint(32, text);
 export const yellow = (text: string): string => paint(33, text);
 export const cyan = (text: string): string => paint(36, text);
+/** Claude's coral, from the 256-colour cube. It marks the model a service is running. */
+export const coral = (text: string): string => paint("38;5;209", text);
 
 /** Stars as a reader sees them on a hotel, rather than a number they have to picture. */
 export function stars(count: number): string {
@@ -45,9 +47,28 @@ export function usdcAmount(minorUnits: bigint | number): string {
  */
 export function banner(title: string, rows: readonly (readonly [string, string])[]): string {
   const width = Math.max(...rows.map(([label]) => label.length));
-  const lines = rows.map(([label, value]) => `  ${dim(label.padEnd(width))}  ${value}`);
+  const lines = rows.map(([label, value]) => `  ${dim(label.padEnd(width))}  ${value}`.trimEnd());
 
   return [bold(title), ...lines].join("\n");
+}
+
+/**
+ * A hash as a line can carry it: the first four bytes and the last three. Enough to match one log
+ * line against another, and against the head of a hash on an explorer.
+ */
+export function shortHex(hex: string): string {
+  return hex.length <= 15 ? hex : `${hex.slice(0, 6)}...${hex.slice(-6)}`;
+}
+
+/** The label column of a step line. Long enough for the longest label any service prints. */
+const STEP_WIDTH = 16;
+
+/**
+ * One step a service finished, written so the steps of a run line up under each other. The value
+ * is what an operator can act on: a hash to look up, an amount, a status.
+ */
+export function step(label: string, value: string): string {
+  return `  ${dim(label.padEnd(STEP_WIDTH))}  ${value}`;
 }
 
 /** How far down a cause chain is worth printing. Past this the top of the chain is already clear. */
