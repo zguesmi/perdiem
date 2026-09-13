@@ -53,8 +53,8 @@ not compared with the bid price, and no cancellation path exists.
 
 ### Flow
 
-1. The buyer types one sentence. `purchaser/` makes one model call and returns a Policy, validated
-   against its schema. One retry at most, then it fails.
+1. The buyer types one sentence. `purchaser/`'s intent agent writes a Policy and checks it with its
+   one tool, `validatePolicy`. Three candidates at most, then it fails.
 2. The buyer confirms. `purchaser/` canonicalizes the Policy and computes the Policy Hash.
 3. `purchaser/` seals the Policy to the enclave public key, puts it at the relay under the Policy
    Hash, then calls `createAuction`, which pulls the Payout Cap in the same call. State is
@@ -581,11 +581,18 @@ Verified on Arc testnet, row V7:
 
 ## Purchaser service
 
-- `POST /intent` — one model call with a fixed system prompt, stored at
-  `purchaser/prompts/intent.md`. It answers with the Policy and a plain-English summary of it, both
-  validated. One retry, then it fails. The buyer approves the summary and the Policy is what gets
-  hashed, so nothing the model wrote in prose reaches the chain. The model client is injected, so
-  the route tests run against a canned answer with no network.
+- `POST /intent` — a tool-calling loop with a fixed system prompt, stored at
+  `purchaser/prompts/intent.md`. The model holds one tool, `validatePolicy`, which checks a
+  candidate Policy and its plain-English summary against the schema and answers with the fields it
+  rejected. The model fixes those fields itself, for three candidates at most. What the loop returns
+  is validated again by the service, because the agent is injected and answers `unknown`. The buyer
+  approves the summary and the Policy is what gets hashed, so nothing the model wrote in prose
+  reaches the chain. The model client is injected, so the route tests run against a canned answer
+  with no network.
+
+  Everything after the confirmation — the hash, the seal, the upload, the funding — is done in code
+  and is not a tool. A tool that moves the buyer's USDC would put escrow behind a model.
+
 - `POST /confirm` — canonicalize, hash, seal the Policy to `SealedAuction.enclavePublicKey()` and
   put it at the relay under the hash, then call `createAuction` with the Payout Cap. The upload is
   first: an auction whose Policy never arrived pays nobody. A relay that refuses it answers the
