@@ -105,7 +105,8 @@ export function readConfig(env: Record<string, string | undefined>): Config {
   };
 
   return {
-    rpcUrl: required("VITE_ARC_RPC_URL"),
+    // Served by the page's own origin and forwarded to the node. See `ui/vite.config.ts`.
+    rpcUrl: "/rpc",
     sealedAuction: required("VITE_SEALED_AUCTION_ADDRESS") as Address,
     relayUrl: required("VITE_RELAY_URL").replace(/\/$/, ""),
     purchaserUrl: required("VITE_PURCHASER_URL").replace(/\/$/, ""),

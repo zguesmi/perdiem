@@ -14,7 +14,20 @@ import { defineConfig } from "vite";
 // deployment names its own host in `UI_ALLOWED_HOSTS`, comma-separated; localhost needs nothing.
 const allowedHosts = process.env.UI_ALLOWED_HOSTS?.split(",").filter(Boolean);
 
+// The page reads the chain through `/rpc` on its own origin, and the server forwards that to
+// `ARC_RPC_URL`. Same origin, so no node has to answer a cross-origin request, and a browser that
+// cannot reach the node itself still reads the auction.
+const rpcUrl = process.env.ARC_RPC_URL;
+
+if (!rpcUrl) {
+  throw new Error("ARC_RPC_URL is not set. Source the deployment's environment file first.");
+}
+
 export default defineConfig({
   plugins: [react()],
-  server: { host: true, ...(allowedHosts?.length ? { allowedHosts } : {}) },
+  server: {
+    host: true,
+    ...(allowedHosts?.length ? { allowedHosts } : {}),
+    proxy: { "/rpc": { target: rpcUrl, changeOrigin: true, rewrite: () => "/" } },
+  },
 });
