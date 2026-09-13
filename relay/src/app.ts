@@ -4,22 +4,48 @@ import { cors } from "hono/cors";
 const MAX_CIPHERTEXT_BYTES = 16 * 1024;
 
 /**
+ * What the relay did with one request. The relay holds only ciphertext, so a line can carry the
+ * path, the status and a size, and nothing else it stores.
+ */
+function log(context: Context, status: number, note: string): void {
+  console.log(`relay: ${context.req.method} ${context.req.path} ${status}, ${note}`);
+}
+
+/**
  * Reads the ciphertext off the request and stores it under `key`, once. First write wins: a sealed
  * bid is already committed to on chain, and a sealed policy is already hashed on chain, so a later
  * write could only swap the plaintext behind a fixed commitment, which the enclave then drops.
  */
 async function store(context: Context, into: Map<string, string>, key: string): Promise<Response> {
   const ciphertext = await context.req.text();
+  const bytes = Buffer.byteLength(ciphertext);
 
-  if (Buffer.byteLength(ciphertext) > MAX_CIPHERTEXT_BYTES) {
+  if (bytes > MAX_CIPHERTEXT_BYTES) {
+    log(context, 413, `refused, ${bytes} bytes is over the size cap`);
     return context.body(null, 413);
   }
   if (into.has(key)) {
+    log(context, 409, "refused, one is already stored under that key");
     return context.body(null, 409);
   }
 
   into.set(key, ciphertext);
+  log(context, 201, `stored ${bytes} bytes`);
   return context.body(null, 201);
+}
+
+/**
+ * Answers one key, and says whether it had it. The page's poll of the whole list is not logged: it
+ * repeats every few seconds and would bury the reads that matter.
+ */
+function serve(context: Context, ciphertext: string | undefined): Response {
+  if (ciphertext === undefined) {
+    log(context, 404, "nothing is stored under that key");
+    return context.body(null, 404);
+  }
+
+  log(context, 200, `served ${Buffer.byteLength(ciphertext)} bytes`);
+  return context.text(ciphertext);
 }
 
 /**
@@ -64,9 +90,8 @@ export function createRelayApp(): Hono {
   // under addresses that never staked.
   app.get("/auctions/:auctionId/bids/:supplier", (context) => {
     const auction = bids.get(context.req.param("auctionId"));
-    const ciphertext = auction?.get(context.req.param("supplier").toLowerCase());
 
-    return ciphertext === undefined ? context.body(null, 404) : context.text(ciphertext);
+    return serve(context, auction?.get(context.req.param("supplier").toLowerCase()));
   });
 
   // The page reads them all at once. The order is arrival order.
@@ -83,11 +108,9 @@ export function createRelayApp(): Hono {
 
   // The enclave fetches it with the hash it read from the chain, and checks what comes back
   // against that hash. A buyer that never uploaded is a 404, and that auction refunds on timeout.
-  app.get("/policies/:policyHash", (context) => {
-    const ciphertext = policies.get(context.req.param("policyHash").toLowerCase());
-
-    return ciphertext === undefined ? context.body(null, 404) : context.text(ciphertext);
-  });
+  app.get("/policies/:policyHash", (context) =>
+    serve(context, policies.get(context.req.param("policyHash").toLowerCase())),
+  );
 
   return app;
 }
