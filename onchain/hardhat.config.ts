@@ -25,6 +25,24 @@ export default defineConfig({
       },
     },
   },
+  // Arc is not in the plugin's registry, so the explorer it verifies against is named here.
+  chainDescriptors: {
+    5042002: {
+      name: "Arc testnet",
+      blockExplorers: {
+        blockscout: {
+          name: "Arcscan",
+          url: "https://testnet.arcscan.app",
+          apiUrl: "https://testnet.arcscan.app/api",
+        },
+      },
+    },
+  },
+  verify: {
+    blockscout: {
+      enabled: true,
+    },
+  },
   networks: {
     hardhatMainnet: {
       type: "edr-simulated",
