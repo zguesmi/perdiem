@@ -130,22 +130,53 @@ export function createClient(config: Config): PublicClient {
 }
 
 /**
- * The newest auction, or `null` when none exists yet. One `eth_getLogs` for the transaction hashes,
- * then the views: a log says something happened once, and `auctions` says what is true now.
+ * The widest range one `eth_getLogs` may cover. Arc's public endpoint answers a wider one with
+ * `query exceeds max block range 100000`, and the deployment block falls further behind every day.
+ */
+const MAX_BLOCK_RANGE = 99_999n;
+
+/**
+ * Every log from the newest auction onwards, searched backwards a window at a time.
+ *
+ * Backwards, because the page shows the newest auction and nothing older: the first window holding
+ * an `AuctionCreated` ends the search, so a busy chain still costs one request. An auction lives at
+ * most `FINALIZE_PERIOD`, so the rest of its logs are always in the windows already read.
+ */
+async function readLogsFromNewestAuction(client: PublicClient, config: Config) {
+  const query = { address: config.sealedAuction, events: sealedAuctionEvents } as const;
+  const collected = [];
+
+  let toBlock = await client.getBlockNumber();
+  while (toBlock >= config.fromBlock) {
+    const fromBlock =
+      toBlock < config.fromBlock + MAX_BLOCK_RANGE ? config.fromBlock : toBlock - MAX_BLOCK_RANGE;
+    const window = await client.getLogs({ ...query, fromBlock, toBlock });
+    collected.unshift(...window);
+
+    const logs = parseEventLogs({ abi: sealedAuctionAbi, logs: collected });
+    if (logs.some((log) => log.eventName === "AuctionCreated")) {
+      return logs;
+    }
+
+    if (fromBlock === config.fromBlock) {
+      break;
+    }
+    toBlock = fromBlock - 1n;
+  }
+
+  return parseEventLogs({ abi: sealedAuctionAbi, logs: collected });
+}
+
+/**
+ * The newest auction, or `null` when none exists yet. The logs carry the transaction hashes, and
+ * the views the state: a log says something happened once, and `auctions` says what is true now.
  */
 export async function readAuction(
   client: PublicClient,
   config: Config,
   lastBalances?: Map<string, bigint>,
 ): Promise<AuctionView | null> {
-  const logs = parseEventLogs({
-    abi: sealedAuctionAbi,
-    logs: await client.getLogs({
-      address: config.sealedAuction,
-      events: sealedAuctionEvents,
-      fromBlock: config.fromBlock,
-    }),
-  });
+  const logs = await readLogsFromNewestAuction(client, config);
 
   const created = logs.filter((log) => log.eventName === "AuctionCreated").at(-1);
   if (!created) {
