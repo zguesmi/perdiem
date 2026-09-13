@@ -1,8 +1,8 @@
 import { short } from "../auction.ts";
-import { Field, Panel, TransactionLink, type PanelProps } from "./panel.tsx";
+import { Field, Panel, type PanelProps } from "./panel.tsx";
 
 /** A price never appears here: only the enclave can open a sealed bid. */
-export function Bids({ config, auction }: PanelProps) {
+export function Bids({ auction }: PanelProps) {
   if (auction.bids.length === 0) {
     return (
       <Panel title="Bids" note="No commitment yet.">
@@ -28,7 +28,6 @@ export function Bids({ config, auction }: PanelProps) {
             }
           />
           <p className="note">{sealedBidNote(auction.relayReachable, bid.sealedBytes)}</p>
-          <TransactionLink config={config} label="commit" hash={bid.committedTransaction} />
         </div>
       ))}
     </Panel>

@@ -1,8 +1,8 @@
 import { short } from "../auction.ts";
-import { Field, Panel, TransactionLink, type PanelProps } from "./panel.tsx";
+import { Field, Panel, type PanelProps } from "./panel.tsx";
 
 /** What the enclave did, as the chain saw it. The scoring itself publishes nothing. */
-export function Enclave({ config, auction }: PanelProps) {
+export function Enclave({ auction }: PanelProps) {
   return (
     <Panel
       title="Enclave"
@@ -10,13 +10,6 @@ export function Enclave({ config, auction }: PanelProps) {
     >
       <Field label="State" value={auction.state} />
       <Field label="Bids root" value={<code>{short(auction.bidsRoot)}</code>} />
-      {auction.claimedTransaction ? (
-        <TransactionLink config={config} label="claim" hash={auction.claimedTransaction} />
-      ) : (
-        <p className="note">
-          Not claimed yet. The workflow claims the auction after bidding closes.
-        </p>
-      )}
     </Panel>
   );
 }

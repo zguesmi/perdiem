@@ -4,16 +4,16 @@ One page. **New auction** takes the buyer's sentence: `POST /intent` on the purc
 answers with a summary, and confirming it calls `POST /confirm`, which hashes the policy, seals it
 to the relay and funds the auction.
 
-Then five panels, read top to bottom during the demo:
+Then a stepper, and under it five panels, read top to bottom during the demo:
 
-1. **Intent** — the policy hash and the public requirements, from `TermsPublished`.
-2. **Funding** — buyer, payout cap, both deadlines, who authorized the spend, and both funding
-   transactions.
-3. **Bids** — one row per on-chain commitment, with the size of its ciphertext at the relay.
-4. **Enclave** — state, bids root, and the claim transaction.
-5. **Settlement** — winner, payout, refund, booking id, and the settling transaction.
-
-Every panel ends in a transaction hash, linked to `VITE_EXPLORER_URL` when one is configured.
+1. **Stepper** — Created, Bidding, Settling, Finalized, with Timeout replacing the last one on a
+   timed-out auction. Each step carries one line and the transactions that produced it, in block
+   order, linked to `VITE_EXPLORER_URL` when one is configured.
+2. **Intent** — the policy hash and the public requirements, from `TermsPublished`.
+3. **Funding** — buyer, payout cap, both deadlines, and who authorized the spend.
+4. **Bids** — one row per on-chain commitment, with the size of its ciphertext at the relay.
+5. **Enclave** — state and bids root.
+6. **Settlement** — winner, payout, refund and booking id.
 
 The page reads `auctions` and `commitments` on a 2 second timer and holds no auction state of its
 own. It shows the newest auction and nothing else.

@@ -15,7 +15,7 @@ function auction(state: AuctionState, overrides: Partial<AuctionView> = {}): Auc
     payoutCap: 750_000_000n,
     bidDeadline: NOW + 90,
     finalizeDeadline: NOW + 3_690,
-    createdTransaction: "0x03",
+    createdTransaction: { hash: "0x03", blockNumber: 10n },
     bidsRoot: "0x04",
     bids: [],
     relayReachable: true,
@@ -85,7 +85,7 @@ test("a finalized auction names the winner and the payout", () => {
       winner: "0x00000000000000000000000000000000000000c3",
       payout: 440_000_000n,
       bookingId: "abc",
-      finalizedTransaction: "0x08",
+      finalizedTransaction: { hash: "0x08", blockNumber: 14n },
     },
   });
   assert.equal(steps(finalized, NOW)[3]?.line, "0x00000000…0000c3 paid 440 USDC");
@@ -97,10 +97,58 @@ test("a finalized auction with no winner says so", () => {
       winner: "0x0000000000000000000000000000000000000000",
       payout: 0n,
       bookingId: "",
-      finalizedTransaction: "0x08",
+      finalizedTransaction: { hash: "0x08", blockNumber: 14n },
     },
   });
   assert.equal(steps(empty, NOW)[3]?.line, "No eligible bid");
+});
+
+test("the terms are a row of their own only when they land in their own transaction", () => {
+  const together = steps(auction("Created"), NOW)[0];
+  assert.deepEqual(
+    together?.transactions.map((row) => row.label),
+    ["createAuction"],
+  );
+
+  const apart = auction("Created", { termsTransaction: { hash: "0x09", blockNumber: 11n } });
+  assert.deepEqual(
+    steps(apart, NOW)[0]?.transactions.map((row) => row.label),
+    ["createAuction", "TermsPublished"],
+  );
+});
+
+test("every commit is a row under Bidding, oldest first, named by its supplier", () => {
+  const bidding = auction("Bidding", {
+    bids: [
+      {
+        commitment: "0x05",
+        supplier: "0x00000000000000000000000000000000000000a1",
+        committedTransaction: { hash: "0x0a", blockNumber: 13n },
+      },
+      {
+        commitment: "0x06",
+        supplier: "0x00000000000000000000000000000000000000b2",
+        committedTransaction: { hash: "0x0b", blockNumber: 12n },
+      },
+    ],
+  });
+  assert.deepEqual(
+    steps(bidding, NOW)[1]?.transactions.map((row) => [row.label, row.blockNumber]),
+    [
+      ["0x00000000…0000b2", 12n],
+      ["0x00000000…0000a1", 13n],
+    ],
+  );
+});
+
+test("the refund replaces the settlement under the last step", () => {
+  const timedOut = auction("Timeout", {
+    timedOutTransaction: { hash: "0x0c", blockNumber: 20n },
+  });
+  assert.deepEqual(
+    steps(timedOut, NOW)[3]?.transactions.map((row) => row.label),
+    ["timeoutRefund"],
+  );
 });
 
 test("the countdown holds at zero rather than going past it", () => {
