@@ -2,33 +2,28 @@
 
 One page for one auction, read top to bottom.
 
-**New auction** takes the buyer's sentence: `POST /intent` on the purchaser service answers with a
-summary, and confirming it calls `POST /confirm`, which hashes the policy, seals it to the relay and
-funds the auction.
+- Two figures first: the travel desk's own USDC, and the largest stay the spend policy will sign.
+- **The request card** takes the buyer's sentence. `POST /intent` answers with a summary, and
+  confirming it calls `POST /confirm`, which hashes the policy, seals it to the relay and funds the
+  auction.
+- **The stepper**: Created, Bidding, Settling, Finalized, Timeout. Timeout is always on screen,
+  dashed and muted until it happens. A reached step is a button; the rest are disabled.
+- **One detail card**, for the selected step only. It carries a sentence in the tense the step is
+  in, the mechanism behind an `i`, and the rows that step owns: hashes, amounts, commitments, the
+  booking and the transactions, linked to `VITE_EXPLORER_URL` when one is configured.
+- **Enclave and balances**, folded away: the enclave public key, the policy hash, the bids root, and
+  the USDC held by the escrow, the buyer and every supplier that committed.
 
-Then the **stepper**: Created, Bidding, Settling, Finalized, with Timeout replacing the last step on
-a timed-out auction. The rule above each step says done, live or pending. Each step carries one line
-and the transactions that produced it, in block order, linked to `VITE_EXPLORER_URL` when one is
-configured. It stays in view while the panels are read.
-
-Then five panels, each holding what only it can say:
-
-1. **Intent** — the policy hash and the public requirements, from `TermsPublished`.
-2. **Funding** — the buyer, and who authorized the spend when this page opened the auction.
-3. **Bids** — one row per on-chain commitment, with the size of its ciphertext at the relay.
-4. **Enclave** — the bids root, and the booking id the enclave read back.
-5. **Balances** — the USDC held by the escrow, the buyer and every supplier that committed.
-
-Every fact appears once. The amounts and the state live on the stepper and in the balances, so no
-panel repeats them.
+The selection follows the auction whenever it advances, and a click overrides it until the next
+advance. A load that finds a finished auction collapses it to one line with a **View** button, so
+the reader who arrived late gets the request box rather than someone else's settlement; an auction
+that finishes while the page is open stays open.
 
 The page reads the chain and the relay on a 5 second timer and holds no auction state of its own. It
 shows the newest auction and nothing else. The countdown ticks on its own second.
 
 It cannot show the private half of the policy, because it never holds it. The maximum price and the
 preferences are a workflow secret, and a sealed bid is ciphertext to everyone but the enclave.
-
-Desktop only. No mobile layout.
 
 ## Configuration
 
@@ -59,8 +54,9 @@ its configuration, the generated file is left alone.
 ## Style
 
 `src/index.css` is the whole palette, the whole type scale and the whole spacing rhythm: three type
-sizes, one accent on the live step, one hairline border, and structure from whitespace. Every colour
-is defined in both colour schemes.
+sizes, one accent on the live step, one hairline border, and structure from whitespace. Every gap is
+a multiple of `--step`, and every colour is defined in both colour schemes. One breakpoint, at
+700px, stacks the two figures and wraps the stepper.
 
 ## Commands
 

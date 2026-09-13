@@ -26,5 +26,5 @@
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
   },
-  "description": "One page, five panels: intent, funding, bids, enclave, settlement."
+  "description": "One page: a request box, a five-step stepper, and the detail of the step selected."
 }
