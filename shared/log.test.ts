@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { z } from "zod";
 
-import { banner, describeError, stars, usdcAmount } from "./log.ts";
+import { banner, describeError, group, role, stars, usdcAmount } from "./log.ts";
 
 test("prints the cause chain under the message", () => {
   const reason = new Error("connect ECONNREFUSED 127.0.0.1:8787");
@@ -67,6 +67,24 @@ test("lines a banner's values up in one column", () => {
   );
 });
 
+test("indents a group under its own label row", () => {
+  assert.equal(
+    group("agent", [
+      ["model", "claude-opus-5"],
+      ["tools", "submitBid"],
+    ]),
+    "  agent\n      model  claude-opus-5\n      tools  submitBid",
+  );
+});
+
+test("takes an agent's role from the opening clause of its prompt", () => {
+  assert.equal(
+    role("You sell 3-star rooms in Paris. Room price is 3.3 USDC."),
+    "You sell 3-star rooms in Paris...",
+  );
+  assert.equal(role("You are a travel desk:\nrules follow"), "You are a travel desk...");
+});
+
 test("writes USDC minor units as an amount", () => {
   assert.equal(usdcAmount(4_400_000), "4.4");
   assert.equal(usdcAmount(7_500_000n), "7.5");
@@ -76,6 +94,6 @@ test("writes USDC minor units as an amount", () => {
 });
 
 test("draws a star level as stars", () => {
-  assert.equal(stars(4), "⭐⭐⭐⭐");
+  assert.equal(stars(4), "★★★★");
   assert.equal(stars(0), "");
 });

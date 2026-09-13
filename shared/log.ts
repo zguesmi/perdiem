@@ -22,9 +22,13 @@ export const cyan = (text: string): string => paint(36, text);
 /** Claude's coral, from the 256-colour cube. It marks the model a service is running. */
 export const coral = (text: string): string => paint("38;5;209", text);
 
-/** Stars as a reader sees them on a hotel, rather than a number they have to picture. */
+/**
+ * Stars as a reader sees them on a hotel, rather than a number they have to picture. The outlined
+ * character and not the emoji: an emoji is two columns wide in some terminals and one in others,
+ * which breaks the value column it sits in.
+ */
 export function stars(count: number): string {
-  return "⭐".repeat(count);
+  return "★".repeat(count);
 }
 
 /**
@@ -50,6 +54,27 @@ export function banner(title: string, rows: readonly (readonly [string, string])
   const lines = rows.map(([label, value]) => `  ${dim(label.padEnd(width))}  ${value}`.trimEnd());
 
   return [bold(title), ...lines].join("\n");
+}
+
+/**
+ * A group of rows nested under a bare label row of a startup block. It reads as one thing that
+ * way, and the rows above it stay the service itself.
+ */
+export function group(label: string, rows: readonly (readonly [string, string])[]): string {
+  const width = Math.max(...rows.map(([name]) => name.length));
+  const lines = rows.map(([name, value]) => `      ${dim(name.padEnd(width))}  ${value}`.trimEnd());
+
+  return [`  ${dim(label)}`, ...lines].join("\n");
+}
+
+/**
+ * The opening clause of an agent's prompt, for the startup block: what the agent is told it is.
+ * The prompt itself is too long for a row, and its first clause is the part an operator checks.
+ */
+export function role(prompt: string): string {
+  const [opening = ""] = prompt.split(/[:.\n]/);
+
+  return `${opening.trim()}...`;
 }
 
 /**

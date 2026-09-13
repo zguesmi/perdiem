@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
-import { green, red, step } from "../../shared/log.ts";
+import { green, red, role, step } from "../../shared/log.ts";
 import { policySchema, type Policy } from "../../shared/policy.ts";
 
 /**
@@ -50,8 +50,7 @@ const promptPath = new URL("../prompts/intent.md", import.meta.url);
 
 /** The opening clause of the prompt, for the startup block: what the agent is told it is. */
 export async function policyAgentRole(): Promise<string> {
-  const [opening = ""] = (await readFile(promptPath, "utf8")).split(/[:.\n]/);
-  return `${opening.trim()}...`;
+  return role(await readFile(promptPath, "utf8"));
 }
 
 /**

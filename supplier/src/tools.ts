@@ -3,7 +3,17 @@ import { bytesToHex } from "viem";
 import { z } from "zod";
 
 import { bidCommitment, bidHash, bidSchema, type Bid } from "../../shared/bid.ts";
-import { describeError, dim } from "../../shared/log.ts";
+import {
+  bold,
+  cyan,
+  describeError,
+  dim,
+  green,
+  red,
+  shortHex,
+  step,
+  usdcAmount,
+} from "../../shared/log.ts";
 import { sealBid } from "../../shared/sealed-bid.ts";
 import type { AgentConfig, BookingCredentials } from "./config.ts";
 import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
@@ -47,7 +57,9 @@ export const submitBidInput = z
     price: z
       .int()
       .positive()
-      .describe("The whole stay, in USDC minor units. USDC has six decimals, so 4.4 USDC is 4400000."),
+      .describe(
+        "The whole stay, in USDC minor units. USDC has six decimals, so 4.4 USDC is 4400000.",
+      ),
     refundable: z.boolean(),
     breakfastIncluded: z.boolean(),
     roomType: z.string().min(1),
@@ -62,15 +74,16 @@ export type SubmitBidInput = z.infer<typeof submitBidInput>;
  * salt, commit, seal, write, post. Split into separate tools, a model can seal without committing,
  * commit without posting, or commit twice, and each of those is a silently dropped bid.
  *
- * The model never sees a hash, a salt, a signature or a key. Nothing below reaches a log or an
- * error message.
+ * The model never sees a hash, a salt, a signature or a key, and neither does a log line. Each
+ * step below can be the one that hangs, so each prints what it produced and how long it took.
  */
 export async function submitBid(
   context: BidRunContext,
   input: SubmitBidInput,
   onCommitted: () => void = () => {},
 ): Promise<string> {
-  if (Math.floor(Date.now() / 1000) >= context.auction.bidDeadline) {
+  const now = Math.floor(Date.now() / 1000);
+  if (now >= context.auction.bidDeadline) {
     throw new Error("the bid deadline has passed");
   }
 
@@ -86,15 +99,30 @@ export async function submitBid(
     supplier: context.signer.address,
   });
 
+  console.log(
+    step(
+      "Bid priced",
+      `${bold(`${usdcAmount(bid.price)} USDC`)} for ${bid.numberOfRooms} ${bid.roomType}, ` +
+        `${bid.refundable ? "refundable" : "non-refundable"}, ` +
+        `${bid.breakfastIncluded ? "breakfast" : "no breakfast"}, ` +
+        `${context.auction.bidDeadline - now} s before the deadline`,
+    ),
+  );
+
   const hash = bidHash(bid);
-  // Each of the four steps below can be the one that hangs. Their durations are what tells a
-  // reader which, and they carry nothing the model or the relay must not see.
-  const step = (name: string, started: number) =>
-    console.log(dim(`  ${name} ${Date.now() - started} ms`));
+  const took = (started: number) => dim(`${Date.now() - started} ms`);
 
   let started = Date.now();
+  // The signature itself stays out of the log: it verifies a guessed price against this bid, and
+  // the price is what the envelope exists to keep.
   const signature = await context.signer.signBid(bid, context.sealedAuction);
-  step("sign", started);
+  console.log(
+    step(
+      "Bid signed",
+      `${green("✓")} EIP-712 by ${cyan(context.signer.address)}  ${took(started)}`,
+    ),
+  );
+
   const salt = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
   const commitment = bidCommitment(hash, salt);
   const envelope = sealBid(
@@ -102,6 +130,7 @@ export async function submitBid(
     context.enclavePublicKey,
     context.auction.auctionId,
   );
+  console.log(step("Bid sealed", `${envelope.length} bytes to the enclave key`));
 
   // The stake is pulled by `commit`, so the approval has to land first.
   started = Date.now();
@@ -111,16 +140,26 @@ export async function submitBid(
     functionName: "approve",
     args: [context.sealedAuction, context.stake],
   });
-  step("approve", started);
+  console.log(
+    step(
+      "Stake approved",
+      `${bold(`${usdcAmount(context.stake)} USDC`)} allowance on ${cyan(context.usdc)}  ${took(started)}`,
+    ),
+  );
 
   started = Date.now();
-  await context.signer.write({
+  const transaction = await context.signer.write({
     address: context.sealedAuction,
     abi: sealedAuctionAbi,
     functionName: "commit",
     args: [context.auction.auctionId, commitment],
   });
-  step("commit", started);
+  console.log(
+    step(
+      "Bid committed",
+      `[commitment: ${cyan(shortHex(commitment))}, tx: ${cyan(shortHex(transaction))}]  ${took(started)}`,
+    ),
+  );
   // The stake is now locked. Whatever happens below, this agent must not commit a second time:
   // `commit` is once per address, the second call reverts, and the relay refuses the second post.
   onCommitted();
@@ -132,10 +171,15 @@ export async function submitBid(
     `${context.relayUrl}/auctions/${context.auction.auctionId}/bids/${context.signer.address}`,
     { method: "PUT", body: bytesToHex(envelope) },
   );
-  step("relay", started);
   if (posted.status !== 201) {
     throw new Error(`the relay refused the sealed bid with ${posted.status}`);
   }
+  console.log(
+    step(
+      "Bid uploaded",
+      `${green("✓")} the relay holds it under ${cyan(context.signer.address)}  ${took(started)}`,
+    ),
+  );
 
   return `Bid submitted at ${input.price}. The stake is committed and the sealed bid is at the relay. You are done.`;
 }
@@ -160,11 +204,6 @@ export function createTools(context: BidRunContext) {
       throw new Error("this agent has already committed its one bid. Stop.");
     }
     const started = Date.now();
-    console.log(
-      dim(
-        `submitBid: price ${input.price}, ${context.auction.bidDeadline - Math.floor(started / 1000)} s before the deadline`,
-      ),
-    );
 
     try {
       const result = await submitBid(context, input, () => {
@@ -177,7 +216,7 @@ export function createTools(context: BidRunContext) {
       // because the runner reads these when a run ends with no bid.
       const refusal = describeError(error);
       refusals.push(refusal);
-      console.log(dim(`submitBid failed after ${Date.now() - started} ms: ${refusal}`));
+      console.error(red(`submitBid refused it after ${Date.now() - started} ms: ${refusal}`));
       throw error;
     }
   }
