@@ -104,8 +104,8 @@ async function main(): Promise<void> {
       ["model", `${config.model}, ${config.effort} effort`],
       ["tools", yellow(TOOL_NAMES.join(", "))],
       [
-        "price (USDC)",
-        `${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)}`,
+        "price",
+        `${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)} USDC`,
       ],
       ["chain", `${cyan(deployment.sealedAuction)} on ${deployment.rpcUrl}`],
       ["relay", deployment.relayUrl],

@@ -109,10 +109,10 @@ serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
       ["relay", environment.RELAY_URL],
       ["page", environment.PAGE_ORIGIN],
       [
-        "caps (USDC)",
+        "caps",
         `bucket ${usdcAmount(environment.PAYOUT_CAP_BUCKET)}, ` +
           `maximum ${usdcAmount(environment.MAX_PAYOUT_CAP)}, ` +
-          `quorum above ${usdcAmount(environment.PRIVY_QUORUM_CEILING)}`,
+          `quorum above ${usdcAmount(environment.PRIVY_QUORUM_CEILING)} USDC`,
       ],
     ]),
   );
