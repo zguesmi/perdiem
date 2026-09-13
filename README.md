@@ -1,150 +1,55 @@
 # Perdiem
 
-> *Per diem (Latin for "per day") is a fixed daily allowance paid by an employer to cover
+> _Per diem (Latin for "per day") is a fixed daily allowance paid by an employer to cover
 > work-related expenses, such as meals, lodging, and incidentals, during business travel or
 > temporary assignments
 
-Corporate hotel booking where the buyer's selection rules stay private and sealed bids guarantee the
-best deal.
+Corporate hotel booking where the buyer's selection rules stay private and sealed bids decide the
+price.
 
-## What it is
+A travel desk writes one sentence. A model turns it into a policy: hard requirements, weighted
+preferences, a maximum price. The policy hash goes on chain before any bid exists. The policy itself
+stays sealed to an enclave.
 
-A corporate travel desk states a booking need in one English sentence. A model turns it into a
-Policy: hard requirements, weighted preferences and a maximum price. The Policy Hash lands on chain
-before any bid exists, and the Policy itself stays sealed to an enclave.
+Three supplier agents bid blind. The enclave opens the policy, scores the bids, books the winner
+against that supplier's own API, and reports the winner, the payout and the booking id. The contract
+pays the winner, refunds the buyer and returns every stake.
 
-Three supplier agents each submit one sealed bid. The enclave opens the Policy, scores the bids
-against it, books the winner with that supplier's own API, and reports only the winner, the payout
-and the booking id. The contract pays the winner, refunds the buyer and returns every stake.
+The cheapest bid loses. It asks 3.3 USDC, which is 17.5% under the cheapest four-star bid, and the
+trade-down rule wants 30%. The winner charges 4.4 against a 4.0 rival, because the private policy
+pays 0.5 for a refundable rate and 0.4 for breakfast. Nobody outside the enclave learns why.
 
-In the demo run the cheapest bid loses. It is 17.5% under the cheapest four-star bid and the
-trade-down rule asks for 30%. The winner costs 4.4 USDC against a 4.0 USDC rival, because the
-private Policy pays 0.5 for a refundable rate and 0.4 for breakfast.
+## The buyer's money sits behind a spend policy
 
-Who talks to whom, and in what order: [`docs/architecture.md`](docs/architecture.md). The protocol
-itself: [`docs/spec.md`](docs/spec.md).
+The buyer's USDC lives in a Privy organization wallet. The purchaser service holds no key for it. It
+asks for a signature, and Privy answers against a spend policy, so the organization decides what the
+buyer's own service may do.
 
-## How Privy enables it
+- Two rules, one per transaction: `approve` on USDC and `createAuction` on `SealedAuction`. Both
+  read the calldata, so the spender and the amount are checked, not just the destination address.
+- The ceiling is 7.5 USDC. Ask for more and Privy refuses with `policy_violation` before anything is
+  signed or mined. The service answers 422, and the buyer lowers the price.
+- Above `PRIVY_QUORUM_CEILING` a 2-of-2 key quorum signs, travel manager and finance. The spend
+  policy still applies to them.
+- Privy signs but does not broadcast on Arc, so the service sends the signed transaction to the RPC
+  itself.
 
-The buyer's USDC sits in a Privy organization wallet. The purchaser service holds no key for it. It
-asks Privy for a signature and Privy answers against a spend policy, so the organization decides
-what the buyer's own service is allowed to do.
+## What is real, and what is not
 
-- Two rules, one per transaction: `approve(spender, value)` on USDC and `createAuction(...)` on
-  `SealedAuction`. Funding needs both, so a rule on `createAuction` alone would let the approval
-  mine and leave a standing allowance behind.
-- Both rules read the calldata, not the destination address: `field_source: ethereum_calldata` with
-  the contract ABI in the condition. `spender` must equal `SealedAuction`, and the amount must be at
-  most 7.5 USDC. Every rule pins `chain_id` to 5042002 and `method` to `eth_signTransaction`.
-- A buyer who asks above 7.5 USDC derives a larger payout cap, and Privy refuses with
-  `policy_violation` before anything is signed or mined. The service answers 422 and the buyer
-  lowers the price.
-- The buyer holds two wallets. At or under `PRIVY_QUORUM_CEILING` the spend policy alone authorizes;
-  above it a 2-of-2 key quorum signs, travel manager and finance. The spend policy still applies: an
-  owner signature does not override it.
-- Privy signs but does not broadcast on Arc. `eth_sendTransaction` returns
-  `App is not authorized to transact on chain eip155:5042002`, so the service broadcasts the signed
-  RLP to `ARC_RPC_URL` itself.
-
-## What is deployed and what is simulated
-
-Deployed:
-
-- `SealedAuction` on Arc testnet, at `0xd393D72732D33f38Dd1349Dfd0c35858F9fE9052`. It holds the
-  payout cap and every stake, and it pays from them.
-- Arc's own USDC at `0x3600000000000000000000000000000000000000`, 6 decimals.
-- Three Circle Agent Stack wallets, one per supplier agent, provisioned on Arc testnet.
-- The Privy organization wallets and their spend policy, on chain 5042002.
-
-Simulated, or standing in for something a production system would do differently:
-
-- The CRE workflow is not deployed to the CRE network. `cre workflow simulate --broadcast` runs the
-  handler and writes the claim and the settlement to Arc testnet as real transactions.
-- Simulation runs the confidential handler in the CLI's own process, so there is no attested
-  enclave. The code path is the one a deployed confidential workflow runs; the hardware guarantee is
-  not there yet.
-- The enclave keypair is generated by whoever runs the deployment. See "The enclave key" below.
-- The relay has no authentication. A supplier can fetch a rival's ciphertext and count the bids. No
-  price leaks, because only the enclave holds the private key.
-- Bookings go to the LiteAPI sandbox, so no real stay is reserved.
-- `stars`, `refundable` and `breakfastIncluded` are self-attested by the supplier. Nothing
-  contradicts them. The booking is the exception: the enclave books the winner's `hotelId` against
-  the supplier's own API and reads the booking id back, so no payout exists without a booking.
-- Circle spending policies are mainnet only, so the agent wallets run on Circle's default policy and
-  there is no supplier-side limit to show.
-
-## AI tool attribution
-
-Built with [Claude Code](https://claude.com/claude-code), model Claude Opus 5 (`claude-opus-5`),
-with the `mattpocock-skills` plugin for the spec-hardening session. Idea development and research
-were done on claude.ai.
-
-Full account, phase by phase: [`docs/README.md`](docs/README.md).
-
-## Setup
-
-Requires Node 22 or later and pnpm 12.3.4 (`corepack enable` picks up the pinned version).
-
-```sh
-pnpm install                  # the workspace: onchain, purchaser, relay, supplier, ui
-pnpm --dir workflow-cre install   # workflow-cre/ is outside the workspace and installs on its own
-cp .env.localhost.example .env.localhost
-```
-
-## Commands
-
-From the repository root, across every workspace package:
-
-```sh
-pnpm build       # compile every package that has a build script
-pnpm test        # run every test suite
-pnpm typecheck   # type-check every package
-pnpm lint        # lint every package that has a lint script
-```
-
-`workflow-cre/` is not a workspace member, so the recursive scripts skip it. Run it directly:
-
-```sh
-pnpm --dir workflow-cre test
-pnpm --dir workflow-cre typecheck
-```
-
-One package at a time:
-
-```sh
-pnpm --filter @perdiem/onchain test
-pnpm --filter @perdiem/relay dev
-```
-
-Run the services for the demo, one terminal each:
-
-| Command                                | What it starts        | Port                   |
-| -------------------------------------- | --------------------- | ---------------------- |
-| `pnpm --filter @perdiem/relay dev`     | the sealed-bid relay  | 8787, `RELAY_PORT`     |
-| `pnpm --filter @perdiem/purchaser dev` | the purchaser service | 8788, `PURCHASER_PORT` |
-| `pnpm --filter @perdiem/ui dev`        | the demo page         | 5173                   |
-
-## The whole stack in containers
-
-```sh
-cp .env.localhost.example .env.localhost   # fill in ANTHROPIC_API_KEY and the booking credentials
-docker compose up --build
-```
-
-Eight containers: a node with the contracts on it, a one-shot deployment, the relay, the purchaser
-service, the three supplier agents and the page. Published on 8545, 8787, 8788 and 5173.
-
-`.env.localhost` is bind-mounted into every container, and the deployment writes the contract
-addresses into it. Everything downstream waits for that container to exit, so no service starts
-against an address that does not exist yet.
-
-Not in it: the CRE workflow, which needs the `cre` binary, and the buyer. Open an auction against
-the running stack from the repository root:
-
-```sh
-set -a; source .env.localhost; set +a
-npx tsx scripts/sealed-bidding.ts
-```
+- `SealedAuction` is live on Arc testnet at `0xd393D72732D33f38Dd1349Dfd0c35858F9fE9052`, holding
+  the payout cap and every stake in Arc's own USDC.
+- Each supplier agent signs with a Circle Agent Stack wallet on Arc testnet. Circle spending
+  policies are mainnet only, so there is no supplier-side limit to show.
+- The CRE workflow is not deployed. `cre workflow simulate --broadcast` runs the handler and writes
+  the claim and the settlement to Arc testnet as real transactions.
+- Simulation runs the confidential handler in the CLI's own process. The enclave is the code path a
+  deployed confidential workflow runs, not attested hardware.
+- The relay has no authentication. Anyone can fetch a rival's ciphertext and count the bids. Only
+  the enclave can read one.
+- Bookings go to the LiteAPI sandbox. No real stay is reserved.
+- Stars, refundable and breakfast are self-attested by the supplier. The booking is the exception:
+  the enclave books the winner's hotel and reads the booking id back, so no payout exists without a
+  booking.
 
 ## The enclave key
 
@@ -152,31 +57,22 @@ An X25519 keypair. The public half is a `SealedAuction` constructor argument, re
 `enclavePublicKey()`. The private half is the workflow secret `ENCLAVE_PRIVATE_KEY`, loaded only
 inside `handlerInTee`.
 
-- `onchain/scripts/deploy.ts` generates it on the first run, when `ENCLAVE_PRIVATE_KEY` is empty,
-  and writes the private half into the environment file as base64.
-- A new key means a new contract, and every ciphertext already at the relay stops opening.
-- Its holder can read every sealed bid, so every price and every preference, and every supplier's
-  booking credentials.
-- Here the holder is whoever runs the deployment. `.env.localhost` is bind-mounted into every
-  container, so the purchaser service and the three agents can read it as well.
-- The buyer and the suppliers should not hold it. A party that is neither generates the keypair and
-  uploads the private half, and only the public half reaches the contract.
-- What would remove the trusted party: a private half that only ever exists inside an attested
-  enclave. Out of scope here, because the enclave has no randomness of its own —
-  `x25519.utils.randomPrivateKey()` throws `crypto.getRandomValues must be defined` there.
+Whoever holds it reads every sealed bid: every price, every preference, every supplier's booking
+credentials. Here that is whoever runs the deployment, because `onchain/scripts/deploy.ts` generates
+the pair on the first run and writes the private half into the environment file. It should be a
+party that is neither the buyer nor a supplier. The enclave cannot generate its own:
+`x25519.utils.randomPrivateKey()` throws `crypto.getRandomValues must be defined` there.
 
-## The sealed bidding slice
+A new key means a new contract, and every ciphertext already at the relay stops opening.
 
-One script runs the first half of the flow on a local node and stops at the last sealed bid:
+## Where to go next
 
-```sh
-./scripts/demo-sealed-bidding.sh
-```
+- Run it: [`docs/README.md`](docs/README.md)
+- Who talks to whom: [`docs/architecture.md`](docs/architecture.md)
+- The protocol: [`docs/spec.md`](docs/spec.md)
 
-It starts a Hardhat node, deploys, starts the relay, starts the three agents, opens an auction
-against `referencePolicy`, and waits for three commitments on chain and three ciphertexts at the
-relay. It needs `ANTHROPIC_API_KEY` and the booking credentials in `.env.localhost`, because the
-agents price with a model. Scoring, settlement and the booking are not in it.
+## AI tool attribution
 
-The test suites are red on purpose. They state the behaviour each package owes before it is written;
-every package README says what its own red tests are waiting on.
+Built with [Claude Code](https://claude.com/claude-code), model Claude Opus 5 (`claude-opus-5`),
+with the `mattpocock-skills` plugin for the spec-hardening session. Idea development and research
+were done on claude.ai. The full account is in [`docs/README.md`](docs/README.md).
