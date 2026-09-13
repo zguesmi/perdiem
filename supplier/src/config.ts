@@ -27,6 +27,10 @@ export const agentConfigSchema = z
      * it and names the range, so the model corrects on the next turn instead of bidding a price the
      * operator never published. The stay is the rate times the nights, and only `submitBid`
      * multiplies.
+     *
+     * It has to span every tier the operator's rate card publishes, the off-season and long-stay
+     * rates included. A range that covers only the headline rate refuses the supplier's own price
+     * on any request the discount applies to, and the run ends with no bid.
      */
     priceRange: z.object({ min: z.int().positive(), max: z.int().positive() }),
     model: z.string().min(1).default("claude-opus-5"),
