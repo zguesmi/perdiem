@@ -19,6 +19,14 @@ What happens inside `handlerInTee`, and nowhere else:
 Only the settlement leaves the enclave. The policy, the maximum price, the preferences, the enclave
 private key and every decrypted bid stay inside it, and none of them are ever logged.
 
+## What it needs installed
+
+- `cre`, pinned to v1.32.0.
+- Bun. The CLI shells out to it to compile a TypeScript workflow and fails with
+  `bun is required for TypeScript workflows but was not found in PATH`.
+- A CRE session. `cre login` opens an OAuth callback on `http://localhost:<port>/callback`, so on a
+  remote host the port has to be forwarded to wherever the browser runs.
+
 ## Layout
 
 The CRE project root and the workflow folder are the same directory, so there is one `package.json`
