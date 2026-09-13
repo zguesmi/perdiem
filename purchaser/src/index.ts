@@ -151,7 +151,7 @@ serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
   console.log(
     group("agent", [
       ["model", coral(environment.INTENT_MODEL)],
-      ["tools", yellow(VALIDATE_POLICY)],
+      ["tools", yellow(`[${VALIDATE_POLICY}]`)],
       ["role", `"${role}"`],
     ]),
   );

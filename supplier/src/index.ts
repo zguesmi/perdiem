@@ -125,7 +125,7 @@ async function main(): Promise<void> {
   // Everything an operator would otherwise have to infer from three files and an environment: which
   // hotel this agent sells, which address stakes and gets paid, and what the model may do.
   console.log(
-    banner(`Supplier: ${config.name} - listening on ${chainName}`, [
+    banner(`Supplier: ${config.name} - listening to ${chainName}`, [
       ["wallet", `${cyan(signer.address)} ${dim(`(${wallet.kind})`)}`],
       ["chain", `${chainName} (${chainId})  ${deployment.rpcUrl}`],
       ["auction contract", cyan(deployment.sealedAuction)],
@@ -139,14 +139,14 @@ async function main(): Promise<void> {
       ["stars", yellow(stars(config.hotel.stars))],
       [
         "price",
-        bold(`${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)} USDC`),
+        `${bold(`${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)} USDC`)} per stay`,
       ],
     ]),
   );
   console.log(
     group("agent", [
       ["model", coral(config.model)],
-      ["tools", yellow(TOOL_NAMES.join(", "))],
+      ["tools", yellow(`[${TOOL_NAMES.join(", ")}]`)],
       ["role", `"${role(rules)}"`],
     ]),
   );
@@ -164,8 +164,6 @@ async function main(): Promise<void> {
       bookingApiKey: secrets.BOOKING_API_KEY,
     }),
   };
-
-  console.log(step("Watching", `from block ${fromBlock}`));
 
   const stopping = new AbortController();
   process.once("SIGINT", () => stopping.abort());
