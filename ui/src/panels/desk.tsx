@@ -9,6 +9,15 @@ import {
 } from "../purchaser.ts";
 
 /**
+ * What the box starts with, so a reader can fund an auction without writing anything. Every number
+ * the policy needs is in it: the stay, the ceiling, both preferences and the trade-down.
+ */
+const EXAMPLE_INTENT =
+  "Two nights in Paris, 12 to 14 October 2026. One double room, 4 stars or better, " +
+  "at most 5.2 USDC for the whole stay. Free cancellation is worth 0.5 USDC to me and " +
+  "breakfast 0.4 USDC. Take 3 stars only if it is at least 30% cheaper than the best 4-star bid.";
+
+/**
  * The buyer's half of the page: one sentence in, a funded auction out.
  *
  * Two steps and not one, because the policy the service hashed is the policy the buyer read. The
@@ -22,7 +31,7 @@ export function Desk({
   config: Config;
   onFunded: (funding: FundingAnswer) => void;
 }) {
-  const [intent, setIntent] = useState("");
+  const [intent, setIntent] = useState(EXAMPLE_INTENT);
   const [draft, setDraft] = useState<Draft>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -51,7 +60,7 @@ export function Desk({
         value={intent}
         rows={3}
         disabled={busy || draft !== undefined}
-        placeholder="Two nights in Paris from 12 October, four stars, up to 5.2 USDC. Refundable and breakfast are worth paying for."
+        placeholder={EXAMPLE_INTENT}
         onChange={(event) => setIntent(event.target.value)}
       />
 

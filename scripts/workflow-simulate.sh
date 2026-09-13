@@ -10,7 +10,11 @@ cd "$(dirname "$0")/../workflow-cre"
 
 pnpm run config "$network"
 
+# `--broadcast`, because it defaults to false: without it the settlement is written to a simulated
+# chain, the auction stays in `Bidding`, and `pendingSettlement` hands back the same identifier on
+# every run.
 exec cre workflow simulate . \
+  --broadcast \
   --non-interactive \
   --target staging-settings \
   --trigger-index 0 \

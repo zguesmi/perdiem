@@ -3,7 +3,7 @@ import { bytesToHex } from "viem";
 import { z } from "zod";
 
 import { bidCommitment, bidHash, bidSchema, type Bid } from "../../shared/bid.ts";
-import { describeError } from "../../shared/log.ts";
+import { describeError, dim } from "../../shared/log.ts";
 import { sealBid } from "../../shared/sealed-bid.ts";
 import type { AgentConfig, BookingCredentials } from "./config.ts";
 import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
@@ -87,7 +87,14 @@ export async function submitBid(
   });
 
   const hash = bidHash(bid);
+  // Each of the four steps below can be the one that hangs. Their durations are what tells a
+  // reader which, and they carry nothing the model or the relay must not see.
+  const step = (name: string, started: number) =>
+    console.log(dim(`  ${name} ${Date.now() - started} ms`));
+
+  let started = Date.now();
   const signature = await context.signer.signBid(bid, context.sealedAuction);
+  step("sign", started);
   const salt = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
   const commitment = bidCommitment(hash, salt);
   const envelope = sealBid(
@@ -97,28 +104,35 @@ export async function submitBid(
   );
 
   // The stake is pulled by `commit`, so the approval has to land first.
+  started = Date.now();
   await context.signer.write({
     address: context.usdc,
     abi: usdcAbi,
     functionName: "approve",
     args: [context.sealedAuction, context.stake],
   });
+  step("approve", started);
+
+  started = Date.now();
   await context.signer.write({
     address: context.sealedAuction,
     abi: sealedAuctionAbi,
     functionName: "commit",
     args: [context.auction.auctionId, commitment],
   });
+  step("commit", started);
   // The stake is now locked. Whatever happens below, this agent must not commit a second time:
   // `commit` is once per address, the second call reverts, and the relay refuses the second post.
   onCommitted();
 
   // After the commitment, never before: the relay is blind, and a sealed bid with no commitment
   // behind it is one the enclave drops.
+  started = Date.now();
   const posted = await fetch(
     `${context.relayUrl}/auctions/${context.auction.auctionId}/bids/${context.signer.address}`,
     { method: "PUT", body: bytesToHex(envelope) },
   );
+  step("relay", started);
   if (posted.status !== 201) {
     throw new Error(`the relay refused the sealed bid with ${posted.status}`);
   }
@@ -145,6 +159,13 @@ export function createTools(context: BidRunContext) {
     if (committed) {
       throw new Error("this agent has already committed its one bid. Stop.");
     }
+    const started = Date.now();
+    console.log(
+      dim(
+        `submitBid: price ${input.price}, ${context.auction.bidDeadline - Math.floor(started / 1000)} s before the deadline`,
+      ),
+    );
+
     try {
       const result = await submitBid(context, input, () => {
         committed = true;
@@ -152,7 +173,11 @@ export function createTools(context: BidRunContext) {
       submitted = true;
       return result;
     } catch (error) {
-      refusals.push(describeError(error));
+      // The refusal is answered to the model, which then tries something else. Kept here as well,
+      // because the runner reads these when a run ends with no bid.
+      const refusal = describeError(error);
+      refusals.push(refusal);
+      console.log(dim(`submitBid failed after ${Date.now() - started} ms: ${refusal}`));
       throw error;
     }
   }

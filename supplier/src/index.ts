@@ -63,6 +63,12 @@ interface Supplier {
 }
 
 async function bidOn(supplier: Supplier, auction: AuctionTerms): Promise<void> {
+  const delay = supplier.deployment.startDelayMilliseconds;
+  if (delay > 0) {
+    console.log(`${supplier.config.name}: starting in ${delay} ms`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
   const context: BidRunContext = {
     auction,
     hotel: supplier.config.hotel,

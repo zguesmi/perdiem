@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 
 import { createClient, readAuction, type AuctionView, type Config } from "./auction.ts";
 
-/** How long the page waits between two reads. Arc mines twice a second. */
-const POLL_MILLISECONDS = 2_000;
+/**
+ * How long the page waits between two reads. Arc mines twice a second, and one read costs eleven
+ * requests, so a shorter interval answers `rate limit exceeded` rather than the chain.
+ */
+const POLL_MILLISECONDS = 5_000;
 
 /**
  * The newest auction, re-read on a timer.

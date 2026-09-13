@@ -46,6 +46,8 @@ x-supplier: &supplier
     - *environment-file
     - *circle-session
 
+# One start delay per agent, because all three wake on the same log and Circle caps a developer
+# entity at five POST requests a second. One `wallet execute` spends several of them.
 x-supplier-environment: &supplier-environment
   <<: *environment
   RELAY_URL: http://relay:8787
@@ -95,6 +97,7 @@ services:
     environment:
       <<: *supplier-environment
       AGENT_WALLET_VARIABLE: SUPPLIER_1_WALLET_ADDRESS
+      BID_START_DELAY_MILLISECONDS: 0
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "hotel-astoria-agent"]
 
   supplier-victoria:
@@ -102,6 +105,7 @@ services:
     environment:
       <<: *supplier-environment
       AGENT_WALLET_VARIABLE: SUPPLIER_2_WALLET_ADDRESS
+      BID_START_DELAY_MILLISECONDS: 2000
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "victoria-palace-agent"]
 
   supplier-voyageurs:
@@ -109,6 +113,7 @@ services:
     environment:
       <<: *supplier-environment
       AGENT_WALLET_VARIABLE: SUPPLIER_3_WALLET_ADDRESS
+      BID_START_DELAY_MILLISECONDS: 4000
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "dame-des-arts-agent"]
 
   # Vite refuses a request whose `Host` header it does not know, so a public deployment names its

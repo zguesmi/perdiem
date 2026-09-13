@@ -24,8 +24,10 @@ export function Stepper({ config, auction }: { config: Config; auction: AuctionV
             <span className="empty">Nothing on chain yet</span>
           ) : (
             <ol className="transactions">
+              {/* Not the hash alone: Circle bundles the user operations of several wallets into
+                  one transaction, so two suppliers commit under the same hash. */}
               {step.transactions.map((row) => (
-                <Transaction key={row.hash} config={config} row={row} />
+                <Transaction key={`${row.label}-${row.hash}`} config={config} row={row} />
               ))}
             </ol>
           )}
