@@ -8,7 +8,7 @@ import { arc } from "../../shared/chain.ts";
 import { banner, cyan, usdcAmount, yellow } from "../../shared/log.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
-import { createIntentAgent } from "./intent.ts";
+import { createPolicyAgent } from "./policy-agent.ts";
 import { createPolicyUploader } from "./policy-upload.ts";
 import { createPrivyWallet } from "./privy.ts";
 
@@ -75,7 +75,7 @@ const wallet = organizationWallet(environment.PRIVY_WALLET_ID);
 const quorumWallet = organizationWallet(environment.PRIVY_QUORUM_WALLET_ID);
 
 const app = createPurchaserApp({
-  intentAgent: createIntentAgent(environment.INTENT_MODEL),
+  policyAgent: createPolicyAgent(environment.INTENT_MODEL),
   uploadPolicy: createPolicyUploader(environment.RELAY_URL),
   enclavePublicKey: hexToBytes(enclavePublicKey),
   payoutCapBucket: environment.PAYOUT_CAP_BUCKET,

@@ -8,7 +8,7 @@ import { referencePolicy, makePolicy } from "../../shared/reference-policy.ts";
 import { openSealedPolicy } from "../../shared/sealed-policy.ts";
 import { createPurchaserApp } from "../src/app.ts";
 import type { Funder, Funding } from "../src/funding.ts";
-import type { IntentAgent } from "../src/intent.ts";
+import type { PolicyAgent } from "../src/policy-agent.ts";
 import type { PolicyUploader } from "../src/policy-upload.ts";
 import { PolicyRefusedError } from "../src/privy.ts";
 
@@ -48,17 +48,17 @@ function answer(policy: unknown = referencePolicy, text: string = summary): unkn
 }
 
 /** Answers with each candidate in turn, and records how many calls the service actually made. */
-function stub(...candidates: unknown[]): IntentAgent & { calls: () => number } {
+function stub(...candidates: unknown[]): PolicyAgent & { calls: () => number } {
   let calls = 0;
-  const intentAgent = async (): Promise<unknown> => candidates[calls++ % candidates.length];
+  const policyAgent = async (): Promise<unknown> => candidates[calls++ % candidates.length];
 
-  return Object.assign(intentAgent, { calls: () => calls });
+  return Object.assign(policyAgent, { calls: () => calls });
 }
 
 /** The service under test. Every dependency that costs money or touches a chain is a stub. */
-function service(intentAgent: IntentAgent, fund: Funder = funder()) {
+function service(policyAgent: PolicyAgent, fund: Funder = funder()) {
   return createPurchaserApp({
-    intentAgent,
+    policyAgent,
     funder: fund,
     uploadPolicy: async () => {},
     payoutCapBucket,
@@ -82,59 +82,38 @@ async function post(
 }
 
 test("turns one sentence into a policy the buyer can read", async () => {
-  const intentAgent = stub(answer());
-  const response = await post(service(intentAgent), "/intent", { intent });
+  const policyAgent = stub(answer());
+  const response = await post(service(policyAgent), "/intent", { intent });
 
   assert.equal(response.status, 200);
   assert.deepEqual(response.body.policy, referencePolicy);
   assert.equal(response.body.summary, summary);
-  assert.equal(intentAgent.calls(), 1);
+  assert.equal(policyAgent.calls(), 1);
 });
 
 test("rejects an answer that carries no summary for the buyer", async () => {
   // The buyer approves what they read, so a policy with nothing to read is not an answer.
-  const intentAgent = stub({ policy: referencePolicy });
-  const response = await post(service(intentAgent), "/intent", { intent });
+  const policyAgent = stub({ policy: referencePolicy });
+  const response = await post(service(policyAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
 });
 
-test("retries a candidate that fails the schema exactly once", async () => {
-  const intentAgent = stub(answer(makePolicy({ hardRequirements: { minStars: 9 } })), answer());
-  const response = await post(service(intentAgent), "/intent", { intent });
-
-  assert.equal(response.status, 200);
-  assert.equal(intentAgent.calls(), 2);
-});
-
-test("tells the retry what was wrong with the first answer", async () => {
-  // A byte-identical second call reproduces a deterministic failure and pays for it twice.
-  const rejections: (string | undefined)[] = [];
-  let call = 0;
-  const intentAgent: IntentAgent = async (_intent, rejection) => {
-    rejections.push(rejection);
-    return call++ === 0 ? answer(makePolicy({ hardRequirements: { minStars: 9 } })) : answer();
-  };
-
-  await post(service(intentAgent), "/intent", { intent });
-
-  assert.equal(rejections[0], undefined);
-  assert.match(String(rejections[1]), /minStars/);
-});
-
-test("gives up after the second failure, and hashes nothing", async () => {
-  const intentAgent = stub(answer(makePolicy({ currency: "EUR" })));
-  const response = await post(service(intentAgent), "/intent", { intent });
+test("refuses a candidate the agent never got past the schema, and hashes nothing", async () => {
+  // The agent fixes its own candidates against `validatePolicy`. What reaches the service is
+  // checked again here, because the agent is injected and answers `unknown`.
+  const policyAgent = stub(answer(makePolicy({ currency: "EUR" })));
+  const response = await post(service(policyAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
-  assert.equal(intentAgent.calls(), 2);
+  assert.equal(policyAgent.calls(), 1);
   assert.equal(response.body.policy, undefined);
 });
 
 test("rejects a fractional price rather than rounding it", async () => {
   // Rounding would silently change the number the buyer is about to commit to on chain.
-  const intentAgent = stub(answer(makePolicy({ maxPrice: 5_200_000.5 })));
-  const response = await post(service(intentAgent), "/intent", { intent });
+  const policyAgent = stub(answer(makePolicy({ maxPrice: 5_200_000.5 })));
+  const response = await post(service(policyAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
 });
@@ -212,7 +191,7 @@ test("seals the policy to the enclave and uploads it before it opens the auction
   };
 
   const app = createPurchaserApp({
-    intentAgent: stub(answer()),
+    policyAgent: stub(answer()),
     funder: fund,
     uploadPolicy,
     payoutCapBucket,
@@ -234,7 +213,7 @@ test("opens no auction when the sealed policy does not reach the relay", async (
   // to fail before the buyer's money is locked.
   const fund = funder();
   const app = createPurchaserApp({
-    intentAgent: stub(answer()),
+    policyAgent: stub(answer()),
     funder: fund,
     uploadPolicy: async () => {
       throw new Error("the relay refused the sealed policy with 409");

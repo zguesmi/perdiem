@@ -8,7 +8,7 @@
  *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/purchaser check:intent "two nights in Rome…"
  */
 import { describeError, red } from "../../shared/log.ts";
-import { createIntentAgent, parseIntent } from "../src/intent.ts";
+import { createPolicyAgent, parseIntent } from "../src/policy-agent.ts";
 
 const defaultIntent =
   "Two nights in Paris from 12 October 2026, one double room, 4 stars or better, " +
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
 
   // The parsing step alone, not the whole service: funding the auction needs Privy keys, a chain
   // and the enclave's public half, and none of them say anything about the prompt.
-  const answer = await parseIntent(createIntentAgent(model), intent);
+  const answer = await parseIntent(createPolicyAgent(model), intent);
   if (answer === undefined) {
     throw new Error("the model could not produce a valid policy");
   }

@@ -7,14 +7,14 @@ import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
 import { sealPolicy } from "../../shared/sealed-policy.ts";
 import { payoutCapFor, type Funder } from "./funding.ts";
-import { parseIntent, type IntentAgent } from "./intent.ts";
+import { parseIntent, type PolicyAgent } from "./policy-agent.ts";
 import type { PolicyUploader } from "./policy-upload.ts";
 import { PolicyRefusedError } from "./privy.ts";
 
 /**
  * The purchaser service is the buyer's side of the desk. It does two things and no more:
  *
- * 1. Turns one English sentence into a Policy, with a single model call and one retry at most.
+ * 1. Turns one English sentence into a Policy, with an agent that checks its own candidates.
  * 2. Hashes the Policy the buyer confirmed, seals it to the enclave, and funds the auction that
  *    commits to that hash.
  */
@@ -22,11 +22,11 @@ export interface PurchaserOptions {
   /**
    * How a sentence becomes a candidate answer. It is a constructor argument rather than something
    * the routes build themselves, so the tests hand the service a canned answer and exercise the
-   * validation, the retry and the hashing without a key, a network or a bill.
+   * validation and the hashing without a key, a network or a bill.
    */
-  intentAgent: IntentAgent;
+  policyAgent: PolicyAgent;
   /**
-   * How the confirmed Policy becomes a funded auction. Injected for the same reason as the intent
+   * How the confirmed Policy becomes a funded auction. Injected for the same reason as the policy
    * agent: the route tests drive the whole confirmation with no Privy app and no chain.
    */
   funder: Funder;
@@ -61,7 +61,7 @@ async function body(context: Context): Promise<unknown> {
 }
 
 export function createPurchaserApp({
-  intentAgent,
+  policyAgent,
   funder,
   uploadPolicy,
   payoutCapBucket,
@@ -82,7 +82,7 @@ export function createPurchaserApp({
       return context.json({ error: "an intent is one non-empty sentence" }, 422);
     }
 
-    const answer = await parseIntent(intentAgent, request.data.intent);
+    const answer = await parseIntent(policyAgent, request.data.intent);
 
     return answer === undefined
       ? context.json({ error: "the model could not produce a valid policy" }, 422)
