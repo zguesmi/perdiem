@@ -1,7 +1,7 @@
 {
   "name": "dame-des-arts-agent",
   "hotel": { "hotelId": "lp51fe7", "hotelName": "Hôtel Dame des Arts", "stars": 4 },
-  "priceRange": { "min": 4200000, "max": 4800000 },
+  "priceRange": { "min": 2100000, "max": 2400000 },
   "model": "claude-opus-5",
   "effort": "low"
 }

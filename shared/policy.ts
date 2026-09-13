@@ -28,8 +28,13 @@ const calendarDate = z
     message: "no such date in the calendar",
   });
 
-/** Whole days between two calendar dates. Both are UTC midnight, so no hour is ever partial. */
-function nightsBetween(checkin: string, checkout: string): number {
+/**
+ * Whole days between two calendar dates. Both are UTC midnight, so no hour is ever partial.
+ *
+ * The one definition of a night in this repository. A supplier pricing a stay per night has to
+ * count them the same way the Policy is validated with, or the two disagree by a night.
+ */
+export function nightsBetween(checkin: string, checkout: string): number {
   const millisecondsPerDay = 86_400_000;
   const from = Date.parse(`${checkin}T00:00:00Z`);
   const to = Date.parse(`${checkout}T00:00:00Z`);

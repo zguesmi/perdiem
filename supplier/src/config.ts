@@ -23,9 +23,10 @@ export const agentConfigSchema = z
       stars: z.int().min(1).max(5),
     }),
     /**
-     * The price the model may bid, in USDC minor units. `submitBid` refuses anything outside it and
-     * names the range, so the model corrects on the next turn instead of bidding a price the
-     * operator never published.
+     * The nightly rate the model may bid, in USDC minor units. `submitBid` refuses anything outside
+     * it and names the range, so the model corrects on the next turn instead of bidding a price the
+     * operator never published. The stay is the rate times the nights, and only `submitBid`
+     * multiplies.
      */
     priceRange: z.object({ min: z.int().positive(), max: z.int().positive() }),
     model: z.string().min(1).default("claude-opus-5"),

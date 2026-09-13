@@ -14,6 +14,7 @@ import {
   step,
   usdcAmount,
 } from "../../shared/log.ts";
+import { nightsBetween } from "../../shared/policy.ts";
 import { sealBid } from "../../shared/sealed-bid.ts";
 import type { AgentConfig, BookingCredentials } from "./config.ts";
 import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
@@ -54,11 +55,12 @@ export const TOOL_NAMES = ["submitBid"] as const;
  */
 export const submitBidInput = z
   .object({
-    price: z
+    pricePerNight: z
       .int()
       .positive()
       .describe(
-        "The whole stay, in USDC minor units. USDC has six decimals, so 4.4 USDC is 4400000.",
+        "One night, in USDC minor units. USDC has six decimals, so 2.2 USDC is 2200000. " +
+          "The stay is priced from this: do not multiply by the nights yourself.",
       ),
     refundable: z.boolean(),
     breakfastIncluded: z.boolean(),
@@ -88,13 +90,20 @@ export async function submitBid(
   }
 
   const { min, max } = context.priceRange;
-  if (input.price < min || input.price > max) {
-    throw new Error(`price ${input.price} is outside this supplier's range of ${min} to ${max}`);
+  if (input.pricePerNight < min || input.pricePerNight > max) {
+    throw new Error(
+      `price per night ${input.pricePerNight} is outside this supplier's range of ${min} to ${max} a night`,
+    );
   }
 
+  // The stay is priced here and nowhere else. A model that multiplied would drop a night on a
+  // date arithmetic it cannot be held to, and the Bid's `price` is the whole stay.
+  const { pricePerNight, ...offer } = input;
+  const nights = nightsBetween(context.auction.checkin, context.auction.checkout);
   const bid: Bid = bidSchema.parse({
-    ...input,
+    ...offer,
     ...context.hotel,
+    price: pricePerNight * nights,
     auctionId: context.auction.auctionId,
     supplier: context.signer.address,
   });
@@ -103,6 +112,7 @@ export async function submitBid(
     step(
       "Bid priced",
       `${bold(`${usdcAmount(bid.price)} USDC`)} for ${bid.numberOfRooms} ${bid.roomType}, ` +
+        `${usdcAmount(pricePerNight)} USDC x ${nights} ${nights === 1 ? "night" : "nights"}, ` +
         `${bid.refundable ? "refundable" : "non-refundable"}, ` +
         `${bid.breakfastIncluded ? "breakfast" : "no breakfast"}, ` +
         `${context.auction.bidDeadline - now} s before the deadline`,
@@ -181,7 +191,10 @@ export async function submitBid(
     ),
   );
 
-  return `Bid submitted at ${input.price}. The stake is committed and the sealed bid is at the relay. You are done.`;
+  return (
+    `Bid submitted at ${pricePerNight} a night, ${bid.price} for the ${nights}-night stay. ` +
+    "The stake is committed and the sealed bid is at the relay. You are done."
+  );
 }
 
 /**
