@@ -1,0 +1,29 @@
+# The public surface of the deployment. One host name, routed by path, because the OVH default host
+# name has no zone to add a subdomain to.
+#
+# `handle_path` strips the prefix, so the services behind it keep the paths they answer on a
+# laptop: `/relay/auctions/…` reaches the relay as `/auctions/…`.
+#
+# `ACME_CA` always carries a value, because an empty one is a parse error rather than a default.
+# Compose falls back to Let's Encrypt production when `.env` leaves it empty. Set it to the staging
+# endpoint while the routing is being proven: `vps.ovh.ca` is not on the Public Suffix List, so its
+# issuance limit is shared with every other OVH customer on that suffix.
+
+{
+	acme_ca {$ACME_CA}
+}
+
+{$PUBLIC_HOST} {
+	handle_path /relay/* {
+		reverse_proxy relay:8787
+	}
+
+	handle_path /purchaser/* {
+		reverse_proxy purchaser:8788
+	}
+
+	# The page is the Vite development server, so this also carries its hot-reload websocket.
+	handle {
+		reverse_proxy ui:5173
+	}
+}

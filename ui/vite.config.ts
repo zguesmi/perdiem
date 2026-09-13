@@ -14,6 +14,12 @@ import { defineConfig } from "vite";
 // deployment names its own host in `UI_ALLOWED_HOSTS`, comma-separated; localhost needs nothing.
 const allowedHosts = process.env.UI_ALLOWED_HOSTS?.split(",").filter(Boolean);
 
+// Behind a proxy that terminates TLS, the hot-reload client still derives its websocket from the
+// server's own port, so it dials `ws://host:5173` from an `https` page and the browser blocks it.
+// A named host is what a public deployment has and a laptop does not, so it is what picks the
+// public port and scheme.
+const hmr = allowedHosts?.length ? { protocol: "wss", clientPort: 443 } : undefined;
+
 // The page reads the chain through `/rpc` on its own origin, and the server forwards that to
 // `ARC_RPC_URL`. Same origin, so no node has to answer a cross-origin request, and a browser that
 // cannot reach the node itself still reads the auction.
@@ -45,6 +51,7 @@ export default defineConfig({
   server: {
     host: true,
     ...(allowedHosts?.length ? { allowedHosts } : {}),
+    ...(hmr ? { hmr } : {}),
     proxy: {
       "/rpc": { target: rpcUrl, changeOrigin: true, rewrite: () => "/" },
       "/booking": { ...booking, rewrite: (path) => path.replace(/^\/booking/, "/bookings") },

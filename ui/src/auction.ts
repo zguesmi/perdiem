@@ -130,20 +130,36 @@ export function createClient(config: Config): PublicClient {
 }
 
 /**
- * The newest auction, or `null` when none exists yet. One `eth_getLogs` for the transaction hashes,
- * then the views: a log says something happened once, and `auctions` says what is true now.
+ * How far back the page looks. The page shows the newest auction and nothing older, so one window
+ * is the whole search.
+ *
+ * 5,000 blocks is about 43 minutes on Arc, against an auction that lives 30 minutes: the bid period
+ * and then `FINALIZE_PERIOD`. The cost: an auction older than the window is not shown at all.
+ *
+ * Asking for every block since the deployment is what this replaces. Arc's public endpoint refuses
+ * a range wider than 100,000 blocks with `query exceeds max block range 100000`, and the deployment
+ * block falls a further 100,000 blocks behind every day.
+ */
+const BLOCK_WINDOW = 5_000n;
+
+/**
+ * The newest auction, or `null` when none exists yet. The logs carry the transaction hashes, and
+ * the views the state: a log says something happened once, and `auctions` says what is true now.
  */
 export async function readAuction(
   client: PublicClient,
   config: Config,
   lastBalances?: Map<string, bigint>,
 ): Promise<AuctionView | null> {
+  const head = await client.getBlockNumber();
+  const from = head - BLOCK_WINDOW;
   const logs = parseEventLogs({
     abi: sealedAuctionAbi,
     logs: await client.getLogs({
       address: config.sealedAuction,
       events: sealedAuctionEvents,
-      fromBlock: config.fromBlock,
+      fromBlock: from > config.fromBlock ? from : config.fromBlock,
+      toBlock: head,
     }),
   });
 

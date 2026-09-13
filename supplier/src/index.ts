@@ -16,6 +16,7 @@ import {
   group,
   red,
   role,
+  separator,
   shortHex,
   stars,
   step,
@@ -176,6 +177,7 @@ async function main(): Promise<void> {
     deployment.sealedAuction,
     { signal: stopping.signal, fromBlock, pollMilliseconds: deployment.pollMilliseconds },
     (auction) => {
+      console.log(separator());
       console.log(
         step(
           "Opened auction",

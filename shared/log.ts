@@ -96,6 +96,14 @@ export function step(label: string, value: string): string {
   return `  ${dim(label.padEnd(STEP_WIDTH))}  ${value}`;
 }
 
+/**
+ * The line between one auction's steps and the next one's. Services run for hours and every run
+ * prints the same labels, so without it two auctions read as one.
+ */
+export function separator(): string {
+  return dim("─".repeat(26));
+}
+
 /** How far down a cause chain is worth printing. Past this the top of the chain is already clear. */
 const MAX_CAUSES = 4;
 

@@ -4,12 +4,13 @@
 # remove: there is no node and nothing to deploy here. `SEALED_AUCTION_ADDRESS` in `.env.arcTestnet`
 # names a contract that is already on chain.
 #
-# The relay needs a public HTTPS address, because the CRE workflow calls it from Chainlink's nodes.
-# Terminate TLS in front of these ports and name that host in `RELAY_URL` and `UI_ALLOWED_HOSTS`.
+# The `caddy` service is the public interface. Every other port is published on loopback, so the
+# proxy is the only way in. It terminates TLS for `PUBLIC_HOST`, which `.env` names, and routes by
+# path: `/` to the page, `/relay/*` to the relay, `/purchaser/*` to the purchaser service.
 #
-# The page and the purchaser service are two public origins, so a public deployment also names its
-# own host in `PURCHASER_URL`, which the browser resolves, and in `PAGE_ORIGIN`, which is the only
-# origin the service answers.
+# The environment file names that host back to the services that need it: `RELAY_URL` and
+# `PURCHASER_URL`, which a browser resolves, `PAGE_ORIGIN`, the only origin the purchaser answers,
+# and `UI_ALLOWED_HOSTS`, which is the `Host` header Vite accepts.
 #
 # Not here: the CRE workflow, which needs the `cre` binary.
 
@@ -63,7 +64,7 @@ services:
     image: perdiem/relay
     environment: *environment
     ports:
-      - "8787:8787"
+      - "127.0.0.1:8787:8787"
     volumes:
       - *environment-file
     healthcheck:
@@ -90,7 +91,7 @@ services:
       <<: *environment
       RELAY_URL: http://relay:8787
     ports:
-      - "8788:8788"
+      - "127.0.0.1:8788:8788"
     volumes:
       - *environment-file
 
@@ -125,10 +126,37 @@ services:
       context: .
       dockerfile: ui/Dockerfile
     image: perdiem/ui
-    environment:
-      <<: *environment
-      UI_ALLOWED_HOSTS: ${UI_ALLOWED_HOSTS-}
+    environment: *environment
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     volumes:
       - *environment-file
+
+  # The only container that answers the public interface. Everything else is published on loopback,
+  # so nothing is reachable except through here. It terminates TLS for `PUBLIC_HOST` and routes by
+  # path; `Caddyfile` holds the routes.
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - ui
+      - relay
+      - purchaser
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?set PUBLIC_HOST in .env}
+      ACME_CA: ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - type: bind
+        source: ./Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+      # The issued certificate. A named volume, because a rebuild that loses it asks Let's Encrypt
+      # for another one against a shared rate limit.
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

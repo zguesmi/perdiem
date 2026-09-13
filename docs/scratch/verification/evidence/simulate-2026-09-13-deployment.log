@@ -1,0 +1,39 @@
+Wrote /home/ubuntu/perdiem/workflow-cre/config.json from .env.arcTestnet.
+Initializing...
+Loading settings...
+Checking RPC connectivity...
+Compiling workflow...
+✓ Workflow compiled
+✓ Simulation limits enabled
+  HTTP: req=120kb resp=250kb timeout=10s | ConfHTTP: req=125kb resp=500kb timeout=1m30s | Consensus obs=25kb | ChainWrite evm_report=50kb evm_gas=10000000 solana_report=265b solana_cu=300000 | WASM binary=100mb compressed=20mb
+  Binary hash: 9972aefedea6a6a1c882a742aa3d6c1c12bac88c0240f409cda632d031c7bd18
+  Config hash: 1323d62cd3fe29db4f321fb99ed9bed9afaf75b7dc93cad2322b5574306483af
+! Secret "ENCLAVE_PRIVATE_KEY" uses itself as the env var name — this is fragile and may cause confusion. Consider using a distinct env var name (e.g. "CRE_ENCLAVE_PRIVATE_KEY").
+2026-09-13T12:44:35Z [SIMULATION] Simulator Initialized
+
+2026-09-13T12:44:35Z [SIMULATION] Running trigger trigger=cron-trigger@1.0.0
+╭────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trigger requested TEE Execution your trigger will run in one of the following Tees:                │
+│     - AWS Nitro in us-west-2                                                                       │
+│ The simulator is not a real TEE, and is meant to debug.                                            │
+│ Do not use it for sensitive information.                                                           │
+│ During real execution, user logs for this trigger will not be visible, and will not leave the TEE. │
+│ They are presented in the simulator for debugging only.                                            │
+│                                                                                                    │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+2026-09-13T12:44:36Z [USER LOG] Pending auction: 0x2a88e8ac64c7ade8dea1b472c82ad1a5250fc6505d439aeb0fc33df63af83dcb
+2026-09-13T12:44:37Z [USER LOG] Claimed auction: 0x2a88e8ac64c7ade8dea1b472c82ad1a5250fc6505d439aeb0fc33df63af83dcb
+2026-09-13T12:44:51Z [USER LOG] ScoredBids:3, droppedBids:0 (decrypt=0, signature=0 commitment=0)
+2026-09-13T12:44:51Z [USER LOG] Applied booking: 0x2a88e8ac64c7ade8dea1b472c82ad1a5250fc6505d439aeb0fc33df63af83dcb bookingId=MS-Un0B5p
+2026-09-13T12:44:52Z [USER LOG] Settled auction: 0x2a88e8ac64c7ade8dea1b472c82ad1a5250fc6505d439aeb0fc33df63af83dcb
+
+✓ Workflow Simulation Result:
+"settled 0x2a88e8ac64c7ade8dea1b472c82ad1a5250fc6505d439aeb0fc33df63af83dcb"
+
+2026-09-13T12:44:52Z [SIMULATION] Execution finished signal received
+2026-09-13T12:44:52Z [SIMULATION] Skipping WorkflowEngineV2
+
+⚠️  Update available! You’re running 1.32.0, but 1.33.0 is the latest.
+Run `cre update` or visit https://github.com/smartcontractkit/cre-cli/releases to upgrade.
+
