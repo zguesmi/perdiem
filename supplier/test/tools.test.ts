@@ -29,7 +29,7 @@ const auction: AuctionTerms = {
 const hotel = { hotelId: "lp1beec", hotelName: "Hotel Des Grands Voyageurs", stars: 4 };
 
 const offer = {
-  price: 4_400_000,
+  pricePerNight: 2_200_000,
   refundable: true,
   breakfastIncluded: true,
   roomType: "double",
@@ -74,7 +74,7 @@ function harness(t: TestContext, overrides: Partial<BidRunContext> = {}) {
     enclavePublicKey: x25519.getPublicKey(ENCLAVE_KEY),
     relayUrl: "http://relay.test",
     booking: { bookingUrl: "https://api.liteapi.travel/v3.0", bookingApiKey: "booking-key" },
-    priceRange: { min: 4_200_000, max: 4_800_000 },
+    priceRange: { min: 2_100_000, max: 2_400_000 },
     ...overrides,
   };
 
@@ -93,9 +93,32 @@ test("refuses a price outside the range and names the range", async (t) => {
   const { context } = harness(t);
 
   await assert.rejects(
-    submitBid(context, { ...offer, price: 500_000_000 }),
-    /outside this supplier's range of 4200000 to 4800000/,
+    submitBid(context, { ...offer, pricePerNight: 500_000_000 }),
+    /outside this supplier's range of 2100000 to 2400000 a night/,
   );
+});
+
+test("prices the stay from the nightly rate, not from what the model passed", async (t) => {
+  // The two-night auction above. The model passes one night and the tool multiplies.
+  const { context, posts } = harness(t);
+
+  await submitBid(context, offer);
+
+  const envelope = openSealedBid(
+    hexToBytes(posts[0]?.body as `0x${string}`),
+    ENCLAVE_KEY,
+    auction.auctionId,
+  );
+
+  assert.equal(envelope.bid.price, offer.pricePerNight * 2);
+});
+
+test("refuses a nightly rate outside the range before it signs anything", async (t) => {
+  const { context, writes, posts } = harness(t);
+
+  await assert.rejects(submitBid(context, { ...offer, pricePerNight: 2_500_000 }));
+  assert.equal(writes.length, 0);
+  assert.equal(posts.length, 0);
 });
 
 test("approves the stake, then commits, then posts the sealed bid", async (t) => {
@@ -152,7 +175,7 @@ test("the on-chain commitment opens with the salt inside the envelope", async (t
 test("the range refusal carries no salt, signature or booking key", async (t) => {
   const { context } = harness(t);
 
-  const error = await submitBid(context, { ...offer, price: 1 }).then(
+  const error = await submitBid(context, { ...offer, pricePerNight: 1 }).then(
     () => new Error("the bid was accepted"),
     (thrown: Error) => thrown,
   );
@@ -186,7 +209,7 @@ test("keeps every refusal the model was handed", async (t) => {
   const { context } = harness(t);
   const { submit, refusals } = createTools(context);
 
-  await assert.rejects(submit({ ...offer, price: 1 }));
+  await assert.rejects(submit({ ...offer, pricePerNight: 1 }));
 
   assert.equal(refusals().length, 1);
   assert.match(String(refusals()[0]), /outside this supplier's range/);

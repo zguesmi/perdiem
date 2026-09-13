@@ -139,7 +139,7 @@ async function main(): Promise<void> {
       ["stars", yellow(stars(config.hotel.stars))],
       [
         "price",
-        `${bold(`${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)} USDC`)} per stay`,
+        `${bold(`${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)} USDC`)} a night`,
       ],
     ]),
   );
