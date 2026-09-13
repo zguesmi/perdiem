@@ -70,8 +70,8 @@ export default function App() {
           <div>
             <h1>Perdiem</h1>
             <p>
-              Your selection criteria stay encrypted. Hotels bid blind against them to guarantee the
-              best deal.
+              Hotel AI agents bid on your sealed travel policy. Your selection rules stay private, so
+              hotels fill empty rooms and you get the best deal.
             </p>
           </div>
         </div>
