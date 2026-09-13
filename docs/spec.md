@@ -31,7 +31,7 @@ Tagline: "Commit the policy. Score in the enclave. The chain pays."
    and the on-chain Bid Commitments.
 5. The Enclave books the winning bid against the supplier's own API and reports the booking id, so
    no payout exists without a booking nobody self-attested.
-6. Buyer funding goes through a Privy organization wallet with a spend policy and a key quorum.
+6. Buyer funding goes through a Privy organization wallet whose spend policy reads the calldata.
 7. Supplier agent wallets come from the Circle Agent Stack, one wallet per agent.
 8. A working page, a working backend, an architecture diagram, a README and a two-minute video.
 
@@ -59,8 +59,8 @@ not compared with the bid price, and no cancellation path exists.
 3. `purchaser/` seals the Policy to the enclave public key, puts it at the relay under the Policy
    Hash, then calls `createAuction`, which pulls the Payout Cap in the same call. State is
    `Created`. The enclave private key is not its business: an independent party holds that one.
-4. Privy signs that call from the organization wallet and `purchaser/` broadcasts it. Above the
-   ceiling, the key quorum approves.
+4. Privy signs that call from the organization wallet and `purchaser/` broadcasts it, or refuses it
+   above the budget.
 5. Each agent builds one Bid, signs it with EIP-712, commits `keccak256(abi.encode(bidHash, salt))`
    with its Stake, and posts the Sealed Bid to the relay. Both before `bidDeadline`, in either
    order. The first commit moves the auction to `Bidding`.
@@ -575,7 +575,7 @@ Verified on Arc testnet, row V7:
   through ERC-1271. Hence the check in the Bid section.
 - Spending policies are mainnet only: `circle wallet limit` refuses a testnet chain. On Arc testnet
   the agent wallet runs on Circle's default policy, so supplier-side limits are not part of the
-  demo. Buyer-side control is the Privy half, where the rules read calldata and a quorum signs.
+  demo. Buyer-side control is the Privy half, where the rules read calldata.
 - The session is email OTP and lasts 28 days. A human types the code once per agent, and creating or
   changing a policy needs another. Nothing else in the run is interactive.
 

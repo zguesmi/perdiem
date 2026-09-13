@@ -1,10 +1,9 @@
 # Fund the auction from a Privy organization wallet
 
-Status: ready-for-human Type: task Blocked by: 04, 10
+Status: done Type: task Blocked by: 04, 10
 
 The organization wallet signs `createAuction`. Its spend policy allows USDC transfers to the
-`SealedAuction` contract and nothing else. Above the ceiling, a key quorum signs: travel manager and
-finance. Both approvals show in the UI.
+`SealedAuction` contract and nothing else. The key quorum is dropped: see the 2026-09-13 note.
 
 This is the B2B workflow the Privy prize asks for, so it has to actually work, not be described.
 
@@ -20,11 +19,6 @@ This is the B2B workflow the Privy prize asks for, so it has to actually work, n
 - [x] A refused `approve` to another spender is captured as evidence.
 - [x] A Payout Cap at or under the ceiling passes on the policy alone. That is the path the tests
       use. Proven at the configured bucket, with no figure changed for the run.
-- [ ] A Payout Cap above the ceiling fires the two-signer key quorum, and both approvals show in the
-      UI. Out of scope for now: the ceiling is set at the maximum cap, so the quorum never fires.
-      The ceiling picks between two wallets: one with no owner, authorized by the spend policy alone
-      at or under the ceiling, and one owned by a 2-of-2 key quorum above it. A Privy wallet has a
-      single owner, so a per-signer override on one wallet is not available.
 - [x] The purchaser service broadcasts the signed transaction to `ARC_RPC_URL`. Privy will not
       broadcast on Arc.
 
@@ -140,6 +134,27 @@ Left:
 - The quorum path. `PATCH /v1/wallets/{id}` on the quorum wallet answers 401 without a quorum-signed
   `privy-authorization-signature`, and that wallet holds 1 USDC. Nothing fires it while the ceiling
   equals the maximum cap.
+
+### 2026-09-13 — the key quorum is dropped, and the ticket is closed
+
+The quorum is out of scope. `PRIVY_QUORUM_CEILING` equals `MAX_PAYOUT_CAP`, so the spend policy
+authorizes every auction on its own and no request carries a second signature.
+
+Why it is dropped rather than deferred:
+
+- `PATCH /v1/wallets/{id}` on the quorum wallet answers 401 without a quorum-signed
+  `privy-authorization-signature`, so the current spend policy is attached to the ownerless wallet
+  alone.
+- That wallet holds 1 USDC against a 7.5 payout cap, so a quorum-signed funding cannot mine without
+  a top-up.
+- Nothing else in the demo depends on it. The refusal that the video shows is the spend policy
+  answering `policy_violation` above the maximum cap, and that fires on either wallet.
+
+What stays: two wallets, `signerFor`, the `quorumSigned` field and the panel that renders it. The
+code path is tested and unused. Lowering the ceiling puts the quorum back without a code change.
+
+The claim to make is "the organization's spend policy authorizes the buyer's service, and refuses it
+above budget", not "two people approved".
 
 ## Dev review
 
