@@ -1,240 +1,758 @@
 /*
- * The base the page is built on: the palette, the type scale and the spacing rhythm, each stated
- * once. Three type sizes, one accent, one hairline border, and structure from whitespace.
+ * Tokens. One accent, one surface, one border, three type sizes. Every gap is a multiple of
+ * --step, so the page has one rhythm rather than a dozen hand-picked numbers.
  */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #fafafb;
+  --border: #e3e5ea;
+  --border-strong: #d2d5dd;
+  --text: #5f6672;
+  --head: #0c0e13;
+  --muted: #8d94a1;
+  --accent: #7c3aed;
+  --accent-bg: #f4efff;
+  --ok: #0f8a5f;
+  --ok-bg: #e9f7f1;
+  --warn: #b45309;
+  --warn-bg: #fdf3e7;
+  --mono-bg: #f1f2f5;
+  --shadow: 0 1px 2px rgba(12, 14, 19, 0.05), 0 1px 1px rgba(12, 14, 19, 0.03);
 
-  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  /* Every margin, gap and padding on the page is this step or a multiple of it. */
+  --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --step: 8px;
+  --radius: 10px;
 
   color-scheme: light dark;
 }
 
-/* The page is read in dark mode as often as in light, so every colour is defined in both. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface-2: #1b1f28;
+    --border: #262a34;
+    --border-strong: #333846;
+    --text: #99a0ae;
+    --head: #f1f3f7;
+    --muted: #6f7686;
+    --accent: #a78bfa;
+    --accent-bg: #241d3a;
+    --ok: #34d399;
+    --ok-bg: #10281f;
+    --warn: #fbbf24;
+    --warn-bg: #2a2113;
+    --mono-bg: #1d212a;
+    --shadow: none;
   }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font: 18px/1.45 var(--sans);
-  color: var(--text);
   background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  color: var(--text);
+  font: 15px/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* The one column. Nothing else sets a width or an alignment. */
-main {
-  box-sizing: border-box;
+.shell {
   margin: 0 auto;
-  max-width: 56rem;
-  padding: calc(var(--step) * 4) calc(var(--step) * 2) calc(var(--step) * 8);
-  text-align: left;
+  max-width: 60rem;
+  padding: calc(var(--step) * 4) calc(var(--step) * 2) calc(var(--step) * 14);
 }
 
 h1,
-h2 {
-  color: var(--text-h);
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 1.2;
+h2,
+h3 {
+  color: var(--head);
   margin: 0;
+  font-weight: 560;
+}
+
+h1 {
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+/* The section label: the only uppercase type on the page. */
+.eyebrow {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 p {
   margin: 0;
 }
 
-.lede {
-  margin-top: var(--step);
-}
-
-/* The third size: a note, a label, and anything set in mono. */
-.note,
-.field .label,
-code {
-  font-size: 15px;
-}
-
-.note {
-  margin: var(--step) 0;
-}
-
-code {
-  background: var(--code-bg);
-  border-radius: 4px;
-  color: var(--text-h);
-  font-family: var(--mono);
-  padding: 0 var(--step);
-}
-
 a {
-  color: inherit;
+  color: var(--accent);
+  text-decoration: none;
 }
 
-section {
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-top: calc(var(--step) * 2);
-  padding: calc(var(--step) * 2);
+a:hover {
+  text-decoration: underline;
 }
 
-/* Label left, value right, so a column of hashes reads down the page. */
-.field {
+code,
+.mono {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+/* ---- top bar ------------------------------------------------------- */
+
+.topbar {
+  align-items: center;
   display: flex;
   gap: calc(var(--step) * 2);
   justify-content: space-between;
-  padding: var(--step) 0;
+  margin-bottom: calc(var(--step) * 3);
 }
 
-.field .label {
+.brand {
+  align-items: center;
+  display: flex;
+  gap: calc(var(--step) * 1.5);
+}
+
+.mark {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  font-size: 16px;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.brand p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pill {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  font-size: 13px;
+  gap: var(--step);
+  padding: 5px 12px;
   white-space: nowrap;
 }
 
-.row + .row {
-  border-top: 1px solid var(--border);
-  margin-top: var(--step);
-  padding-top: var(--step);
+.dot {
+  background: var(--ok);
+  border-radius: 50%;
+  height: 7px;
+  width: 7px;
 }
 
-.error {
-  background: var(--code-bg);
+/* ---- cards --------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-h);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.stats {
+  display: grid;
+  gap: calc(var(--step) * 2);
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: calc(var(--step) * 2);
+}
+
+.stat {
+  padding: calc(var(--step) * 2);
+}
+
+.stat .value {
+  color: var(--head);
   font-family: var(--mono);
-  font-size: 15px;
-  margin-top: calc(var(--step) * 2);
-  overflow-wrap: anywhere;
-  padding: var(--step) calc(var(--step) * 2);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin-top: 6px;
 }
 
-textarea {
-  background: transparent;
+.stat .unit {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.stat .sub {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+
+/* ---- compose ------------------------------------------------------- */
+
+.compose {
+  padding: calc(var(--step) * 2);
+}
+
+.ask {
+  color: var(--head);
+  display: block;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.compose textarea {
+  background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  box-sizing: border-box;
-  color: inherit;
-  font: inherit;
-  margin: var(--step) 0;
-  padding: var(--step);
+  border-radius: 8px;
+  color: var(--head);
+  display: block;
+  font: 15px/1.55 var(--sans);
+  margin-top: var(--step);
+  min-height: 92px;
+  padding: calc(var(--step) * 1.5);
   resize: vertical;
   width: 100%;
 }
 
+.compose textarea:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-bg);
+}
+
+.compose textarea:disabled {
+  color: var(--text);
+  cursor: not-allowed;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  gap: var(--step);
+  margin-top: calc(var(--step) * 1.5);
+}
+
 button {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--head);
   cursor: pointer;
-  font: inherit;
-  margin-right: var(--step);
-  padding: var(--step) calc(var(--step) * 2);
+  font: 500 14px var(--sans);
+  padding: 9px 18px;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+button.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+button.quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  padding-inline: var(--step);
 }
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
-/*
- * The stepper. The rule above each step is its mark: hairline for a step still ahead, solid for one
- * behind, accent for the one running. That is the whole state of the auction, read without words.
- */
-.stepper {
-  /* It stays in view while the panels are read: the panels only make sense against the step. */
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  display: grid;
+/* What the model read back, for the buyer to check before anything is hashed. */
+.answer {
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: calc(var(--step) * 2);
+  padding: calc(var(--step) * 2);
+}
+
+.answer .who {
+  color: var(--accent);
+}
+
+.answer .summary {
+  color: var(--head);
+  margin-top: var(--step);
+}
+
+/* ---- stepper ------------------------------------------------------- */
+
+.status-head {
+  align-items: baseline;
+  display: flex;
+  gap: calc(var(--step) * 1.5);
+  margin: calc(var(--step) * 4) 0 calc(var(--step) * 2);
+}
+
+.status-head .hint {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.status-head .hide {
+  margin-left: auto;
+  font-size: 12.5px;
+  padding: 2px var(--step);
+}
+
+/* A finished auction is not the page's subject any more: one line, and a way back into it. */
+.last {
+  align-items: center;
+  display: flex;
   gap: calc(var(--step) * 2);
-  grid-template-columns: repeat(4, 1fr);
+  justify-content: space-between;
+  margin-top: calc(var(--step) * 2);
+  padding: calc(var(--step) * 1.5) calc(var(--step) * 2);
+}
+
+.last p {
+  color: var(--head);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   list-style: none;
-  margin: var(--step) 0 0;
-  padding: var(--step) 0 calc(var(--step) * 2);
-  position: sticky;
-  top: 0;
-}
-
-.step {
-  border-top: 2px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--step);
-  padding-top: var(--step);
-}
-
-.step .line {
-  font-size: 15px;
-}
-
-.step.done {
-  border-color: var(--text-h);
-}
-
-.step.live {
-  border-color: var(--accent);
-}
-
-.step.done .name,
-.step.live .name,
-.step.live .line {
-  color: var(--text-h);
-}
-
-/* The writes that produced a step, oldest first, under the line that describes it. */
-.transactions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--step);
-  list-style: none;
-  margin: 0;
+  margin: 0 0 calc(var(--step) * 3);
   padding: 0;
 }
 
-.transaction {
-  animation: arrive 150ms ease-out;
+.stepper li {
+  position: relative;
+}
+
+/* The rail sits behind the markers. The last leg is dashed: a refund is the way out, not
+   the way on. */
+.stepper li::before {
+  border-top: 2px solid var(--border);
+  content: "";
+  left: -50%;
+  position: absolute;
+  top: 13px;
+  width: 100%;
+}
+
+.stepper li:first-child::before {
+  display: none;
+}
+
+.stepper li:last-child::before {
+  border-top-style: dashed;
+}
+
+.stepper li.filled::before {
+  border-color: var(--accent);
+}
+
+.stepper li.refunded::before {
+  border-color: var(--warn);
+}
+
+.step {
+  align-items: center;
+  background: none;
+  border: 0;
+  cursor: default;
   display: flex;
   flex-direction: column;
-  font-family: var(--mono);
+  gap: var(--step);
+  padding: 0;
+  text-align: center;
+  width: 100%;
 }
 
-.transaction,
-.empty {
-  font-size: 15px;
+.step[data-reached="yes"] {
+  cursor: pointer;
 }
 
-.transaction .where {
-  color: var(--text-h);
+.marker {
+  align-items: center;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  height: 28px;
+  justify-content: center;
+  position: relative;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease,
+    box-shadow 200ms ease;
+  width: 28px;
+  z-index: 1;
 }
 
-@keyframes arrive {
+.step .name {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 200ms ease;
+}
+
+.step.done .marker {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.step.done .name {
+  color: var(--head);
+}
+
+.step.live .marker {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.step.live .name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* One ring, on the running step only, so the eye lands there first. */
+.step.live .marker::after {
+  animation: pulse 1.8s ease-out infinite;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  content: "";
+  inset: -4px;
+  position: absolute;
+}
+
+@keyframes pulse {
   from {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+  to {
     opacity: 0;
+    transform: scale(1.35);
   }
 }
 
+/* The refund path, and the step it replaced. */
+.step.refunded .marker {
+  background: var(--warn-bg);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.step.refunded .name {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.step.skipped {
+  opacity: 0.45;
+}
+
+.step.skipped .marker {
+  border-style: dashed;
+}
+
+/* Which step's detail is on screen. Distinct from the running step: the reader can look back
+   at Created while Bidding is still open. */
+.step.selected .marker {
+  box-shadow: 0 0 0 4px var(--accent-bg);
+}
+
+.step:focus-visible {
+  outline: none;
+}
+
+.step:focus-visible .marker {
+  box-shadow: 0 0 0 4px var(--accent-bg);
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* ---- the detail card ------------------------------------------------ */
+
+/* The card is keyed by its step, so selecting another one mounts a new card and replays the fade.
+   No script holds the previous one on screen to fade it out. */
+.detail {
+  animation: rise 180ms ease both;
+  padding: calc(var(--step) * 2);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.detail .headline {
+  align-items: baseline;
+  color: var(--head);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 15.5px;
+  font-weight: 560;
+  gap: var(--step);
+  margin-bottom: calc(var(--step) * 1.5);
+}
+
+/* Hover or focus for the reasoning behind the step. Nothing on the page depends on it. */
+.info {
+  background: var(--mono-bg);
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  height: 17px;
+  position: relative;
+  width: 17px;
+}
+
+.info::after {
+  background: var(--head);
+  border-radius: 8px;
+  color: var(--bg);
+  content: attr(data-tip);
+  font: 400 12.5px/1.45 var(--sans);
+  left: 0;
+  opacity: 0;
+  padding: var(--step) calc(var(--step) * 1.5);
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  transition: opacity 140ms ease;
+  width: min(300px, 70vw);
+  z-index: 5;
+}
+
+.info:hover::after,
+.info:focus-visible::after {
+  opacity: 1;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  align-items: baseline;
+  display: flex;
+  gap: calc(var(--step) * 2);
+  justify-content: space-between;
+  padding: 7px 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--border);
+}
+
+.row .k {
+  color: var(--muted);
+  flex: none;
+  font-size: 13.5px;
+}
+
+.row .v {
+  color: var(--head);
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.row .v.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A supplier's commitment: its own block, because it carries four facts, not one. */
+.bid {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: calc(var(--step) * 1.5);
+}
+
+.bid + .bid {
+  margin-top: var(--step);
+}
+
+.bid + .row {
+  margin-top: var(--step);
+}
+
+.bid .who {
+  align-items: center;
+  display: flex;
+  gap: var(--step);
+  justify-content: space-between;
+}
+
+.bid .addr {
+  color: var(--head);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.bid .meta {
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: var(--step) calc(var(--step) * 2);
+  margin-top: 6px;
+}
+
+.tag {
+  background: var(--mono-bg);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 2px 7px;
+}
+
+.tag.win {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.tx {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .transaction {
+  .detail {
     animation: none;
+  }
+  .step.live .marker::after {
+    animation: none;
+  }
+}
+
+/* ---- expandable ---------------------------------------------------- */
+
+details.more {
+  margin-top: calc(var(--step) * 2);
+  padding: 0;
+}
+
+details.more summary {
+  align-items: center;
+  color: var(--head);
+  cursor: pointer;
+  display: flex;
+  font-size: 13.5px;
+  font-weight: 500;
+  gap: var(--step);
+  list-style: none;
+  padding: calc(var(--step) * 1.5) calc(var(--step) * 2);
+}
+
+details.more summary::-webkit-details-marker {
+  display: none;
+}
+
+details.more summary::before {
+  color: var(--muted);
+  content: "\203A";
+  display: inline-block;
+  font-size: 16px;
+  transition: transform 180ms ease;
+}
+
+details.more[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.more-body {
+  border-top: 1px solid var(--border);
+  padding: calc(var(--step) * 2);
+}
+
+.more-body .eyebrow {
+  display: block;
+  margin-top: calc(var(--step) * 2);
+}
+
+.more-body .eyebrow:first-child {
+  margin-top: 0;
+}
+
+.more-body .eyebrow + .rows {
+  margin-top: var(--step);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 13.5px;
+  padding: calc(var(--step) * 2) 0;
+  text-align: center;
+}
+
+/* A read that failed, or configuration the page cannot start without. Amber rather than red:
+   nothing is lost, and the next poll may well answer. */
+.error {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn);
+  border-radius: 8px;
+  color: var(--warn);
+  font-size: 13.5px;
+  margin-top: calc(var(--step) * 1.5);
+  padding: var(--step) calc(var(--step) * 1.5);
+}
+
+.shell > .error {
+  margin: 0 0 calc(var(--step) * 2);
+}
+
+@media (max-width: 700px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+  .stepper {
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: calc(var(--step) * 2);
+  }
+  .stepper li:nth-child(4)::before {
+    display: none;
+  }
+  .row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .row .v {
+    text-align: left;
   }
 }
