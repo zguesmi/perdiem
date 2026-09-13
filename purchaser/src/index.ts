@@ -5,7 +5,7 @@ import { z } from "zod";
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { addressSchema } from "../../shared/bid.ts";
 import { arc, ARC_CHAIN_ID } from "../../shared/chain.ts";
-import { banner, coral, cyan, describeError, dim, green, red, yellow } from "../../shared/log.ts";
+import { banner, coral, cyan, describeError, green, group, red, yellow } from "../../shared/log.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
 import { createPolicyAgent, policyAgentRole, VALIDATE_POLICY } from "./policy-agent.ts";
@@ -148,14 +148,11 @@ serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
     console.log(`      ${line}`);
   }
 
-  console.log(`  ${dim("agent")}`);
-  const agent: [string, string][] = [
-    ["model", coral(environment.INTENT_MODEL)],
-    ["tools", VALIDATE_POLICY],
-    ["role", `"${role}"`],
-  ];
-
-  for (const [label, value] of agent) {
-    console.log(`      ${dim(label.padEnd(5))}  ${value}`);
-  }
+  console.log(
+    group("agent", [
+      ["model", coral(environment.INTENT_MODEL)],
+      ["tools", yellow(`[${VALIDATE_POLICY}]`)],
+      ["role", `"${role}"`],
+    ]),
+  );
 });
