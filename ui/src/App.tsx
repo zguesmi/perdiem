@@ -159,7 +159,7 @@ function Desk({ config, onFunded }: { config: Config; onFunded: (funding: Fundin
         value={intent}
         rows={3}
         disabled={busy || draft !== undefined}
-        placeholder="Two nights in Paris from 12 October, four stars, up to 520 USDC. Refundable and breakfast are worth paying for."
+        placeholder="Two nights in Paris from 12 October, four stars, up to 5.2 USDC. Refundable and breakfast are worth paying for."
         onChange={(event) => setIntent(event.target.value)}
       />
 

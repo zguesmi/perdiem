@@ -35,9 +35,9 @@ const auction: AuctionTerms = {
 
 /** What the demo table in `docs/spec.md` holds. */
 const EXPECTED: Record<string, number> = {
-  "hotel-astoria-agent": 330_000_000,
-  "victoria-palace-agent": 400_000_000,
-  "dame-des-arts-agent": 440_000_000,
+  "hotel-astoria-agent": 3_300_000,
+  "victoria-palace-agent": 4_000_000,
+  "dame-des-arts-agent": 4_400_000,
 };
 
 const ENCLAVE_KEY = new Uint8Array(32).fill(7);
@@ -78,7 +78,7 @@ async function priceBidBy(name: string): Promise<number> {
     signer,
     sealedAuction: SEALED_AUCTION,
     usdc: "0x0000000000000000000000000000000000000001",
-    stake: 50_000_000n,
+    stake: 500_000n,
     enclavePublicKey: x25519.getPublicKey(ENCLAVE_KEY),
     relayUrl: "http://relay.invalid",
     booking: { bookingUrl: "https://booking.invalid", bookingApiKey: "unused" },

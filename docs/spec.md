@@ -31,7 +31,7 @@ Tagline: "Commit the policy. Score in the enclave. The chain pays."
    and the on-chain Bid Commitments.
 5. The Enclave books the winning bid against the supplier's own API and reports the booking id, so
    no payout exists without a booking nobody self-attested.
-6. Buyer funding goes through a Privy organization wallet with a spend policy and a key quorum.
+6. Buyer funding goes through a Privy organization wallet whose spend policy reads the calldata.
 7. Supplier agent wallets come from the Circle Agent Stack, one wallet per agent.
 8. A working page, a working backend, an architecture diagram, a README and a two-minute video.
 
@@ -59,8 +59,8 @@ not compared with the bid price, and no cancellation path exists.
 3. `purchaser/` seals the Policy to the enclave public key, puts it at the relay under the Policy
    Hash, then calls `createAuction`, which pulls the Payout Cap in the same call. State is
    `Created`. The enclave private key is not its business: an independent party holds that one.
-4. Privy signs that call from the organization wallet and `purchaser/` broadcasts it. Above the
-   ceiling, the key quorum approves.
+4. Privy signs that call from the organization wallet and `purchaser/` broadcasts it, or refuses it
+   above the budget.
 5. Each agent builds one Bid, signs it with EIP-712, commits `keccak256(abi.encode(bidHash, salt))`
    with its Stake, and posts the Sealed Bid to the relay. Both before `bidDeadline`, in either
    order. The first commit moves the auction to `Bidding`.
@@ -85,7 +85,7 @@ regenerated fixture.
 {
   "version": 1,
   "currency": "USDC",
-  "maxPrice": 520000000,
+  "maxPrice": 5200000,
   "nights": 2,
   "hardRequirements": {
     "city": "Paris",
@@ -96,7 +96,7 @@ regenerated fixture.
     "numberOfRooms": 1
   },
   "tradeDown": { "stars": 3, "requiredDiscountPercentage": 30 },
-  "preferences": { "refundable": 50000000, "breakfastIncluded": 40000000 }
+  "preferences": { "refundable": 500000, "breakfastIncluded": 400000 }
 }
 ```
 
@@ -120,13 +120,14 @@ numberOfRooms, `tradeDown.stars`. Never emitted: `maxPrice`, `tradeDown.required
 `preferences`. They have their own event because `AuctionCreated` carries only the identifier, the
 buyer and the deadlines.
 
-The Payout Cap is `maxPrice` rounded up to the next whole bucket of 250, because `transferFrom` is
-public and an exact cap would publish the ceiling. Strictly up, so a `maxPrice` on a boundary is
-padded to the next bucket. Demo: maximum price 520, Payout Cap 750, Payout 440, refund 310.
+The Payout Cap is `maxPrice` rounded up to the next whole bucket, set by `PAYOUT_CAP_BUCKET`,
+because `transferFrom` is public and an exact cap would publish the ceiling. Strictly up, so a
+`maxPrice` on a boundary is padded to the next bucket. Demo: bucket 2.5, maximum price 5.2, Payout
+Cap 7.5, Payout 4.4, refund 3.1.
 
-The bucket is what the cap leaks: which 250 band `maxPrice` falls in, and nothing sharper. A cap
-derived by adding a fixed pad would leak it exactly. The name is deliberate: the cap bounds the
-Payout and states nothing about what the buyer is willing to pay.
+The bucket is what the cap leaks: which band `maxPrice` falls in, and nothing sharper. A cap derived
+by adding a fixed pad would leak it exactly. The name is deliberate: the cap bounds the Payout and
+states nothing about what the buyer is willing to pay.
 
 ## Bid
 
@@ -137,7 +138,7 @@ Payout and states nothing about what the buyer is willing to pay.
   "hotelId": "lp1a2b3",
   "hotelName": "Awesome Hotel",
   "stars": 4,
-  "price": 440000000,
+  "price": 4400000,
   "refundable": true,
   "breakfastIncluded": true,
   "roomType": "double",
@@ -360,30 +361,29 @@ which is the same arrangement it has when it books for itself.
 
 ### The demo table
 
-One double room, two nights. Payout Cap 750, maximum price 520, `refundable` 50,
-`breakfastIncluded` 40. Whole USDC here for reading; the test carries the same figures in minor
-units.
+One double room, two nights. Payout Cap 7.5, maximum price 5.2, `refundable` 0.5,
+`breakfastIncluded` 0.4. USDC here for reading; the test carries the same figures in minor units.
 
 | Bid | Stars | Price | Refundable | Breakfast | Result                                                                                 |
 | --- | ----- | ----- | ---------- | --------- | -------------------------------------------------------------------------------------- |
-| A   | 3     | 330   | yes        | no        | Ineligible. 330 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
-| B   | 4     | 400   | no         | no        | Score 120                                                                              |
-| C   | 4     | 440   | yes        | yes       | Score 80 + 50 + 40 = **170. Wins**                                                     |
+| A   | 3     | 3.3   | yes        | no        | Ineligible. 3.3 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
+| B   | 4     | 4.0   | no         | no        | Score 1.2                                                                              |
+| C   | 4     | 4.4   | yes        | yes       | Score 0.8 + 0.5 + 0.4 = **1.7. Wins**                                                  |
 
-Payout 440, refund 310. All three Stakes come back at settlement. This table is a test in
+Payout 4.4, refund 3.1. All three Stakes come back at settlement. This table is a test in
 `workflow-cre/`.
 
 ### Every USDC in and out
 
-Nine hundred USDC enters escrow: the 750 Payout Cap and three 50 Stakes. Every terminal path returns
+Nine USDC enters escrow: the 7.5 Payout Cap and three 0.5 Stakes. Every terminal path returns
 exactly that, and each row is a contract test.
 
 | Path                                         | Out                               |
 | -------------------------------------------- | --------------------------------- |
-| Winner and booking                           | 440 winner, 310 buyer, 150 Stakes |
-| No Eligible bid, or the booking failed       | 750 buyer, 150 Stakes             |
-| Timeout from `Bidding` or `Settling`         | 750 buyer, 150 Stakes             |
-| No commit before `bidDeadline`, then timeout | 750 buyer, nothing else entered   |
+| Winner and booking                           | 4.4 winner, 3.1 buyer, 1.5 Stakes |
+| No Eligible bid, or the booking failed       | 7.5 buyer, 1.5 Stakes             |
+| Timeout from `Bidding` or `Settling`         | 7.5 buyer, 1.5 Stakes             |
+| No commit before `bidDeadline`, then timeout | 7.5 buyer, nothing else entered   |
 
 ## Contract
 
@@ -413,9 +413,12 @@ Timeout   → terminal, everything refunded
 - `finalizeDeadline` stops a losing bidder from refunding the auction a second after `bidDeadline`,
   before the Enclave ever ran. The gap covers the cron interval, the claim, scoring and the write.
 
-The deadlines are contract constants offset from `block.timestamp` at creation, and `createAuction`
-takes either of them: `BID_PERIOD` 2 hours and `FINALIZE_PERIOD` 4 hours. A buyer cannot open an
-auction that is undeliverable, because a buyer cannot choose.
+The deadlines are offsets from `block.timestamp` at creation, and `createAuction` takes neither of
+them: `BID_PERIOD` and `FINALIZE_PERIOD` are constructor arguments, immutable for the life of the
+deployment. A buyer cannot open an auction that is undeliverable, because a buyer cannot choose. The
+constructor refuses a `FINALIZE_PERIOD` at or under the `BID_PERIOD`, which would leave the Enclave
+no window to settle in. `SUPPLIER_STAKE` is a constructor argument for the same reason: a testnet
+deployment bids in cents and settles in minutes, where another one would not.
 
 ### Functions
 
@@ -423,7 +426,7 @@ auction that is undeliverable, because a buyer cannot choose.
   is the buyer of the auction it opens. Derives both deadlines from `block.timestamp`, hashes the
   record for the identifier, pulls the Payout Cap, and emits `AuctionCreated` then `TermsPublished`.
 - `commit(auctionId, commitment)` — any address, once, before `bidDeadline`, up to `MAX_BIDS` per
-  auction. Pulls the `SUPPLIER_STAKE` constant, 50 USDC. Emits `Committed`.
+  auction. Pulls `SUPPLIER_STAKE`, fixed at deployment. Emits `Committed`.
 - `onReport(bytes metadata, bytes report)` — the CRE forwarder only, through the Chainlink receiver
   template. The name belongs to Chainlink and is kept verbatim; everywhere else the word is
   "settlement". It is the only entry a workflow has, so it carries both writes and dispatches on an
@@ -517,8 +520,8 @@ starts it with one sentence of business rules, and the model reads the auction t
 rules, and submits one Bid. See `docs/adr/0007-supplier-agents-decide-with-a-model.md`.
 
 ```
-You sell 3-star rooms in Paris. Room price is 330 USDC for 1 or 2 nights,
-280 for 3 nights or more. In winter all prices drop to 240. Refundable,
+You sell 3-star rooms in Paris. Room price is 3.3 USDC for 1 or 2 nights,
+2.8 for 3 nights or more. In winter all prices drop to 2.4. Refundable,
 no breakfast. Bid on requests.
 ```
 
@@ -549,8 +552,8 @@ An agent never books. It seals its own booking credentials into the envelope and
 with them, so the agent has nothing to do after `bidDeadline`.
 
 Each agent's configuration carries a `priceRange`, and `submitBid` refuses a price outside it. The
-demo result is a knife edge: Agent A stays Ineligible only above 280, and Agent C wins only
-below 490. The range is configuration, not a hidden rule.
+demo result is a knife edge: Agent A stays Ineligible only above 2.8, and Agent C wins only below
+4.9. The range is configuration, not a hidden rule.
 
 The price is prompt-derived, not market-derived. LiteAPI supplies a real hotel, and the rate card
 comes from the operator, so the number is the supplier's own list price. The claim is "three agents
@@ -572,7 +575,7 @@ Verified on Arc testnet, row V7:
   through ERC-1271. Hence the check in the Bid section.
 - Spending policies are mainnet only: `circle wallet limit` refuses a testnet chain. On Arc testnet
   the agent wallet runs on Circle's default policy, so supplier-side limits are not part of the
-  demo. Buyer-side control is the Privy half, where the rules read calldata and a quorum signs.
+  demo. Buyer-side control is the Privy half, where the rules read calldata.
 - The session is email OTP and lasts 28 days. A human types the code once per agent, and creating or
   changing a policy needs another. Nothing else in the run is interactive.
 
@@ -601,13 +604,13 @@ Verified on Arc testnet, row V7:
   condition. A rule on the destination address alone would let any call through, including one that
   approves a different spender.
 - Every rule also pins `chain_id` to 5042002 and uses `method: eth_signTransaction`.
-- The maximum Payout Cap is 750 USDC. A buyer who asks above it derives a larger cap and is refused
+- The maximum Payout Cap is 7.5 USDC. A buyer who asks above it derives a larger cap and is refused
   by Privy with `policy_violation`, before anything is signed or mined. `POST /confirm` answers 422
   with that message, the buyer lowers the price and confirms again. This is the demo: the
   organization refuses the request, not the buyer's own service.
-- The quorum ceiling is 500 USDC and the demo Payout Cap is 750, so the quorum fires in the video
-  every time. A Payout Cap under 500 goes through on the policy alone, which is the path the tests
-  use.
+- The quorum ceiling is `PRIVY_QUORUM_CEILING`. A Payout Cap at or under it goes through on the
+  spend policy alone, which is the path the tests use; above it the quorum signs. At the maximum
+  Payout Cap the quorum never fires, which is how the deployment stands.
 - The buyer holds two wallets, and the ceiling picks between them. A Privy wallet has one owner: a
   quorum-owned wallet refuses every request carrying fewer signatures than its threshold, so no path
   through it is authorized by the spend policy alone. One wallet has no owner and signs on the

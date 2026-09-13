@@ -29,7 +29,7 @@ const auction: AuctionTerms = {
 const hotel = { hotelId: "lp1beec", hotelName: "Hotel Des Grands Voyageurs", stars: 4 };
 
 const offer = {
-  price: 440_000_000,
+  price: 4_400_000,
   refundable: true,
   breakfastIncluded: true,
   roomType: "double",
@@ -70,11 +70,11 @@ function harness(t: TestContext, overrides: Partial<BidRunContext> = {}) {
     signer,
     sealedAuction: SEALED_AUCTION,
     usdc: USDC,
-    stake: 50_000_000n,
+    stake: 500_000n,
     enclavePublicKey: x25519.getPublicKey(ENCLAVE_KEY),
     relayUrl: "http://relay.test",
     booking: { bookingUrl: "https://api.liteapi.travel/v3.0", bookingApiKey: "booking-key" },
-    priceRange: { min: 420_000_000, max: 480_000_000 },
+    priceRange: { min: 4_200_000, max: 4_800_000 },
     ...overrides,
   };
 
@@ -94,7 +94,7 @@ test("refuses a price outside the range and names the range", async (t) => {
 
   await assert.rejects(
     submitBid(context, { ...offer, price: 500_000_000 }),
-    /outside this supplier's range of 420000000 to 480000000/,
+    /outside this supplier's range of 4200000 to 4800000/,
   );
 });
 

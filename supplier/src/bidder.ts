@@ -49,7 +49,7 @@ export function systemPrompt(
     "- It is not reversible and it cannot be repeated. A second call fails and the stake stays locked.",
     "- You never see or supply a hash, a salt, a signature or a key. It holds all of those.",
     "",
-    "Prices are USDC minor units: six decimals, so 330 USDC is 330000000.",
+    "Prices are USDC minor units: six decimals, so 4.4 USDC is 4400000.",
     "Bid your published rate. Do not discount to win, and do not bid at all if your rules do not cover this request.",
   ].join("\n");
 }

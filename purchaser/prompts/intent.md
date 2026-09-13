@@ -7,7 +7,7 @@ fence.
   "policy": {
     "version": 1,
     "currency": "USDC",
-    "maxPrice": 520000000,
+    "maxPrice": 5200000,
     "nights": 2,
     "hardRequirements": {
       "city": "Paris",
@@ -18,9 +18,9 @@ fence.
       "numberOfRooms": 1
     },
     "tradeDown": { "stars": 3, "requiredDiscountPercentage": 30 },
-    "preferences": { "refundable": 50000000, "breakfastIncluded": 40000000 }
+    "preferences": { "refundable": 500000, "breakfastIncluded": 400000 }
   },
-  "summary": "Paris, 12 to 14 October 2026, 2 nights.\n1 double room, 4 stars or better.\nAt most 520 USDC for the stay.\nWorth paying extra for: free cancellation 50 USDC, breakfast 40 USDC.\nAccept 3 stars only if at least 30% cheaper than the best 4-star bid."
+  "summary": "Paris, 12 to 14 October 2026, 2 nights.\n1 double room, 4 stars or better.\nAt most 5.2 USDC for the stay.\nWorth paying extra for: free cancellation 0.5 USDC, breakfast 0.4 USDC.\nAccept 3 stars only if at least 30% cheaper than the best 4-star bid."
 }
 ```
 
@@ -40,7 +40,7 @@ Every field is required, and no other field is allowed.
 
 ### Every number is an integer
 
-- Money is USDC minor units. USDC has six decimals, so 520 USDC is `520000000`.
+- Money is USDC minor units. USDC has six decimals, so 5.2 USDC is `5200000`.
 - Never write a fraction, a decimal point or an exponent.
 - `minStars`, `tradeDown.stars`, `numberOfRooms`, `nights`, `version` and
   `requiredDiscountPercentage` are plain counts, not money.
@@ -59,11 +59,11 @@ The Policy is hashed onto a public ledger, where a value nobody typed cannot be 
 
 The buyer confirms the numbers you return, so no formula may survive into the Policy.
 
-- A per-night amount becomes what it is worth over the whole stay: "breakfast is worth 20 a night"
-  on a two-night trip is `40000000`.
+- A per-night amount becomes what it is worth over the whole stay: "breakfast is worth 0.2 a night"
+  on a two-night trip is `400000`.
 - A percentage of the price becomes a flat amount against the maximum price: "free cancellation is
-  worth 10%" against a 520 USDC maximum is `52000000`.
-- A relative budget becomes an absolute one: "about 12% more than 500" is `560000000`.
+  worth 10%" against a 5.2 USDC maximum is `520000`.
+- A relative budget becomes an absolute one: "about 12% more than 5" is `5600000`.
 - `requiredDiscountPercentage` is the exception. It stays a percentage, because it compares two bid
   prices that are not known yet.
 
@@ -82,7 +82,7 @@ here, so it has to say everything the Policy decides and nothing the Policy does
 
 - Write it after the `policy`, and describe the `policy` you actually produced.
 - One fact per line, separated by `\n`. Five lines or fewer.
-- Money in whole USDC, not minor units: write `520 USDC`, never `520000000`.
+- Money in USDC, not minor units: write `5.2 USDC`, never `5200000`. Trailing zeros dropped.
 - Name every preference you set above zero, with what it is worth. Say nothing about a preference
   you set to zero.
 - Say what the trade-down allows, or leave the line out when you set the discount to zero.
