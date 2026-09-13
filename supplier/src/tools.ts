@@ -3,6 +3,7 @@ import { bytesToHex } from "viem";
 import { z } from "zod";
 
 import { bidCommitment, bidHash, bidSchema, type Bid } from "../../shared/bid.ts";
+import { describeError } from "../../shared/log.ts";
 import { sealBid } from "../../shared/sealed-bid.ts";
 import type { AgentConfig, BookingCredentials } from "./config.ts";
 import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
@@ -33,6 +34,9 @@ export interface BidRunContext {
   booking: BookingCredentials;
   priceRange: { min: number; max: number };
 }
+
+/** Every tool the model holds, named once so the startup block and `createTools` cannot drift. */
+export const TOOL_NAMES = ["submitBid"] as const;
 
 /**
  * What the model decides. The hotel is not here: it is the operator's, fixed in the configuration,
@@ -129,6 +133,9 @@ export async function submitBid(
 export function createTools(context: BidRunContext) {
   let committed = false;
   let submitted = false;
+  // Every refusal the model was handed. The runner reads them when a run ends with no bid: the
+  // model is told why its call failed, decides to stop, and that reason reaches nobody else.
+  const refusals: string[] = [];
 
   /**
    * The guarded submit path. A retry after the stake is locked would revert on chain and be refused
@@ -138,16 +145,21 @@ export function createTools(context: BidRunContext) {
     if (committed) {
       throw new Error("this agent has already committed its one bid. Stop.");
     }
-    const result = await submitBid(context, input, () => {
-      committed = true;
-    });
-    submitted = true;
-    return result;
+    try {
+      const result = await submitBid(context, input, () => {
+        committed = true;
+      });
+      submitted = true;
+      return result;
+    } catch (error) {
+      refusals.push(describeError(error));
+      throw error;
+    }
   }
 
   const tools = [
     betaZodTool({
-      name: "submitBid",
+      name: TOOL_NAMES[0],
       description:
         "Submit this supplier's one bid. Binds it on chain with the stake and seals it to the enclave. Call it once.",
       inputSchema: submitBidInput,
@@ -155,5 +167,11 @@ export function createTools(context: BidRunContext) {
     }),
   ];
 
-  return { tools, submit, committed: () => committed, submitted: () => submitted };
+  return {
+    tools,
+    submit,
+    committed: () => committed,
+    submitted: () => submitted,
+    refusals: () => [...refusals],
+  };
 }
