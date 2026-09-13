@@ -100,11 +100,17 @@ export function createIntentAgent(model: string): IntentAgent {
       .join("");
 
     // A model that answered with prose is a failed candidate, not a crash: the caller retries it
-    // once like any other invalid answer.
+    // once like any other invalid answer. The fence is stripped first: the prompt forbids it and
+    // the model writes one anyway, which `JSON.parse` reads as prose.
     try {
-      return JSON.parse(text) as unknown;
+      return JSON.parse(sanitizeModelResponse(text)) as unknown;
     } catch {
       return null;
     }
   };
+}
+
+/** The body of a ```` ```json ```` fence, or the text as it stands when there is no fence. */
+function sanitizeModelResponse(text: string): string {
+  return /^\s*```(?:json)?\s*\n([\s\S]*?)\n\s*```\s*$/.exec(text)?.[1] ?? text;
 }
