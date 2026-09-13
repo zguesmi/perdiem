@@ -12,8 +12,8 @@ import { createPolicyAgent, parseIntent } from "../src/policy-agent.ts";
 
 const defaultIntent =
   "Two nights in Paris from 12 October 2026, one double room, 4 stars or better, " +
-  "no more than 520 USDC for the stay. Free cancellation is worth 25 a night and " +
-  "breakfast 20 a night. I would take 3 stars if it were 30% cheaper.";
+  "no more than 6 USDC for the stay. Free cancellation is worth 1 a night and " +
+  "breakfast 0.5 a night. I would take 3 stars if it were 60% cheaper.";
 
 async function main(): Promise<void> {
   const intent = process.argv.slice(2).join(" ") || defaultIntent;

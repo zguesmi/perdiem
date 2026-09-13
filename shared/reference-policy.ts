@@ -13,7 +13,7 @@ import type { Policy } from "./policy.ts";
 export const referencePolicy: Policy = {
   version: 1,
   currency: "USDC",
-  maxPrice: 5_200_000,
+  maxPrice: 6_000_000,
   nights: 2,
   hardRequirements: {
     city: "Paris",
@@ -23,10 +23,10 @@ export const referencePolicy: Policy = {
     roomType: "double",
     numberOfRooms: 1,
   },
-  tradeDown: { stars: 3, requiredDiscountPercentage: 30 },
+  tradeDown: { stars: 3, requiredDiscountPercentage: 60 },
   preferences: {
-    refundable: 500_000,
-    breakfastIncluded: 400_000,
+    refundable: 2_000_000,
+    breakfastIncluded: 1_000_000,
   },
 };
 

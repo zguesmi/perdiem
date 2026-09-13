@@ -40,7 +40,7 @@ const suppliers = [
   {
     account: privateKeyToAccount(`0x${"11".repeat(32)}`),
     salt: `0x${"11".repeat(32)}`,
-    terms: { stars: 3, price: 3_300_000, refundable: true, breakfastIncluded: false },
+    terms: { stars: 3, price: 2_000_000, refundable: true, breakfastIncluded: false },
   },
   {
     account: privateKeyToAccount(`0x${"22".repeat(32)}`),
@@ -50,7 +50,7 @@ const suppliers = [
   {
     account: privateKeyToAccount(`0x${"33".repeat(32)}`),
     salt: `0x${"33".repeat(32)}`,
-    terms: { stars: 4, price: 4_400_000, refundable: true, breakfastIncluded: true },
+    terms: { stars: 4, price: 6_000_000, refundable: true, breakfastIncluded: true },
   },
 ] as const;
 
@@ -118,7 +118,7 @@ function inputsFor(
   };
 }
 
-test("the second cheapest bid wins, and the settlement carries its booking", async () => {
+test("the dearest bid wins, and the settlement carries its booking", async () => {
   const payloads = await Promise.all(suppliers.map((supplier) => payloadOf(supplier)));
 
   const { settlement, scored, dropped } = runEnclave(inputsFor(payloads));
@@ -128,7 +128,7 @@ test("the second cheapest bid wins, and the settlement carries its booking", asy
   assert.deepEqual(settlement, {
     auctionId: AUCTION_ID,
     winner: winner.account.address,
-    payout: 4_400_000,
+    payout: 6_000_000,
     policyHash,
     bidsRoot: keccak256(concatHex(payloads.map(commitmentOf))),
     bookingId: BOOKING_ID,
@@ -288,12 +288,12 @@ test("refuses a sealed policy that is not the committed one", async () => {
 });
 
 test("drops the cheapest bid the buyer's trade-down rule refuses", async () => {
-  const payloads = await Promise.all([payloadOf(cheapest), payloadOf(winner)]);
+  const payloads = await Promise.all([payloadOf(cheapest), payloadOf(runnerUp)]);
 
   const { settlement, scored, dropped } = runEnclave(inputsFor(payloads));
 
   // Both bids verify: eligibility is scoring's business, not the envelope's.
   assert.equal(scored, 2);
   assert.deepEqual(dropped, { decrypt: 0, signature: 0, commitment: 0 });
-  assert.equal(settlement.winner, winner.account.address);
+  assert.equal(settlement.winner, runnerUp.account.address);
 });

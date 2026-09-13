@@ -12,7 +12,7 @@ import type { PolicyAgent } from "../src/policy-agent.ts";
 import type { PolicyUploader } from "../src/policy-upload.ts";
 import { PolicyRefusedError } from "../src/privy.ts";
 
-/** 2.5 USDC. The reference policy's 5.2 maximum price rounds up to a 7.5 cap, as the demo does. */
+/** 2.5 USDC. The reference policy's 6 maximum price rounds up to a 7.5 cap, as the demo does. */
 const payoutCapBucket = 2_500_000n;
 
 const pageOrigin = "http://localhost:5173";
@@ -37,8 +37,8 @@ function funder(
 }
 
 const intent =
-  "Paris, 12 to 14 October 2026, one double room, 4 star minimum, at most 5.2 USDC. " +
-  "Free cancellation is worth 0.5. Breakfast is worth 0.4. I would accept 3 star if at least 30% cheaper.";
+  "Paris, 12 to 14 October 2026, one double room, 4 star minimum, at most 6 USDC. " +
+  "Free cancellation is worth 2. Breakfast is worth 1. I would accept 3 star if at least 60% cheaper.";
 
 const summary = "Paris, 12 to 14 October 2026, 2 nights.\n1 double room, 4 stars or better.";
 
@@ -112,7 +112,7 @@ test("refuses a candidate the agent never got past the schema, and hashes nothin
 
 test("rejects a fractional price rather than rounding it", async () => {
   // Rounding would silently change the number the buyer is about to commit to on chain.
-  const policyAgent = stub(answer(makePolicy({ maxPrice: 5_200_000.5 })));
+  const policyAgent = stub(answer(makePolicy({ maxPrice: 6_000_000.5 })));
   const response = await post(service(policyAgent), "/intent", { intent });
 
   assert.equal(response.status, 422);
