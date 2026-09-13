@@ -10,7 +10,7 @@ again. Write no prose around the call.
   "policy": {
     "version": 1,
     "currency": "USDC",
-    "maxPrice": 5200000,
+    "maxPrice": 6000000,
     "nights": 2,
     "hardRequirements": {
       "city": "Paris",
@@ -20,10 +20,10 @@ again. Write no prose around the call.
       "roomType": "double",
       "numberOfRooms": 1
     },
-    "tradeDown": { "stars": 3, "requiredDiscountPercentage": 30 },
-    "preferences": { "refundable": 500000, "breakfastIncluded": 400000 }
+    "tradeDown": { "stars": 3, "requiredDiscountPercentage": 60 },
+    "preferences": { "refundable": 2000000, "breakfastIncluded": 1000000 }
   },
-  "summary": "Paris, 12 to 14 October 2026, 2 nights.\n1 double room, 4 stars or better.\nAt most 5.2 USDC for the stay.\nWorth paying extra for: free cancellation 0.5 USDC, breakfast 0.4 USDC.\nAccept 3 stars only if at least 30% cheaper than the best 4-star bid."
+  "summary": "Paris, 12 to 14 October 2026, 2 nights.\n1 double room, 4 stars or better.\nAt most 6 USDC for the stay.\nWorth paying extra for: free cancellation 2 USDC, breakfast 1 USDC.\nAccept 3 stars only if at least 60% cheaper than the best 4-star bid."
 }
 ```
 
@@ -43,7 +43,7 @@ Every field is required, and no other field is allowed.
 
 ### Every number is an integer
 
-- Money is USDC minor units. USDC has six decimals, so 5.2 USDC is `5200000`.
+- Money is USDC minor units. USDC has six decimals, so 2.5 USDC is `2500000`.
 - Never write a fraction, a decimal point or an exponent.
 - `minStars`, `tradeDown.stars`, `numberOfRooms`, `nights`, `version` and
   `requiredDiscountPercentage` are plain counts, not money.
@@ -66,7 +66,7 @@ The buyer confirms the numbers you return, so no formula may survive into the Po
 - A per-night amount becomes what it is worth over the whole stay: "breakfast is worth 0.2 a night"
   on a two-night trip is `400000`.
 - A percentage of the price becomes a flat amount against the maximum price: "free cancellation is
-  worth 10%" against a 5.2 USDC maximum is `520000`.
+  worth 10%" against a 6 USDC maximum is `600000`.
 - A relative budget becomes an absolute one: "about 12% more than 5" is `5600000`.
 - `requiredDiscountPercentage` is the exception. It stays a percentage, because it compares two bid
   prices that are not known yet.
@@ -86,7 +86,7 @@ here, so it has to say everything the Policy decides and nothing the Policy does
 
 - Write it after the `policy`, and describe the `policy` you actually produced.
 - One fact per line, separated by `\n`. Five lines or fewer.
-- Money in USDC, not minor units: write `5.2 USDC`, never `5200000`. Trailing zeros dropped.
+- Money in USDC, not minor units: write `6 USDC`, never `6000000`. Trailing zeros dropped.
 - Name every preference you set above zero, with what it is worth. Say nothing about a preference
   you set to zero.
 - Say what the trade-down allows, or leave the line out when you set the discount to zero.

@@ -70,7 +70,7 @@ export default function App() {
           <div>
             <h1>Perdiem</h1>
             <p>
-              Your selection criteria stay private. Hotels bid blind against them to guarantee the
+              Your selection criteria stay encrypted. Hotels bid blind against them to guarantee the
               best deal.
             </p>
           </div>
