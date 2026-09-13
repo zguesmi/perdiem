@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { readConfig, short, type Config } from "./auction.ts";
+import { Balances } from "./panels/balances.tsx";
 import { Bids } from "./panels/bids.tsx";
 import { Desk } from "./panels/desk.tsx";
 import { Enclave } from "./panels/enclave.tsx";
@@ -21,7 +22,7 @@ const configuration = ((): { config?: Config; error?: string } => {
 })();
 
 /**
- * One page, read top to bottom: the stepper, then five panels.
+ * One page, read top to bottom: the stepper, then the panels, then the balances.
  *
  * The page holds no auction state of its own. Every panel is rendered from what `useAuction`
  * re-read, so a reload and a refresh show the same thing and there is nothing here to disagree
@@ -67,6 +68,7 @@ export default function App() {
           <Bids auction={auction} />
           <Enclave auction={auction} />
           <Settlement auction={auction} />
+          <Balances config={config} auction={auction} />
         </>
       )}
     </main>

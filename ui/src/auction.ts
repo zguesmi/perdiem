@@ -9,7 +9,7 @@ import {
 } from "viem";
 
 import { USDC_DECIMALS } from "../../shared/chain.ts";
-import { sealedAuctionAbi } from "../../shared/abi.ts";
+import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
 
 /** Narrows `eth_getLogs` to this contract's own events, so a busy address costs nothing extra. */
 const sealedAuctionEvents = sealedAuctionAbi.filter((entry) => entry.type === "event");
@@ -44,6 +44,8 @@ export type AuctionView = {
   relayReachable: boolean;
   settlement?: Settlement;
   timedOutTransaction?: Transaction;
+  /** USDC, by lower-cased address, for the escrow, the buyer and every supplier that committed. */
+  balances: Map<string, bigint>;
 };
 
 export type PublicRequirements = {
@@ -126,6 +128,7 @@ export function createClient(config: Config): PublicClient {
 export async function readAuction(
   client: PublicClient,
   config: Config,
+  lastBalances?: Map<string, bigint>,
 ): Promise<AuctionView | null> {
   const logs = parseEventLogs({
     abi: sealedAuctionAbi,
@@ -148,10 +151,14 @@ export async function readAuction(
       Extract<(typeof logs)[number], { eventName: Name }> | undefined;
 
   const contract = { address: config.sealedAuction, abi: sealedAuctionAbi } as const;
-  const [auction, commitments, bidsRoot] = await Promise.all([
+  // The token comes from the contract rather than from configuration: it is immutable there, and a
+  // configured address is one more thing that can disagree with the auction it claims to fund.
+  const [auction, commitments, committers, bidsRoot, usdc] = await Promise.all([
     client.readContract({ ...contract, functionName: "auctions", args: [auctionId] }),
     client.readContract({ ...contract, functionName: "commitments", args: [auctionId] }),
+    client.readContract({ ...contract, functionName: "committers", args: [auctionId] }),
     client.readContract({ ...contract, functionName: "bidsRoot", args: [auctionId] }),
+    client.readContract({ ...contract, functionName: "usdc" }),
   ]);
 
   const terms = find("TermsPublished");
@@ -160,7 +167,10 @@ export async function readAuction(
   const timedOut = find("AuctionTimedOut");
 
   const committed = forThisAuction.filter((log) => log.eventName === "Committed");
-  const sealed = await readSealedBids(config, auctionId);
+  const [sealed, balances] = await Promise.all([
+    readSealedBids(config, auctionId),
+    readBalances(client, usdc, [config.sealedAuction, auction[1], ...committers], lastBalances),
+  ]);
 
   return {
     auctionId,
@@ -176,9 +186,11 @@ export async function readAuction(
     bidsRoot,
     claimedTransaction: claimed && transaction(claimed),
     relayReachable: sealed !== undefined,
-    bids: commitments.map((commitment) => {
-      const log = committed.find((entry) => entry.args.commitment === commitment);
-      const supplier = log?.args.supplier;
+    bids: commitments.map((commitment, index) => {
+      // By index, not by commitment value: `commit` is once per address, not once per commitment,
+      // so a supplier can stake behind a commitment another supplier already placed.
+      const supplier = committers[index];
+      const log = committed.find((entry) => entry.args.supplier === supplier);
       return {
         commitment,
         supplier,
@@ -193,7 +205,44 @@ export async function readAuction(
       finalizedTransaction: transaction(finalized),
     },
     timedOutTransaction: timedOut && transaction(timedOut),
+    balances,
   };
+}
+
+/**
+ * One `balanceOf` per address, in one batch of reads.
+ *
+ * A read that fails keeps the balance the last poll saw, and never rejects: one unreadable address
+ * would otherwise fail every poll and freeze the whole page, not just this panel.
+ */
+async function readBalances(
+  client: PublicClient,
+  usdc: Address,
+  addresses: readonly Address[],
+  last?: Map<string, bigint>,
+): Promise<Map<string, bigint>> {
+  const wanted = [...new Set(addresses.map((address) => address.toLowerCase()))] as Address[];
+  const balances = await Promise.all(
+    wanted.map(async (address) => {
+      try {
+        return await client.readContract({
+          address: usdc,
+          abi: usdcAbi,
+          functionName: "balanceOf",
+          args: [address],
+        });
+      } catch {
+        return last?.get(address);
+      }
+    }),
+  );
+
+  return new Map(
+    wanted.flatMap((address, index) => {
+      const balance = balances[index];
+      return balance === undefined ? [] : [[address, balance] as const];
+    }),
+  );
 }
 
 /** A log carries both halves of a transaction row, so nothing has to be read back per hash. */

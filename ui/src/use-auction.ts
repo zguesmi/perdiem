@@ -26,13 +26,16 @@ export function useAuction(config?: Config): {
     const client = createClient(config);
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
+    // A balance the chain would not answer for this poll keeps the figure the last one read.
+    let lastBalances: Map<string, bigint> | undefined;
 
     // Each poll schedules the next one only after it finishes. On an interval a slow read can
     // resolve after a fast later one and walk the panels backwards, from settled to still bidding.
     const poll = async (): Promise<void> => {
       try {
-        const next = await readAuction(client, config);
+        const next = await readAuction(client, config, lastBalances);
         if (!stopped) {
+          lastBalances = next?.balances;
           setAuction(next);
           setError(undefined);
         }
