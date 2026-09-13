@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 
-import { cyan, describeError, green, red, shortHex, step } from "../../shared/log.ts";
+import { cyan, describeError, green, red, separator, shortHex, step } from "../../shared/log.ts";
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
 import { sealPolicy } from "../../shared/sealed-policy.ts";
@@ -82,6 +82,7 @@ export function createPurchaserApp({
       return context.json({ error: "an intent is one non-empty sentence" }, 422);
     }
 
+    console.log(separator());
     const answer = await parseIntent(policyAgent, request.data.intent);
 
     return answer === undefined
