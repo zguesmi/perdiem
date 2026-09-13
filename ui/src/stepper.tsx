@@ -28,7 +28,10 @@ export function Stepper({
             onClick={() => onSelect(step.key)}
           >
             <span className="marker">{step.mark}</span>
-            <span className="name">{step.name}</span>
+            <span className="name">
+              {step.name}
+              {step.note && <span className="note">{step.note}</span>}
+            </span>
           </button>
         </li>
       ))}

@@ -11,7 +11,10 @@ export function Detail({ step, config }: { step: Step; config: Config }) {
   return (
     <article className="card detail">
       <div className="headline">
-        <span>{step.headline}</span>
+        <span>
+          {step.warn && <span className="warn-mark">&#9888;</span>}
+          {step.headline}
+        </span>
         <span className="info" tabIndex={0} data-tip={step.tip}>
           i
         </span>
