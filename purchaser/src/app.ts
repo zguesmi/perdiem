@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 
-import { cyan, describeError, green, red, step } from "../../shared/log.ts";
+import { cyan, describeError, green, red, shortHex, step } from "../../shared/log.ts";
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
 import { sealPolicy } from "../../shared/sealed-policy.ts";
@@ -82,7 +82,6 @@ export function createPurchaserApp({
       return context.json({ error: "an intent is one non-empty sentence" }, 422);
     }
 
-    console.log(step("intent", `"${request.data.intent}"`));
     const answer = await parseIntent(policyAgent, request.data.intent);
 
     return answer === undefined
@@ -106,12 +105,12 @@ export function createPurchaserApp({
     // Before the auction, never after: the enclave fetches the policy by the hash the chain
     // carries, and an auction whose policy never arrived pays nobody and refunds on timeout.
     const envelope = sealPolicy(policy.data, enclavePublicKey, policyHash);
-    console.log(step("hashed", cyan(policyHash)));
-    console.log(step("sealed", `${envelope.length} bytes to the enclave key`));
+    console.log(step("Policy hashed", cyan(shortHex(policyHash))));
+    console.log(step("Policy sealed", `${envelope.length} bytes to the enclave key`));
 
     try {
       await uploadPolicy(policyHash, envelope);
-      console.log(step("uploaded", green("✅ the relay holds the sealed policy")));
+      console.log(step("Policy uploaded", `${green("✓")} the relay holds it under the hash`));
     } catch (reason) {
       // The reasons, not the error: a stack from this path can carry the policy that failed.
       console.error(

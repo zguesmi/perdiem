@@ -5,10 +5,10 @@ import { z } from "zod";
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { addressSchema } from "../../shared/bid.ts";
 import { arc } from "../../shared/chain.ts";
-import { banner, cyan, describeError, green, red, yellow } from "../../shared/log.ts";
+import { banner, cyan, describeError, dim, green, red, yellow } from "../../shared/log.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
-import { createPolicyAgent, policyAgentRule, VALIDATE_POLICY } from "./policy-agent.ts";
+import { createPolicyAgent, policyAgentRole, VALIDATE_POLICY } from "./policy-agent.ts";
 import { createPolicyUploader } from "./policy-upload.ts";
 import { createPrivyWallet, type PrivyWallet } from "./privy.ts";
 
@@ -114,7 +114,7 @@ async function spendPolicy(source: PrivyWallet): Promise<string> {
       .flatMap((policy) => [
         policy.name,
         ...policy.rules.map(
-          (rule) => `${rule.action === "ALLOW" ? green("✅") : red("❌")} ${rule.name}`,
+          (rule) => `${rule.action === "ALLOW" ? green("✓") : red("✗")} ${rule.name}`,
         ),
       ])
       .join("\n");
@@ -124,7 +124,7 @@ async function spendPolicy(source: PrivyWallet): Promise<string> {
   }
 }
 
-const [privyPolicy, rule] = await Promise.all([spendPolicy(wallet), policyAgentRule()]);
+const [walletPolicy, role] = await Promise.all([spendPolicy(wallet), policyAgentRole()]);
 
 serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
   console.log(
@@ -134,15 +134,19 @@ serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
       ["chain RPC", environment.ARC_RPC_URL],
       ["auction contract", cyan(environment.SEALED_AUCTION_ADDRESS)],
       ["relay", environment.RELAY_URL],
-      ["privy policy", privyPolicy],
-      [
-        "agent",
-        [
-          `model  ${environment.INTENT_MODEL}`,
-          `tools  ${VALIDATE_POLICY}`,
-          `rule   "${rule}"`,
-        ].join("\n"),
-      ],
+      ["Privy wallet policy", walletPolicy],
+      ["agent", ""],
     ]),
   );
+  // Indented under the agent row rather than beside it: these three describe the agent, and the
+  // rows above describe the service it runs in.
+  const agent: [string, string][] = [
+    ["model", environment.INTENT_MODEL],
+    ["tools", VALIDATE_POLICY],
+    ["role", `"${role}"`],
+  ];
+
+  for (const [label, value] of agent) {
+    console.log(`      ${dim(label.padEnd(5))}  ${value}`);
+  }
 });
