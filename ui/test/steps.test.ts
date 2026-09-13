@@ -234,3 +234,24 @@ test("the countdown holds at zero rather than going past it", () => {
   assert.equal(countdown(NOW + 605, NOW), "10:05");
   assert.equal(countdown(NOW + 7_325, NOW), "2:02:05");
 });
+
+test("the timeout step carries the time left, until the auction is terminal", () => {
+  function note(state: AuctionState): string | undefined {
+    return walk(state).find((step) => step.key === "timeout")?.note;
+  }
+
+  assert.equal(note("Created"), "(1:01:30)");
+  assert.equal(note("Bidding"), "(1:01:30)");
+  assert.equal(note("Settling"), "(1:01:30)");
+  assert.equal(note("Finalized"), undefined);
+  assert.equal(note("Timeout"), undefined);
+});
+
+test("no step but timeout carries a note", () => {
+  assert.deepEqual(
+    walk("Bidding")
+      .filter((step) => step.note !== undefined)
+      .map((step) => step.key),
+    ["timeout"],
+  );
+});

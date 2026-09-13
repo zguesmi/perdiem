@@ -415,6 +415,15 @@ button:disabled {
   transition: color 200ms ease;
 }
 
+/* Tabular figures, so a second ticking over never moves the name beside it. */
+.step .note {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
 .step.done .marker {
   background: var(--accent);
   border-color: var(--accent);

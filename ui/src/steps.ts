@@ -25,6 +25,8 @@ export type Step = {
   /** Whether the auction ever got here. Only a reached step can be selected and read. */
   reached: boolean;
   status: Status;
+  /** What the marker carries beside its name, in brackets. Only the timeout step has one. */
+  note?: string;
   /** One sentence, in the tense the step is in. */
   headline: string;
   /** The mechanism behind the headline. Nothing on the page depends on it being read. */
@@ -127,6 +129,7 @@ export function steps(
       ...NAMES[key],
       reached: status !== "pending" && status !== "skipped",
       status,
+      note: note(auction, key, now),
       ...detail(auction, key, status, now, booking),
     };
   });
@@ -166,6 +169,18 @@ function reachedBeforeTimeout(auction: AuctionView, index: number): boolean {
     default:
       return false;
   }
+}
+
+/**
+ * The time left before the refund opens, on the timeout step alone.
+ *
+ * A terminal auction carries none: nothing follows `Finalized` or `Timeout`, so counting down to a
+ * refund that can no longer be taken would name a deadline that stopped mattering.
+ */
+function note(auction: AuctionView, key: StepKey, now: number): string | undefined {
+  return key === "timeout" && !isTerminal(auction.state)
+    ? `(${countdown(auction.finalizeDeadline, now)})`
+    : undefined;
 }
 
 function detail(
