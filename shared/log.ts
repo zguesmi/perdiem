@@ -9,7 +9,7 @@ const coloured =
   process.env.NO_COLOR === undefined &&
   (process.env.FORCE_COLOR !== undefined || process.stdout.isTTY === true);
 
-function paint(code: number, text: string): string {
+function paint(code: number | string, text: string): string {
   return coloured ? `\u001b[${code}m${text}\u001b[0m` : text;
 }
 
@@ -19,6 +19,8 @@ export const red = (text: string): string => paint(31, text);
 export const green = (text: string): string => paint(32, text);
 export const yellow = (text: string): string => paint(33, text);
 export const cyan = (text: string): string => paint(36, text);
+/** Claude's coral, from the 256-colour cube. It marks the model a service is running. */
+export const coral = (text: string): string => paint("38;5;209", text);
 
 /** Stars as a reader sees them on a hotel, rather than a number they have to picture. */
 export function stars(count: number): string {
@@ -42,19 +44,10 @@ export function usdcAmount(minorUnits: bigint | number): string {
  * A service's startup block: a title, then one labelled row per line, with the values in a column.
  * It is what an operator reads to check they started the process they meant to, so a row that
  * would carry a key, a price or a policy does not belong in one.
- *
- * A value with newlines in it keeps the column: every line after the first is indented to where
- * the value starts, so a row can carry a list without a second layout.
  */
 export function banner(title: string, rows: readonly (readonly [string, string])[]): string {
   const width = Math.max(...rows.map(([label]) => label.length));
-  const lines = rows.flatMap(([label, value]) => {
-    const [first, ...rest] = value.split("\n");
-    return [
-      `  ${dim(label.padEnd(width))}  ${first}`.trimEnd(),
-      ...rest.map((line) => `  ${" ".repeat(width)}  ${line}`),
-    ];
-  });
+  const lines = rows.map(([label, value]) => `  ${dim(label.padEnd(width))}  ${value}`.trimEnd());
 
   return [bold(title), ...lines].join("\n");
 }
