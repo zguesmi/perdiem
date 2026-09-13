@@ -4,6 +4,17 @@ import { hexToBytes } from "viem";
 import { z } from "zod";
 
 import { sealedAuctionAbi } from "../../shared/abi.ts";
+import {
+  banner,
+  cyan,
+  describeError,
+  dim,
+  green,
+  red,
+  stars,
+  usdcAmount,
+  yellow,
+} from "../../shared/log.ts";
 import { runBidder } from "./bidder.ts";
 import { createArcClient } from "./chain.ts";
 import {
@@ -15,13 +26,19 @@ import {
   type Deployment,
 } from "./config.ts";
 import { createSigner, type Signer } from "./signer.ts";
-import type { AuctionTerms, BidRunContext } from "./tools.ts";
+import { TOOL_NAMES, type AuctionTerms, type BidRunContext } from "./tools.ts";
 import { watchAuctions } from "./watcher.ts";
 
 export { loadAgentConfig, type AgentConfig, type Deployment } from "./config.ts";
 export { createLocalSigner, createSigner, type Signer, type Wallet } from "./signer.ts";
 export { createCircleAgentSigner } from "./circle.ts";
-export { submitBid, createTools, type AuctionTerms, type BidRunContext } from "./tools.ts";
+export {
+  submitBid,
+  createTools,
+  TOOL_NAMES,
+  type AuctionTerms,
+  type BidRunContext,
+} from "./tools.ts";
 export { auctionTerms, watchAuctions } from "./watcher.ts";
 
 /** Secrets only. Nothing here reaches a committed file. */
@@ -60,7 +77,7 @@ async function bidOn(supplier: Supplier, auction: AuctionTerms): Promise<void> {
   };
 
   await runBidder(supplier.config, supplier.rules, context);
-  console.log(`${supplier.config.name}: bid placed on ${auction.auctionId}`);
+  console.log(`${supplier.config.name}: ${green("bid placed")} on ${dim(auction.auctionId)}`);
 }
 
 async function main(): Promise<void> {
@@ -76,18 +93,31 @@ async function main(): Promise<void> {
     fileURLToPath(new URL(`../config/${name}.json`, import.meta.url)),
   );
   const rules = (await readFile(new URL(`../prompts/${name}.txt`, import.meta.url), "utf8")).trim();
+  const signer = createSigner(wallet, deployment.rpcUrl);
 
-  // The rules are the only thing an operator changes between agents, so the run states them before
-  // it does anything a reader would have to infer them from.
-  console.log(`${config.name} at ${config.hotel.hotelName}, ${config.hotel.stars} stars`);
-  console.log(`wallet: ${wallet.kind}`);
-  console.log(`rules: ${rules}`);
+  // Everything an operator would otherwise have to infer from three files and an environment: which
+  // hotel this agent sells, which address stakes and gets paid, and what the model may do.
+  console.log(
+    banner(`Agent: ${config.name}`, [
+      ["hotel", `${config.hotel.hotelName} ${stars(config.hotel.stars)}`],
+      ["wallet", `${wallet.kind} ${cyan(signer.address)}`],
+      ["model", `${config.model}, ${config.effort} effort`],
+      ["tools", yellow(TOOL_NAMES.join(", "))],
+      [
+        "price",
+        `${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)} USDC`,
+      ],
+      ["chain", `${cyan(deployment.sealedAuction)} on ${deployment.rpcUrl}`],
+      ["relay", deployment.relayUrl],
+      ["rules", rules],
+    ]),
+  );
 
   const client = createArcClient(deployment.rpcUrl);
   const contract = { address: deployment.sealedAuction, abi: sealedAuctionAbi } as const;
   // Read before the watcher starts, so an auction that opens during startup is still delivered.
   const fromBlock = await client.getBlockNumber();
-  const [usdc, enclavePublicKey, stake] = await Promise.all([
+  const [usdcAddress, enclavePublicKey, stake] = await Promise.all([
     client.readContract({ ...contract, functionName: "usdc" }),
     client.readContract({ ...contract, functionName: "enclavePublicKey" }),
     client.readContract({ ...contract, functionName: "SUPPLIER_STAKE" }),
@@ -97,8 +127,8 @@ async function main(): Promise<void> {
     config,
     deployment,
     rules,
-    signer: createSigner(wallet, deployment.rpcUrl),
-    usdc,
+    signer,
+    usdc: usdcAddress,
     stake,
     enclavePublicKey: hexToBytes(enclavePublicKey),
     booking: bookingCredentialsSchema.parse({
@@ -111,9 +141,7 @@ async function main(): Promise<void> {
   process.once("SIGINT", () => stopping.abort());
   process.once("SIGTERM", () => stopping.abort());
 
-  console.log(
-    `${config.name}: listening to ${deployment.sealedAuction} on ${deployment.rpcUrl} from block ${fromBlock}`,
-  );
+  console.log(`listening from block ${fromBlock}`);
 
   // A bid is not awaited here. One auction that takes twelve model turns must not hide the next
   // one, and one auction that fails must not stop the agent bidding on anything else.
@@ -122,9 +150,9 @@ async function main(): Promise<void> {
     deployment.sealedAuction,
     { signal: stopping.signal, fromBlock, pollMilliseconds: deployment.pollMilliseconds },
     (auction) => {
-      console.log(`${config.name}: bidding on ${auction.auctionId}`);
-      void bidOn(supplier, auction).catch((error: Error) => {
-        console.error(`${config.name}: ${auction.auctionId}: ${error.message}`);
+      console.log(`${config.name}: bidding on ${dim(auction.auctionId)}`);
+      void bidOn(supplier, auction).catch((error: unknown) => {
+        console.error(red(`${config.name}: ${auction.auctionId}: ${describeError(error)}`));
       });
     },
   );
@@ -133,8 +161,8 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  main().catch((error: Error) => {
-    console.error(error.message);
+  main().catch((error: unknown) => {
+    console.error(red(describeError(error)));
     process.exit(1);
   });
 }

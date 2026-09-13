@@ -7,8 +7,8 @@
  *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/purchaser check:intent
  *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/purchaser check:intent "two nights in Rome…"
  */
-import { createPurchaserApp } from "../src/app.ts";
-import { createIntentAgent } from "../src/intent.ts";
+import { describeError, red } from "../../shared/log.ts";
+import { createIntentAgent, parseIntent } from "../src/intent.ts";
 
 const defaultIntent =
   "Two nights in Paris from 12 October 2026, one double room, 4 stars or better, " +
@@ -22,17 +22,11 @@ async function main(): Promise<void> {
   console.log(`model: ${model}`);
   console.log(`intent: ${intent}\n`);
 
-  const app = createPurchaserApp({ intentAgent: createIntentAgent(model) });
-  const response = await app.request("/intent", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ intent }),
-  });
-
-  const answer = (await response.json()) as { policy?: unknown; summary?: string; error?: string };
-
-  if (response.status !== 200) {
-    throw new Error(answer.error ?? `the service answered ${response.status}`);
+  // The parsing step alone, not the whole service: funding the auction needs Privy keys, a chain
+  // and the enclave's public half, and none of them say anything about the prompt.
+  const answer = await parseIntent(createIntentAgent(model), intent);
+  if (answer === undefined) {
+    throw new Error("the model could not produce a valid policy");
   }
 
   // What the buyer reads, then what they are actually committing to.
@@ -41,7 +35,7 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(answer.policy, null, 2));
 }
 
-main().catch((error: Error) => {
-  console.error(error.message);
+main().catch((error: unknown) => {
+  console.error(red(describeError(error)));
   process.exit(1);
 });
