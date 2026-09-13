@@ -180,3 +180,14 @@ test("refuses a second bid once the stake is committed", async (t) => {
     ["approve", "commit"],
   );
 });
+
+test("keeps every refusal the model was handed", async (t) => {
+  // Only the model reads a tool error. Without this a run ends on "no bid" and names no cause.
+  const { context } = harness(t);
+  const { submit, refusals } = createTools(context);
+
+  await assert.rejects(submit({ ...offer, price: 1 }));
+
+  assert.equal(refusals().length, 1);
+  assert.match(String(refusals()[0]), /outside this supplier's range/);
+});

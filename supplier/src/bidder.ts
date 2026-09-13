@@ -63,7 +63,7 @@ export async function runBidder(
   rules: string,
   context: BidRunContext,
 ): Promise<void> {
-  const { tools, committed, submitted } = createTools(context);
+  const { tools, committed, submitted, refusals } = createTools(context);
   const runner = new Anthropic().beta.messages.toolRunner({
     model: config.model,
     max_tokens: 16000,
@@ -75,9 +75,24 @@ export async function runBidder(
     max_iterations: MAX_TURNS,
   });
 
+  // The last thing the model said, and why it stopped saying it. A run that ends with no bid ends
+  // on one of these two, and without them "no bid" names no cause an operator can act on.
+  let stopReason = "no answer";
+  let lastWords = "";
+
   for await (const message of runner) {
     if (message.stop_reason === "refusal") {
       throw new Error(`the model declined to bid: ${message.stop_details?.category ?? "unknown"}`);
+    }
+
+    stopReason = message.stop_reason ?? "no stop reason";
+    const text = message.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text.trim())
+      .join("\n")
+      .trim();
+    if (text !== "") {
+      lastWords = text;
     }
   }
 
@@ -85,9 +100,16 @@ export async function runBidder(
     // The two failures need different answers: a stake that is locked comes back through
     // `timeoutRefund`, and a run that never bid costs nothing.
     throw new Error(
-      committed()
-        ? "the stake is committed but the sealed bid never reached the relay"
-        : `no bid after at most ${MAX_TURNS} turns`,
+      [
+        committed()
+          ? "the stake is committed but the sealed bid never reached the relay"
+          : `no bid after at most ${MAX_TURNS} turns`,
+        `the model stopped on ${stopReason}`,
+        // The refusals are what the model read and nobody else did. They are the reason far more
+        // often than the turn cap is.
+        ...refusals().map((refusal) => `submitBid refused it: ${refusal}`),
+        lastWords === "" ? "it said nothing" : `it said: ${lastWords}`,
+      ].join("\n  "),
     );
   }
 }

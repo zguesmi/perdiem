@@ -2,11 +2,12 @@ import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 
+import { describeError, red } from "../../shared/log.ts";
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
 import { sealPolicy } from "../../shared/sealed-policy.ts";
 import { payoutCapFor, type Funder } from "./funding.ts";
-import type { IntentAgent } from "./intent.ts";
+import { parseIntent, type IntentAgent } from "./intent.ts";
 import type { PolicyUploader } from "./policy-upload.ts";
 import { PolicyRefusedError } from "./privy.ts";
 
@@ -42,19 +43,9 @@ export interface PurchaserOptions {
   pageOrigin: string;
 }
 
-/** A candidate that fails validation buys exactly one more model call. Then the request fails. */
-const ATTEMPTS = 2;
-
 const intentRequest = z.object({ intent: z.string().min(1) }).strict();
 
 const confirmRequest = z.object({ policy: z.unknown() }).strict();
-
-/**
- * What the model answers with: the Policy, and the same thing in English for the buyer to read.
- * The summary is shown and then dropped. Only the Policy is canonicalized and hashed, so nothing
- * the model wrote in prose can change what reaches the chain.
- */
-const answerValidator = z.object({ policy: policySchema, summary: z.string().min(1) }).strict();
 
 /**
  * A body that is not JSON throws inside `context.req.json()`, which Hono answers with a 500. The
@@ -91,19 +82,11 @@ export function createPurchaserApp({
       return context.json({ error: "an intent is one non-empty sentence" }, 422);
     }
 
-    // The second call is told what was wrong with the first. A byte-identical retry against a
-    // model with no sampling parameters reproduces a deterministic failure and pays for it twice.
-    let rejection: string | undefined;
+    const answer = await parseIntent(intentAgent, request.data.intent);
 
-    for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
-      const answer = answerValidator.safeParse(await intentAgent(request.data.intent, rejection));
-      if (answer.success) {
-        return context.json(answer.data);
-      }
-      rejection = z.prettifyError(answer.error);
-    }
-
-    return context.json({ error: "the model could not produce a valid policy" }, 422);
+    return answer === undefined
+      ? context.json({ error: "the model could not produce a valid policy" }, 422)
+      : context.json(answer);
   });
 
   // The buyer confirms. Canonicalize, hash, lock the payout cap in escrow and open the auction.
@@ -125,8 +108,10 @@ export function createPurchaserApp({
     try {
       await uploadPolicy(policyHash, envelope);
     } catch (reason) {
-      // The message, not the error: a stack from this path can carry the policy that failed.
-      console.error(`the sealed policy did not reach the relay: ${(reason as Error).message}`);
+      // The reasons, not the error: a stack from this path can carry the policy that failed.
+      console.error(
+        red(`confirm: the sealed policy did not reach the relay: ${describeError(reason)}`),
+      );
       return context.json({ error: "the sealed policy did not reach the relay" }, 502);
     }
 
@@ -145,6 +130,13 @@ export function createPurchaserApp({
       }
       throw reason;
     }
+  });
+
+  // Anything that reached neither `catch` above. Hono answers a 500 and says nothing, so without
+  // this the only record of a failed confirmation is the status code the buyer saw.
+  app.onError((error, context) => {
+    console.error(red(`${context.req.method} ${context.req.path}: ${describeError(error)}`));
+    return context.json({ error: "the purchaser service failed" }, 500);
   });
 
   return app;

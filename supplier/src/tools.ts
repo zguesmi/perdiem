@@ -3,6 +3,7 @@ import { bytesToHex } from "viem";
 import { z } from "zod";
 
 import { bidCommitment, bidHash, bidSchema, type Bid } from "../../shared/bid.ts";
+import { describeError, dim } from "../../shared/log.ts";
 import { sealBid } from "../../shared/sealed-bid.ts";
 import type { AgentConfig, BookingCredentials } from "./config.ts";
 import { sealedAuctionAbi, usdcAbi } from "../../shared/abi.ts";
@@ -33,6 +34,9 @@ export interface BidRunContext {
   booking: BookingCredentials;
   priceRange: { min: number; max: number };
 }
+
+/** Every tool the model holds, named once so the startup block and `createTools` cannot drift. */
+export const TOOL_NAMES = ["submitBid"] as const;
 
 /**
  * What the model decides. The hotel is not here: it is the operator's, fixed in the configuration,
@@ -83,8 +87,10 @@ export async function submitBid(
   });
 
   const hash = bidHash(bid);
+  // Each of the four steps below can be the one that hangs. Their durations are what tells a
+  // reader which, and they carry nothing the model or the relay must not see.
   const step = (name: string, started: number) =>
-    console.log(`  ${name} ${Date.now() - started} ms`);
+    console.log(dim(`  ${name} ${Date.now() - started} ms`));
 
   let started = Date.now();
   const signature = await context.signer.signBid(bid, context.sealedAuction);
@@ -141,6 +147,9 @@ export async function submitBid(
 export function createTools(context: BidRunContext) {
   let committed = false;
   let submitted = false;
+  // Every refusal the model was handed. The runner reads them when a run ends with no bid: the
+  // model is told why its call failed, decides to stop, and that reason reaches nobody else.
+  const refusals: string[] = [];
 
   /**
    * The guarded submit path. A retry after the stake is locked would revert on chain and be refused
@@ -150,10 +159,12 @@ export function createTools(context: BidRunContext) {
     if (committed) {
       throw new Error("this agent has already committed its one bid. Stop.");
     }
-    // Every failure here is answered to the model, which then tries something else. Without this
-    // line the run ends on the turn cap and the reason it never bid is nowhere.
     const started = Date.now();
-    console.log(`submitBid: price ${input.price}, ${context.auction.bidDeadline - Math.floor(started / 1000)} s before the deadline`);
+    console.log(
+      dim(
+        `submitBid: price ${input.price}, ${context.auction.bidDeadline - Math.floor(started / 1000)} s before the deadline`,
+      ),
+    );
 
     try {
       const result = await submitBid(context, input, () => {
@@ -161,15 +172,19 @@ export function createTools(context: BidRunContext) {
       });
       submitted = true;
       return result;
-    } catch (cause) {
-      console.log(`submitBid failed after ${Date.now() - started} ms: ${(cause as Error).message}`);
-      throw cause;
+    } catch (error) {
+      // The refusal is answered to the model, which then tries something else. Kept here as well,
+      // because the runner reads these when a run ends with no bid.
+      const refusal = describeError(error);
+      refusals.push(refusal);
+      console.log(dim(`submitBid failed after ${Date.now() - started} ms: ${refusal}`));
+      throw error;
     }
   }
 
   const tools = [
     betaZodTool({
-      name: "submitBid",
+      name: TOOL_NAMES[0],
       description:
         "Submit this supplier's one bid. Binds it on chain with the stake and seals it to the enclave. Call it once.",
       inputSchema: submitBidInput,
@@ -177,5 +192,11 @@ export function createTools(context: BidRunContext) {
     }),
   ];
 
-  return { tools, submit, committed: () => committed, submitted: () => submitted };
+  return {
+    tools,
+    submit,
+    committed: () => committed,
+    submitted: () => submitted,
+    refusals: () => [...refusals],
+  };
 }
