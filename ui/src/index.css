@@ -532,6 +532,12 @@ button:disabled {
   margin-bottom: calc(var(--step) * 1.5);
 }
 
+/* An auction that paid nobody. Amber rather than red: every USDC went back. */
+.warn-mark {
+  color: var(--warn);
+  margin-right: 6px;
+}
+
 /* Hover or focus for the reasoning behind the step. Nothing on the page depends on it. */
 .info {
   background: var(--mono-bg);

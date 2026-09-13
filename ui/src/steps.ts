@@ -29,6 +29,8 @@ export type Step = {
   note?: string;
   /** One sentence, in the tense the step is in. */
   headline: string;
+  /** Whether the headline reports an auction that paid nobody. It is marked, not coloured red. */
+  warn?: boolean;
   /** The mechanism behind the headline. Nothing on the page depends on it being read. */
   tip: string;
   items: Item[];
@@ -189,7 +191,7 @@ function detail(
   status: Status,
   now: number,
   booking?: Booking,
-): { headline: string; tip: string; items: Item[] } {
+): { headline: string; tip: string; items: Item[]; warn?: boolean } {
   switch (key) {
     case "created":
       return created(auction, status, now);
@@ -283,7 +285,8 @@ function finalized(auction: AuctionView, booking?: Booking) {
   return {
     headline: won
       ? "The winning bid is paid and the room is booked."
-      : "No bid qualified. The escrow is refunded in full.",
+      : "No bid qualified, everyone is refunded",
+    warn: !won,
     tip: "The contract pays only if the settlement carries the correct policy hash, the same commitments, and a booking reference.",
     items: [
       ...(won && settlement

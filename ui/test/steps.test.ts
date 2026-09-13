@@ -154,7 +154,8 @@ test("a finalized auction with no winner refunds the cap in full", () => {
     },
   })[3] as Step;
 
-  assert.equal(empty.headline, "No bid qualified. The escrow is refunded in full.");
+  assert.equal(empty.headline, "No bid qualified, everyone is refunded");
+  assert.equal(empty.warn, true);
   assert.ok(!empty.items.some((item) => item.kind === "bid"));
   assert.deepEqual(rows(empty), [["Refunded to the travel desk", "750 USDC"]]);
 });
