@@ -22,7 +22,7 @@ Then five panels, each holding what only it can say:
 Every fact appears once. The amounts and the state live on the stepper and in the balances, so no
 panel repeats them.
 
-The page reads the chain and the relay on a 2 second timer and holds no auction state of its own. It
+The page reads the chain and the relay on a 5 second timer and holds no auction state of its own. It
 shows the newest auction and nothing else. The countdown ticks on its own second.
 
 It cannot show the private half of the policy, because it never holds it. The maximum price and the
@@ -44,8 +44,9 @@ set -a; source .env.localhost; set +a
 names the missing one rather than rendering blank. `VITE_EXPLORER_URL` and `VITE_FROM_BLOCK` are
 optional; leave the explorer empty on a local node and hashes render as plain text.
 
-`ARC_RPC_URL` carries no `VITE_` prefix and never reaches the bundle. The server proxies `/rpc` to
-it, and the page reads the chain through that path on its own origin.
+`ARC_RPC_URL`, `BOOKING_URL` and `BOOKING_API_KEY` carry no `VITE_` prefix and never reach the
+bundle. The server proxies `/rpc` to the node, `/booking/{bookingId}` and `/hotel?hotelId=` to the
+booking API with the key attached, and the page reads all three through its own origin.
 
 Only the `VITE_` prefix keeps the seven private keys in that same file out of the bundle. Never name
 a secret `VITE_`, and never set `envPrefix` in `vite.config.ts`.
