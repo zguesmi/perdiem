@@ -130,7 +130,7 @@ services:
       AGENT_KEY_VARIABLE: SUPPLIER_2_PRIVATE_KEY
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "victoria-palace-agent"]
 
-  supplier-voyageurs:
+  supplier-dame-des-arts:
     <<: *supplier
     environment:
       <<: *colour

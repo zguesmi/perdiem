@@ -111,7 +111,7 @@ services:
       BID_START_DELAY_MILLISECONDS: 2000
     command: ["pnpm", "--filter", "@perdiem/supplier", "start", "victoria-palace-agent"]
 
-  supplier-voyageurs:
+  supplier-dame-des-arts:
     <<: *supplier
     environment:
       <<: *supplier-environment
