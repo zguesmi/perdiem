@@ -101,7 +101,7 @@ export function step(label: string, value: string): string {
  * prints the same labels, so without it two auctions read as one.
  */
 export function separator(): string {
-  return dim("─".repeat(78));
+  return dim("─".repeat(26));
 }
 
 /** How far down a cause chain is worth printing. Past this the top of the chain is already clear. */
