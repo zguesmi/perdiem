@@ -246,8 +246,8 @@ function settling(auction: AuctionView, status: Status, now: number) {
   return {
     headline:
       status === "live"
-        ? "The enclave is scoring the sealed bids and booking the winner."
-        : "The enclave scored the sealed bids inside the confidential handler.",
+        ? "The enclave claimed the auction and is scoring the sealed bids and booking the winner."
+        : "The enclave claimed the auction and scored the sealed bids inside the confidential handler.",
     tip: "Scoring and booking run inside a confidential handler. The rules are loaded there, used once and logged nowhere. Only the result leaves it.",
     items: [
       ...(auction.claimedTransaction

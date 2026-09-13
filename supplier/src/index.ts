@@ -178,7 +178,7 @@ async function main(): Promise<void> {
     (auction) => {
       console.log(
         step(
-          "Auction seen",
+          "Opened auction",
           `${cyan(shortHex(auction.auctionId))}  ${auction.city}, ${auction.checkin} to ` +
             `${auction.checkout}, ${auction.numberOfRooms} ${auction.roomType}, ` +
             `${auction.minStars} stars or better`,

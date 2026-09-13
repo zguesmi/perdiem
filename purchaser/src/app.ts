@@ -106,11 +106,11 @@ export function createPurchaserApp({
     // carries, and an auction whose policy never arrived pays nobody and refunds on timeout.
     const envelope = sealPolicy(policy.data, enclavePublicKey, policyHash);
     console.log(step("Policy hashed", cyan(shortHex(policyHash))));
-    console.log(step("Policy sealed", `${envelope.length} bytes to the enclave key`));
+    console.log(step("Policy sealed", `${envelope.length} bytes encrypted with the enclave key`));
 
     try {
       await uploadPolicy(policyHash, envelope);
-      console.log(step("Policy uploaded", `${green("✓")} the relay holds it under the hash`));
+      console.log(step("Policy uploaded", `${green("✓")} encrypted policy available on the relay`));
     } catch (reason) {
       // The reasons, not the error: a stack from this path can carry the policy that failed.
       console.error(
