@@ -1,5 +1,8 @@
 import { readFile } from "node:fs/promises";
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
+
+import { policySchema } from "../../shared/policy.ts";
 
 /**
  * The seam between the buyer's sentence and the model. An intent agent produces one candidate
@@ -14,6 +17,46 @@ export type IntentAgent = (
   /** Why the previous candidate was rejected. Set on the retry only. */
   rejection?: string,
 ) => Promise<unknown>;
+
+/**
+ * What the model answers with: the Policy, and the same thing in English for the buyer to read.
+ * The summary is shown and then dropped. Only the Policy is canonicalized and hashed, so nothing
+ * the model wrote in prose can change what reaches the chain.
+ */
+export const intentAnswer = z.object({ policy: policySchema, summary: z.string().min(1) }).strict();
+
+export type IntentAnswer = z.infer<typeof intentAnswer>;
+
+/** A candidate that fails validation buys exactly one more model call. Then the request fails. */
+const ATTEMPTS = 2;
+
+/**
+ * One sentence in, a validated answer out, or `undefined` when the model could not write one.
+ * Nothing is hashed here: the buyer has not confirmed yet.
+ *
+ * Each rejection is logged. It is the only record of why a 422 happened, and the prompt is the
+ * thing an operator fixes with it.
+ */
+export async function parseIntent(
+  agent: IntentAgent,
+  intent: string,
+): Promise<IntentAnswer | undefined> {
+  // The second call is told what was wrong with the first. A byte-identical retry against a model
+  // with no sampling parameters reproduces a deterministic failure and pays for it twice.
+  let rejection: string | undefined;
+
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
+    const answer = intentAnswer.safeParse(await agent(intent, rejection));
+    if (answer.success) {
+      return answer.data;
+    }
+
+    rejection = z.prettifyError(answer.error);
+    console.error(`intent: attempt ${attempt} of ${ATTEMPTS} was rejected:\n${rejection}`);
+  }
+
+  return undefined;
+}
 
 const promptPath = new URL("../prompts/intent.md", import.meta.url);
 
