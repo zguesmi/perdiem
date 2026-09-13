@@ -130,14 +130,17 @@ export function createClient(config: Config): PublicClient {
 }
 
 /**
- * How far back the page looks. Arc's public endpoint refuses a wider `eth_getLogs` with
- * `query exceeds max block range 100000`, and the deployment block falls a further 100,000 blocks
- * behind every day.
+ * How far back the page looks. The page shows the newest auction and nothing older, so one window
+ * is the whole search.
  *
- * The page shows the newest auction and nothing older, so one window is the whole search. The cost:
- * an auction older than this window is not shown at all.
+ * 5,000 blocks is about 43 minutes on Arc, against an auction that lives 30 minutes: the bid period
+ * and then `FINALIZE_PERIOD`. The cost: an auction older than the window is not shown at all.
+ *
+ * Asking for every block since the deployment is what this replaces. Arc's public endpoint refuses
+ * a range wider than 100,000 blocks with `query exceeds max block range 100000`, and the deployment
+ * block falls a further 100,000 blocks behind every day.
  */
-const BLOCK_WINDOW = 99_999n;
+const BLOCK_WINDOW = 5_000n;
 
 /**
  * The newest auction, or `null` when none exists yet. The logs carry the transaction hashes, and
