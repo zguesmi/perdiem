@@ -65,12 +65,19 @@ export const deploymentSchema = z
       (value) => (value === "" ? undefined : value),
       z.coerce.number().int().positive().default(1_000),
     ),
+    // Every agent wakes on the same log and calls Circle in the same second, and Circle caps a
+    // developer entity at five POST requests a second. One delay per agent spreads that burst.
+    BID_START_DELAY_MILLISECONDS: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.coerce.number().int().nonnegative().default(0),
+    ),
   })
   .transform((environment) => ({
     rpcUrl: environment.ARC_RPC_URL,
     sealedAuction: environment.SEALED_AUCTION_ADDRESS,
     relayUrl: environment.RELAY_URL,
     pollMilliseconds: environment.WATCH_POLL_MILLISECONDS,
+    startDelayMilliseconds: environment.BID_START_DELAY_MILLISECONDS,
   }));
 
 export type Deployment = z.infer<typeof deploymentSchema>;

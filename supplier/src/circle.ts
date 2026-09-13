@@ -27,6 +27,9 @@ const circleBinary = "circle";
 /** One Circle CLI call. Injected by the tests, which have no Circle session. */
 export type RunCircle = (args: readonly string[]) => Promise<string>;
 
+/** How long to wait between two attempts. Injected by the tests, which wait out no backoff. */
+export type Sleep = (milliseconds: number) => Promise<void>;
+
 const execFileAsync = promisify(execFile);
 
 async function runCircleCli(args: readonly string[]): Promise<string> {
@@ -35,6 +38,72 @@ async function runCircleCli(args: readonly string[]): Promise<string> {
   // behalf, and it would turn "the terms are not accepted" into a signing failure at the deadline.
   const { stdout } = await execFileAsync(circleBinary, [...args]);
   return stdout;
+}
+
+/**
+ * What one refused call waits before the next attempt. Circle caps a developer entity at five POST
+ * requests a second, and one `wallet execute` spends several of them on the challenge, its poll and
+ * the transaction read. Three agents bidding on the same auction burst past that cap together, and
+ * the CLI treats the refusal as fatal.
+ *
+ * Four attempts, because the whole bid has to land inside the bid period.
+ */
+const RETRY_DELAYS_MILLISECONDS = [1_000, 2_000, 4_000];
+
+const sleepFor: Sleep = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+/**
+ * A rate limit is refused at Circle's edge, so the request never reached the API: no challenge was
+ * created and nothing was broadcast. That is what makes the call safe to repeat. Any other failure
+ * may have reached the chain, so it is raised as it stands.
+ */
+function isRateLimited(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("Service returned error 429");
+}
+
+/**
+ * The CLI reports a refusal as a failed command whose output is Circle's answer, and Circle's edge
+ * answers a rate limit with a Cloudflare page. Both halves of that reach a log twice, because the
+ * page is in the message and on `stderr`. Only the status and the first line of detail say
+ * anything, so only they survive.
+ */
+function readable(args: readonly string[], error: unknown): unknown {
+  if (!(error instanceof Error)) {
+    return error;
+  }
+
+  const { stderr } = error as { stderr?: unknown };
+  const output = `${error.message}\n${typeof stderr === "string" ? stderr : ""}`;
+  const served = /Service returned error (\d+):([^\n<]*)/.exec(output);
+  if (!served) {
+    return error;
+  }
+
+  const detail = served[2]?.trim();
+  const call = `circle ${args[0]} ${args[1]}`;
+  return new Error(
+    `${call} failed: Service returned error ${served[1]}${detail ? `: ${detail}` : ""}`,
+  );
+}
+
+/** Retries a refused call, and raises everything else as it stands. */
+function retrying(run: RunCircle, sleep: Sleep): RunCircle {
+  return async (args) => {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await run(args);
+      } catch (error) {
+        const delay = RETRY_DELAYS_MILLISECONDS[attempt];
+        if (delay === undefined || !isRateLimited(error)) {
+          throw readable(args, error);
+        }
+        // Jittered, because three agents refused in the same second would otherwise retry in the
+        // same second and be refused again.
+        await sleep(delay / 2 + Math.random() * delay);
+      }
+    }
+  };
 }
 
 const signatureSchema = z.custom<`0x${string}`>(
@@ -64,8 +133,9 @@ export function createCircleAgentSigner(options: {
   address: `0x${string}`;
   rpcUrl: string;
   run?: RunCircle;
+  sleep?: Sleep;
 }): Signer {
-  const run = options.run ?? runCircleCli;
+  const run = retrying(options.run ?? runCircleCli, options.sleep ?? sleepFor);
   const client = createArcClient(options.rpcUrl);
 
   return {

@@ -140,6 +140,102 @@ test("the Circle signer returns the CLI's signature and transaction hash", async
   ]);
 });
 
+/** The CLI's own failure: a non-zero exit whose message and `stderr` both carry Circle's answer. */
+function refusal(status: number, detail: string): Error {
+  const answer = `Error: Service returned error ${status}: ${detail}`;
+  return Object.assign(new Error(`Command failed: circle wallet execute\n${answer}`), {
+    stderr: answer,
+  });
+}
+
+const CLOUDFLARE_PAGE = `<!doctype html>\n<html class="no-js">${"x".repeat(2_000)}</html>`;
+
+test("a rate-limited call is retried until it is answered", async (t) => {
+  stubReceipts(t);
+  const waited: number[] = [];
+  let attempts = 0;
+  const run: RunCircle = async () => {
+    attempts += 1;
+    if (attempts < 3) {
+      throw refusal(429, CLOUDFLARE_PAGE);
+    }
+    return JSON.stringify({ data: { txHash: TX_HASH } });
+  };
+  const signer = createCircleAgentSigner({
+    address: CIRCLE_WALLET,
+    rpcUrl: RPC_URL,
+    run,
+    sleep: async (milliseconds) => {
+      waited.push(milliseconds);
+    },
+  });
+
+  assert.equal(
+    await signer.write({
+      address: USDC,
+      abi: usdcAbi,
+      functionName: "approve",
+      args: [SEALED_AUCTION, 500_000n],
+    }),
+    TX_HASH,
+  );
+  assert.equal(attempts, 3);
+  // Jittered, so the three agents refused in one second do not retry in the same one.
+  assert.equal(waited.length, 2);
+  assert.ok(waited.every((milliseconds, index) => milliseconds > [1_000, 2_000][index]! / 2));
+});
+
+test("a rate limit that never lifts fails without the Cloudflare page", async (t) => {
+  stubReceipts(t);
+  let attempts = 0;
+  const run: RunCircle = async () => {
+    attempts += 1;
+    throw refusal(429, CLOUDFLARE_PAGE);
+  };
+  const signer = createCircleAgentSigner({
+    address: CIRCLE_WALLET,
+    rpcUrl: RPC_URL,
+    run,
+    sleep: async () => {},
+  });
+
+  await assert.rejects(
+    signer.write({
+      address: USDC,
+      abi: usdcAbi,
+      functionName: "approve",
+      args: [SEALED_AUCTION, 500_000n],
+    }),
+    (error: Error) => {
+      assert.match(error.message, /circle wallet execute failed: Service returned error 429/);
+      assert.ok(!error.message.includes("<!doctype html"));
+      return true;
+    },
+  );
+  assert.equal(attempts, 4);
+});
+
+test("a refusal that is not a rate limit is raised on the first attempt", async (t) => {
+  stubReceipts(t);
+  let attempts = 0;
+  const run: RunCircle = async () => {
+    attempts += 1;
+    throw refusal(400, "Invalid typed data in request.");
+  };
+  const signer = createCircleAgentSigner({
+    address: CIRCLE_WALLET,
+    rpcUrl: RPC_URL,
+    run,
+    sleep: async () => {},
+  });
+
+  await assert.rejects(signer.signBid(bid, SEALED_AUCTION), {
+    message:
+      "circle wallet sign failed: Service returned error 400: Invalid typed data in request.",
+  });
+  assert.equal(attempts, 1);
+});
+
 test("the Circle signer signs the same digest a local signer does", async () => {
   const { calls, run } = recordingCircle();
   const signer = createCircleAgentSigner({ address: CIRCLE_WALLET, rpcUrl: RPC_URL, run });
