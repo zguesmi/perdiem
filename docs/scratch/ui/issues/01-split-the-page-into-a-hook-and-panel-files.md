@@ -1,6 +1,6 @@
 # Split the page into a polling hook and panel files
 
-Status: ready-for-agent Type: task Blocked by: none
+Status: resolved Type: task Blocked by: none
 
 `ui/src/App.tsx` holds the poll, the layout and all five panels in one file. The stepper, the
 transaction rows and the balances all edit it, so they collide.
