@@ -4,6 +4,7 @@ import { getAbiItem, toFunctionSignature, type Abi } from "viem";
 import { z } from "zod";
 
 import { BID_TYPES, bidDomain, bidMessage, bytes32Schema } from "../../shared/bid.ts";
+import { dim } from "../../shared/log.ts";
 import { assertMined, createArcClient } from "./chain.ts";
 import type { Signer } from "./signer.ts";
 
@@ -100,7 +101,13 @@ function retrying(run: RunCircle, sleep: Sleep): RunCircle {
         }
         // Jittered, because three agents refused in the same second would otherwise retry in the
         // same second and be refused again.
-        await sleep(delay / 2 + Math.random() * delay);
+        const wait = Math.round(delay / 2 + Math.random() * delay);
+        console.log(
+          dim(
+            `circle ${args[0]} ${args[1]}: rate limited, retry ${attempt + 1} of ${RETRY_DELAYS_MILLISECONDS.length} in ${wait} ms`,
+          ),
+        );
+        await sleep(wait);
       }
     }
   };
