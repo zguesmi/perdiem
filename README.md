@@ -1,11 +1,10 @@
 # Perdiem
 
-> _Per diem (Latin for "per day") is a fixed daily allowance paid by an employer to cover
-> work-related expenses, such as meals, lodging, and incidentals, during business travel or
-> temporary assignments
+> Per diem (Latin for "per day") is a fixed daily allowance paid by an employer to cover
+> work-related expenses, such as meals and lodging, during business travel.
 
-Corporate hotel booking where the buyer's selection rules stay private and sealed bids decide the
-price.
+Hotel AI agents bid on a sealed travel policy. The buyer's selection rules stay private and sealed
+bids decide the price, so hotels fill empty rooms and buyers get the best deal.
 
 A travel desk writes one sentence. A model turns it into a policy: hard requirements, weighted
 preferences, a maximum price. The policy hash goes on chain before any bid exists. The policy itself
