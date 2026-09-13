@@ -68,5 +68,5 @@ function useBooking(bookingId?: string): Booking | undefined {
   }, [bookingId]);
 
   // By identifier, so the previous auction's hotel is never shown against this one's booking.
-  return read?.bookingId === bookingId ? read.booking : undefined;
+  return read && read.bookingId === bookingId ? read.booking : undefined;
 }
