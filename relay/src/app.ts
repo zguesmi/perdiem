@@ -4,11 +4,26 @@ import { cors } from "hono/cors";
 const MAX_CIPHERTEXT_BYTES = 16 * 1024;
 
 /**
+ * Colour on a terminal, plain text in a pipe or a log file. The relay builds with `rootDir: src`,
+ * so it carries its own helper rather than importing `shared/log.ts`.
+ */
+const coloured =
+  process.env.NO_COLOR === undefined &&
+  (process.env.FORCE_COLOR !== undefined || process.stdout.isTTY === true);
+
+function paint(code: number, text: string): string {
+  return coloured ? `\u001b[${code}m${text}\u001b[0m` : text;
+}
+
+/**
  * What the relay did with one request. The relay holds only ciphertext, so a line can carry the
  * path, the status and a size, and nothing else it stores.
  */
 function log(context: Context, status: number, note: string): void {
-  console.log(`relay: ${context.req.method} ${context.req.path} ${status}, ${note}`);
+  const method = paint(1, context.req.method);
+  const outcome = paint(status < 300 ? 32 : 33, `${status}, ${note}`);
+
+  console.log(`${paint(2, "relay:")} ${method} ${context.req.path} ${outcome}`);
 }
 
 /**

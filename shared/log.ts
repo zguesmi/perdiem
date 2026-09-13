@@ -1,14 +1,53 @@
 import { z } from "zod";
 
 /**
+ * Colour is for a person at a terminal. A pipe, a log file and a container without a TTY get the
+ * plain text, so nothing an operator greps through carries escape codes. `NO_COLOR` and
+ * `FORCE_COLOR` are the two conventions every other command-line tool honours.
+ */
+const coloured =
+  process.env.NO_COLOR === undefined &&
+  (process.env.FORCE_COLOR !== undefined || process.stdout.isTTY === true);
+
+function paint(code: number, text: string): string {
+  return coloured ? `\u001b[${code}m${text}\u001b[0m` : text;
+}
+
+export const bold = (text: string): string => paint(1, text);
+export const dim = (text: string): string => paint(2, text);
+export const red = (text: string): string => paint(31, text);
+export const green = (text: string): string => paint(32, text);
+export const yellow = (text: string): string => paint(33, text);
+export const cyan = (text: string): string => paint(36, text);
+
+/** Stars as a reader sees them on a hotel, rather than a number they have to picture. */
+export function stars(count: number): string {
+  return "⭐".repeat(count);
+}
+
+/**
+ * USDC for a person to read, without the unit: the label beside it carries that. Minor units are
+ * what every other part of the system holds, and nothing converts them back except a line
+ * somebody looks at.
+ */
+export function usdcAmount(minorUnits: bigint | number): string {
+  const units = BigInt(minorUnits);
+  const whole = units / 1_000_000n;
+  const fraction = (units % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
+
+  return `${whole}${fraction === "" ? "" : `.${fraction}`}`;
+}
+
+/**
  * A service's startup block: a title, then one labelled row per line, with the values in a column.
  * It is what an operator reads to check they started the process they meant to, so a row that
  * would carry a key, a price or a policy does not belong in one.
  */
 export function banner(title: string, rows: readonly (readonly [string, string])[]): string {
   const width = Math.max(...rows.map(([label]) => label.length));
+  const lines = rows.map(([label, value]) => `  ${dim(label.padEnd(width))}  ${value}`);
 
-  return [title, ...rows.map(([label, value]) => `  ${label.padEnd(width)}  ${value}`)].join("\n");
+  return [bold(title), ...lines].join("\n");
 }
 
 /** How far down a cause chain is worth printing. Past this the top of the chain is already clear. */

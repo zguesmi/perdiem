@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+import { red } from "../../shared/log.ts";
 import { policySchema } from "../../shared/policy.ts";
 
 /**
@@ -52,7 +53,7 @@ export async function parseIntent(
     }
 
     rejection = z.prettifyError(answer.error);
-    console.error(`intent: attempt ${attempt} of ${ATTEMPTS} was rejected:\n${rejection}`);
+    console.error(red(`intent: attempt ${attempt} of ${ATTEMPTS} was rejected:\n${rejection}`));
   }
 
   return undefined;

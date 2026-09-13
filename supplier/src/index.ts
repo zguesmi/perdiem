@@ -4,7 +4,17 @@ import { hexToBytes } from "viem";
 import { z } from "zod";
 
 import { sealedAuctionAbi } from "../../shared/abi.ts";
-import { banner, describeError } from "../../shared/log.ts";
+import {
+  banner,
+  cyan,
+  describeError,
+  dim,
+  green,
+  red,
+  stars,
+  usdcAmount,
+  yellow,
+} from "../../shared/log.ts";
 import { runBidder } from "./bidder.ts";
 import { createArcClient } from "./chain.ts";
 import {
@@ -67,7 +77,7 @@ async function bidOn(supplier: Supplier, auction: AuctionTerms): Promise<void> {
   };
 
   await runBidder(supplier.config, supplier.rules, context);
-  console.log(`${supplier.config.name}: bid placed on ${auction.auctionId}`);
+  console.log(`${supplier.config.name}: ${green("bid placed")} on ${dim(auction.auctionId)}`);
 }
 
 async function main(): Promise<void> {
@@ -88,13 +98,16 @@ async function main(): Promise<void> {
   // Everything an operator would otherwise have to infer from three files and an environment: which
   // hotel this agent sells, which address stakes and gets paid, and what the model may do.
   console.log(
-    banner(config.name, [
-      ["hotel", `${config.hotel.hotelName}, ${config.hotel.stars} stars, ${config.hotel.hotelId}`],
-      ["wallet", `${wallet.kind}, ${signer.address}`],
+    banner(`Agent: ${config.name}`, [
+      ["hotel", `${config.hotel.hotelName} ${stars(config.hotel.stars)}`],
+      ["wallet", `${wallet.kind} ${cyan(signer.address)}`],
       ["model", `${config.model}, ${config.effort} effort`],
-      ["tools", TOOL_NAMES.join(", ")],
-      ["price", `${config.priceRange.min} to ${config.priceRange.max} USDC minor units`],
-      ["chain", `${deployment.sealedAuction} on ${deployment.rpcUrl}`],
+      ["tools", yellow(TOOL_NAMES.join(", "))],
+      [
+        "price (USDC)",
+        `${usdcAmount(config.priceRange.min)} to ${usdcAmount(config.priceRange.max)}`,
+      ],
+      ["chain", `${cyan(deployment.sealedAuction)} on ${deployment.rpcUrl}`],
       ["relay", deployment.relayUrl],
       ["rules", rules],
     ]),
@@ -104,7 +117,7 @@ async function main(): Promise<void> {
   const contract = { address: deployment.sealedAuction, abi: sealedAuctionAbi } as const;
   // Read before the watcher starts, so an auction that opens during startup is still delivered.
   const fromBlock = await client.getBlockNumber();
-  const [usdc, enclavePublicKey, stake] = await Promise.all([
+  const [usdcAddress, enclavePublicKey, stake] = await Promise.all([
     client.readContract({ ...contract, functionName: "usdc" }),
     client.readContract({ ...contract, functionName: "enclavePublicKey" }),
     client.readContract({ ...contract, functionName: "SUPPLIER_STAKE" }),
@@ -115,7 +128,7 @@ async function main(): Promise<void> {
     deployment,
     rules,
     signer,
-    usdc,
+    usdc: usdcAddress,
     stake,
     enclavePublicKey: hexToBytes(enclavePublicKey),
     booking: bookingCredentialsSchema.parse({
@@ -137,9 +150,9 @@ async function main(): Promise<void> {
     deployment.sealedAuction,
     { signal: stopping.signal, fromBlock, pollMilliseconds: deployment.pollMilliseconds },
     (auction) => {
-      console.log(`${config.name}: bidding on ${auction.auctionId}`);
+      console.log(`${config.name}: bidding on ${dim(auction.auctionId)}`);
       void bidOn(supplier, auction).catch((error: unknown) => {
-        console.error(`${config.name}: ${auction.auctionId}: ${describeError(error)}`);
+        console.error(red(`${config.name}: ${auction.auctionId}: ${describeError(error)}`));
       });
     },
   );
@@ -149,7 +162,7 @@ async function main(): Promise<void> {
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   main().catch((error: unknown) => {
-    console.error(describeError(error));
+    console.error(red(describeError(error)));
     process.exit(1);
   });
 }

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { addressSchema } from "../../shared/bid.ts";
 import { arc } from "../../shared/chain.ts";
-import { banner } from "../../shared/log.ts";
+import { banner, cyan, usdcAmount, yellow } from "../../shared/log.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
 import { createIntentAgent } from "./intent.ts";
@@ -98,20 +98,21 @@ const [buyer, quorumBuyer] = await Promise.all([wallet.address(), quorumWallet.a
 
 serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
   console.log(
-    banner("purchaser", [
+    banner("Agent: purchaser", [
       ["model", environment.INTENT_MODEL],
       // The intent agent holds none. It answers with one JSON document, and the service does every
       // step that touches a key or a chain itself.
-      ["tools", "none"],
-      ["wallet", buyer],
-      ["quorum wallet", quorumBuyer],
-      ["chain", `${environment.SEALED_AUCTION_ADDRESS} on ${environment.ARC_RPC_URL}`],
+      ["tools", yellow("none")],
+      ["wallet", cyan(buyer)],
+      ["quorum wallet", cyan(quorumBuyer)],
+      ["chain", `${cyan(environment.SEALED_AUCTION_ADDRESS)} on ${environment.ARC_RPC_URL}`],
       ["relay", environment.RELAY_URL],
       ["page", environment.PAGE_ORIGIN],
       [
-        "caps",
-        `bucket ${environment.PAYOUT_CAP_BUCKET}, maximum ${environment.MAX_PAYOUT_CAP}, ` +
-          `quorum above ${environment.PRIVY_QUORUM_CEILING}`,
+        "caps (USDC)",
+        `bucket ${usdcAmount(environment.PAYOUT_CAP_BUCKET)}, ` +
+          `maximum ${usdcAmount(environment.MAX_PAYOUT_CAP)}, ` +
+          `quorum above ${usdcAmount(environment.PRIVY_QUORUM_CEILING)}`,
       ],
     ]),
   );

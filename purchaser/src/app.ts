@@ -2,7 +2,7 @@ import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 
-import { describeError } from "../../shared/log.ts";
+import { describeError, red } from "../../shared/log.ts";
 import { hashPolicy } from "../../shared/policy-hash.ts";
 import { policySchema, publicRequirements } from "../../shared/policy.ts";
 import { sealPolicy } from "../../shared/sealed-policy.ts";
@@ -109,7 +109,9 @@ export function createPurchaserApp({
       await uploadPolicy(policyHash, envelope);
     } catch (reason) {
       // The reasons, not the error: a stack from this path can carry the policy that failed.
-      console.error(`confirm: the sealed policy did not reach the relay: ${describeError(reason)}`);
+      console.error(
+        red(`confirm: the sealed policy did not reach the relay: ${describeError(reason)}`),
+      );
       return context.json({ error: "the sealed policy did not reach the relay" }, 502);
     }
 
@@ -133,7 +135,7 @@ export function createPurchaserApp({
   // Anything that reached neither `catch` above. Hono answers a 500 and says nothing, so without
   // this the only record of a failed confirmation is the status code the buyer saw.
   app.onError((error, context) => {
-    console.error(`${context.req.method} ${context.req.path}: ${describeError(error)}`);
+    console.error(red(`${context.req.method} ${context.req.path}: ${describeError(error)}`));
     return context.json({ error: "the purchaser service failed" }, 500);
   });
 

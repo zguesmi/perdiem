@@ -7,7 +7,7 @@
  *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/purchaser check:intent
  *   ANTHROPIC_API_KEY=... pnpm --filter @perdiem/purchaser check:intent "two nights in Rome…"
  */
-import { describeError } from "../../shared/log.ts";
+import { describeError, red } from "../../shared/log.ts";
 import { createIntentAgent, parseIntent } from "../src/intent.ts";
 
 const defaultIntent =
@@ -36,6 +36,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(describeError(error));
+  console.error(red(describeError(error)));
   process.exit(1);
 });

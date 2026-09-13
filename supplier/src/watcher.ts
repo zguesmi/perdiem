@@ -1,6 +1,6 @@
 import type { PublicClient } from "viem";
 
-import { describeError } from "../../shared/log.ts";
+import { describeError, red } from "../../shared/log.ts";
 import type { PublicRequirements } from "../../shared/policy.ts";
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import type { AuctionTerms } from "./tools.ts";
@@ -58,12 +58,12 @@ export async function watchAuctions(
           void auctionTerms(client, sealedAuction, auctionId, requirements)
             .then(onAuction)
             .catch((error: unknown) =>
-              console.error(`watch: ${auctionId}: ${describeError(error)}`),
+              console.error(red(`watch: ${auctionId}: ${describeError(error)}`)),
             );
         }
       }
     } catch (error) {
-      console.error(`watch: ${describeError(error)}`);
+      console.error(red(`watch: ${describeError(error)}`));
     }
 
     await sleep(options.pollMilliseconds, options.signal);

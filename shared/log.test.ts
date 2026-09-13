@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { z } from "zod";
 
-import { banner, describeError } from "./log.ts";
+import { banner, describeError, stars, usdcAmount } from "./log.ts";
 
 test("prints the cause chain under the message", () => {
   const reason = new Error("connect ECONNREFUSED 127.0.0.1:8787");
@@ -57,11 +57,25 @@ test("describes something that is not an error at all", () => {
 });
 
 test("lines a banner's values up in one column", () => {
+  // A test runs with no TTY, so the same call carries no escape codes here.
   assert.equal(
-    banner("agent-a", [
+    banner("Agent: agent-a", [
       ["hotel", "Awesome Hotel"],
       ["wallet", "circle"],
     ]),
-    "agent-a\n  hotel   Awesome Hotel\n  wallet  circle",
+    "Agent: agent-a\n  hotel   Awesome Hotel\n  wallet  circle",
   );
+});
+
+test("writes USDC minor units as an amount", () => {
+  assert.equal(usdcAmount(4_400_000), "4.4");
+  assert.equal(usdcAmount(7_500_000n), "7.5");
+  assert.equal(usdcAmount(520_000), "0.52");
+  assert.equal(usdcAmount(1), "0.000001");
+  assert.equal(usdcAmount(0), "0");
+});
+
+test("draws a star level as stars", () => {
+  assert.equal(stars(4), "⭐⭐⭐⭐");
+  assert.equal(stars(0), "");
 });
