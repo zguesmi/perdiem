@@ -14,7 +14,7 @@ What happens inside `handlerInTee`, and nowhere else:
   never arrived. Building it over only the scored bids would turn one missing blob into a dead
   auction.
 - Eligibility, scoring, and the winner.
-- The booking, which is the only step still missing.
+- The booking, against the winner's own API, with the credentials sealed inside its bid.
 
 Only the settlement leaves the enclave. The policy, the maximum price, the preferences, the enclave
 private key and every decrypted bid stay inside it, and none of them are ever logged.
@@ -132,9 +132,7 @@ default to `arcTestnet`. The CRE chain name is not one of those values: the loca
 ## Status
 
 The handler runs the whole pipeline: the cron read, the claim report, the policy, the sealed bids,
-the signature and commitment checks, the bids root, scoring and the settlement report. The booking
-is the one seam still open, and until it closes the enclave reports no winner, which refunds the
-payout cap and every stake.
+the signature and commitment checks, the bids root, scoring, the booking and the settlement report.
 
 Evidence rule: a fake runner may execute the handler while it is being built. Only
 `cre workflow simulate` produces the logs in `docs/scratch/verification/evidence/`.
