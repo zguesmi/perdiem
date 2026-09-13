@@ -5,12 +5,12 @@ import { z } from "zod";
 import { sealedAuctionAbi } from "../../shared/abi.ts";
 import { addressSchema } from "../../shared/bid.ts";
 import { arc } from "../../shared/chain.ts";
-import { banner, cyan, usdcAmount, yellow } from "../../shared/log.ts";
+import { banner, cyan, describeError, green, red, yellow } from "../../shared/log.ts";
 import { createPurchaserApp } from "./app.ts";
 import { createFunder } from "./funding.ts";
-import { createPolicyAgent } from "./policy-agent.ts";
+import { createPolicyAgent, policyAgentRule, VALIDATE_POLICY } from "./policy-agent.ts";
 import { createPolicyUploader } from "./policy-upload.ts";
-import { createPrivyWallet } from "./privy.ts";
+import { createPrivyWallet, type PrivyWallet } from "./privy.ts";
 
 /** A comma-separated list of authorization keys, in the order the quorum expects them. */
 const keys = z
@@ -96,25 +96,53 @@ const app = createPurchaserApp({
 // and it is the one an operator can look up on a block explorer.
 const [buyer, quorumBuyer] = await Promise.all([wallet.address(), quorumWallet.address()]);
 
+/**
+ * What the organization lets the buyer sign, read back from Privy rather than from this repository.
+ * A rule an operator edited in the dashboard is the rule that will refuse the funding call.
+ *
+ * A service that starts is worth more than one that knows its own spend policy, so a Privy that
+ * cannot answer costs a line and nothing else.
+ */
+async function spendPolicy(source: PrivyWallet): Promise<string> {
+  try {
+    const policies = await source.policies();
+    if (policies.length === 0) {
+      return yellow("none attached");
+    }
+
+    return policies
+      .flatMap((policy) => [
+        policy.name,
+        ...policy.rules.map(
+          (rule) => `${rule.action === "ALLOW" ? green("✅") : red("❌")} ${rule.name}`,
+        ),
+      ])
+      .join("\n");
+  } catch (reason) {
+    console.error(red(`the spend policy could not be read: ${describeError(reason)}`));
+    return yellow("unavailable");
+  }
+}
+
+const [privyPolicy, rule] = await Promise.all([spendPolicy(wallet), policyAgentRule()]);
+
 serve({ fetch: app.fetch, port: environment.PURCHASER_PORT }, (info) => {
   console.log(
-    banner("Agent: purchaser", [
-      ["model", environment.INTENT_MODEL],
-      // The intent agent holds none. It answers with one JSON document, and the service does every
-      // step that touches a key or a chain itself.
-      ["tools", yellow("none")],
+    banner(`Purchaser - listening on http://localhost:${info.port}`, [
       ["wallet", cyan(buyer)],
       ["quorum wallet", cyan(quorumBuyer)],
-      ["chain", `${cyan(environment.SEALED_AUCTION_ADDRESS)} on ${environment.ARC_RPC_URL}`],
+      ["chain RPC", environment.ARC_RPC_URL],
+      ["auction contract", cyan(environment.SEALED_AUCTION_ADDRESS)],
       ["relay", environment.RELAY_URL],
-      ["page", environment.PAGE_ORIGIN],
+      ["privy policy", privyPolicy],
       [
-        "caps",
-        `bucket ${usdcAmount(environment.PAYOUT_CAP_BUCKET)}, ` +
-          `maximum ${usdcAmount(environment.MAX_PAYOUT_CAP)}, ` +
-          `quorum above ${usdcAmount(environment.PRIVY_QUORUM_CEILING)} USDC`,
+        "agent",
+        [
+          `model  ${environment.INTENT_MODEL}`,
+          `tools  ${VALIDATE_POLICY}`,
+          `rule   "${rule}"`,
+        ].join("\n"),
       ],
     ]),
   );
-  console.log(`listening on http://localhost:${info.port}`);
 });
