@@ -124,6 +124,7 @@ section {
   font-family: var(--mono);
   font-size: 15px;
   margin-top: calc(var(--step) * 2);
+  overflow-wrap: anywhere;
   padding: var(--step) calc(var(--step) * 2);
 }
 
