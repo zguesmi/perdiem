@@ -291,10 +291,6 @@ export function formatUsdc(minorUnits: bigint): string {
   return `${formatUnits(minorUnits, USDC_DECIMALS)} USDC`;
 }
 
-export function formatTime(seconds: number): string {
-  return new Date(seconds * 1000).toLocaleString();
-}
-
 export function explorerLink(config: Config, transactionHash: Hex): string | undefined {
   return config.explorerUrl && `${config.explorerUrl}/tx/${transactionHash}`;
 }

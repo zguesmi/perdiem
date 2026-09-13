@@ -46,7 +46,7 @@ body {
 main {
   box-sizing: border-box;
   margin: 0 auto;
-  max-width: 46rem;
+  max-width: 56rem;
   padding: calc(var(--step) * 4) calc(var(--step) * 2) calc(var(--step) * 8);
   text-align: left;
 }
@@ -117,8 +117,8 @@ section {
 }
 
 .error {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text-h);
   font-family: var(--mono);
@@ -161,12 +161,17 @@ button:disabled {
  * behind, accent for the one running. That is the whole state of the auction, read without words.
  */
 .stepper {
+  /* It stays in view while the panels are read: the panels only make sense against the step. */
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
   display: grid;
   gap: calc(var(--step) * 2);
   grid-template-columns: repeat(4, 1fr);
   list-style: none;
-  margin: calc(var(--step) * 2) 0 0;
-  padding: 0;
+  margin: var(--step) 0 0;
+  padding: var(--step) 0 calc(var(--step) * 2);
+  position: sticky;
+  top: 0;
 }
 
 .step {

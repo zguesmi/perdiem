@@ -1,8 +1,8 @@
-import { formatTime, formatUsdc, short } from "../auction.ts";
+import { short } from "../auction.ts";
 import type { Funding as FundingAnswer } from "../purchaser.ts";
 import { Field, Panel, type PanelProps } from "./panel.tsx";
 
-/** What the buyer locked in escrow, and the call that locked it. */
+/** Who the buyer is and what let the money out. The amounts are on the stepper and the balances. */
 export function Funding({ auction, funding }: PanelProps & { funding?: FundingAnswer }) {
   return (
     <Panel
@@ -10,10 +10,7 @@ export function Funding({ auction, funding }: PanelProps & { funding?: FundingAn
       note="The payout cap is padded above the maximum price, so the public transfer does not publish the ceiling."
     >
       <Field label="Buyer" value={<code>{short(auction.buyer)}</code>} />
-      <Field label="Payout cap" value={formatUsdc(auction.payoutCap)} />
-      <Field label="Bidding closes" value={formatTime(auction.bidDeadline)} />
-      <Field label="Refundable after" value={formatTime(auction.finalizeDeadline)} />
-      {funding && (
+      {funding ? (
         <Field
           label="Authorized by"
           value={
@@ -22,6 +19,8 @@ export function Funding({ auction, funding }: PanelProps & { funding?: FundingAn
               : "The spend policy alone"
           }
         />
+      ) : (
+        <p className="note">This page did not open the auction, so it did not see it authorized.</p>
       )}
     </Panel>
   );

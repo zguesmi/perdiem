@@ -20,12 +20,7 @@ export function Bids({ auction }: PanelProps) {
         <div key={bid.commitment} className="row">
           <Field
             label={bid.supplier ? short(bid.supplier) : "Unknown supplier"}
-            value={
-              <>
-                <code>{short(bid.commitment)}</code>
-                {auction.settlement?.winner === bid.supplier && <strong> winner</strong>}
-              </>
-            }
+            value={<code>{short(bid.commitment)}</code>}
           />
           <p className="note">{sealedBidNote(auction.relayReachable, bid.sealedBytes)}</p>
         </div>

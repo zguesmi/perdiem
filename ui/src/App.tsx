@@ -7,7 +7,6 @@ import { Desk } from "./panels/desk.tsx";
 import { Enclave } from "./panels/enclave.tsx";
 import { Funding } from "./panels/funding.tsx";
 import { Intent } from "./panels/intent.tsx";
-import { Settlement } from "./panels/settlement.tsx";
 import type { Funding as FundingAnswer } from "./purchaser.ts";
 import { Stepper } from "./stepper.tsx";
 import { useAuction } from "./use-auction.ts";
@@ -67,7 +66,6 @@ export default function App() {
           />
           <Bids auction={auction} />
           <Enclave auction={auction} />
-          <Settlement auction={auction} />
           <Balances config={config} auction={auction} />
         </>
       )}

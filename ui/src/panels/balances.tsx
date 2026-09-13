@@ -23,7 +23,11 @@ export function Balances({ config, auction }: { config: Config; auction: Auction
       note="Every terminal path returns exactly what entered: the payout cap and one stake per commitment."
     >
       {rows.map((row) => (
-        <Field key={row.label} label={row.label} value={balance(auction, row.address)} />
+        <Field
+          key={row.label}
+          label={row.label}
+          value={<code>{balance(auction, row.address)}</code>}
+        />
       ))}
     </Panel>
   );

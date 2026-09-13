@@ -11,7 +11,14 @@ import { formatUsdc } from "./auction.ts";
  */
 export type Draft = { policy: unknown; summary: string };
 
-/** What the buyer gets once the money is locked. The page shows the last three. */
+/**
+ * What the buyer gets once the money is locked.
+ *
+ * The page shows `quorumSigned` and matches `auctionId` against the auction it is reading. It shows
+ * neither hash: the stepper lists the transactions the chain's own logs name, `approve` is a USDC
+ * transaction that emits no `SealedAuction` event, and `createAuctionHash` is already there under
+ * Created.
+ */
 export type Funding = {
   auctionId: Hex;
   approveHash: Hex;
