@@ -40,9 +40,10 @@ starts the same way:
 set -a; source .env.localhost; set +a
 ```
 
-`VITE_SEALED_AUCTION_ADDRESS`, `VITE_RELAY_URL` and `VITE_PURCHASER_URL` are required. The page
-names the missing one rather than rendering blank. `VITE_EXPLORER_URL` and `VITE_FROM_BLOCK` are
-optional; leave the explorer empty on a local node and hashes render as plain text.
+`VITE_SEALED_AUCTION_ADDRESS`, `VITE_RELAY_URL`, `VITE_PURCHASER_URL` and `VITE_MAX_PAYOUT_CAP` are
+required. The page names the missing one rather than rendering blank. `VITE_NETWORK_NAME`,
+`VITE_EXPLORER_URL` and `VITE_FROM_BLOCK` are optional; an unset network name hides the pill rather
+than guessing, and an empty explorer renders hashes as plain text.
 
 `ARC_RPC_URL`, `BOOKING_URL` and `BOOKING_API_KEY` carry no `VITE_` prefix and never reach the
 bundle. The server proxies `/rpc` to the node, `/booking/{bookingId}` and `/hotel?hotelId=` to the

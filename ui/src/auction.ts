@@ -81,6 +81,9 @@ export type Config = {
   sealedAuction: Address;
   relayUrl: string;
   purchaserUrl: string;
+  /** The largest payout cap the spend policy will sign. A larger request is refused unsigned. */
+  maxPayoutCap: bigint;
+  networkName?: string;
   explorerUrl?: string;
   fromBlock: bigint;
 };
@@ -110,6 +113,10 @@ export function readConfig(env: Record<string, string | undefined>): Config {
     sealedAuction: required("VITE_SEALED_AUCTION_ADDRESS") as Address,
     relayUrl: required("VITE_RELAY_URL").replace(/\/$/, ""),
     purchaserUrl: required("VITE_PURCHASER_URL").replace(/\/$/, ""),
+    maxPayoutCap: BigInt(required("VITE_MAX_PAYOUT_CAP")),
+    // Optional: the page states which network it is pointed at, and hides the claim rather than
+    // guessing it from a chain id.
+    networkName: env.VITE_NETWORK_NAME,
     // Optional: a local node has no explorer, and a hash is still readable as plain text.
     explorerUrl: env.VITE_EXPLORER_URL?.replace(/\/$/, ""),
     // Optional: a long-lived deployment does not want every poll walking the whole chain.
@@ -289,7 +296,21 @@ export function shorter(value: string): string {
 }
 
 export function formatUsdc(minorUnits: bigint): string {
-  return `${formatUnits(minorUnits, USDC_DECIMALS)} USDC`;
+  return `${usdcAmount(minorUnits)} USDC`;
+}
+
+/** The figure alone, for the places that set the unit in its own smaller type. */
+export function usdcAmount(minorUnits: bigint): string {
+  return formatUnits(minorUnits, USDC_DECIMALS);
+}
+
+/** Fixed for the life of the deployment, so the page reads it once rather than on every poll. */
+export function readEnclavePublicKey(client: PublicClient, config: Config): Promise<Hex> {
+  return client.readContract({
+    address: config.sealedAuction,
+    abi: sealedAuctionAbi,
+    functionName: "enclavePublicKey",
+  });
 }
 
 export function explorerLink(config: Config, transactionHash: Hex): string | undefined {
