@@ -4,6 +4,7 @@ import { hexToBytes } from "viem";
 import { z } from "zod";
 
 import { sealedAuctionAbi } from "../../shared/abi.ts";
+import { banner, describeError } from "../../shared/log.ts";
 import { runBidder } from "./bidder.ts";
 import { createArcClient } from "./chain.ts";
 import {
@@ -15,13 +16,19 @@ import {
   type Deployment,
 } from "./config.ts";
 import { createSigner, type Signer } from "./signer.ts";
-import type { AuctionTerms, BidRunContext } from "./tools.ts";
+import { TOOL_NAMES, type AuctionTerms, type BidRunContext } from "./tools.ts";
 import { watchAuctions } from "./watcher.ts";
 
 export { loadAgentConfig, type AgentConfig, type Deployment } from "./config.ts";
 export { createLocalSigner, createSigner, type Signer, type Wallet } from "./signer.ts";
 export { createCircleAgentSigner } from "./circle.ts";
-export { submitBid, createTools, type AuctionTerms, type BidRunContext } from "./tools.ts";
+export {
+  submitBid,
+  createTools,
+  TOOL_NAMES,
+  type AuctionTerms,
+  type BidRunContext,
+} from "./tools.ts";
 export { auctionTerms, watchAuctions } from "./watcher.ts";
 
 /** Secrets only. Nothing here reaches a committed file. */
@@ -76,12 +83,22 @@ async function main(): Promise<void> {
     fileURLToPath(new URL(`../config/${name}.json`, import.meta.url)),
   );
   const rules = (await readFile(new URL(`../prompts/${name}.txt`, import.meta.url), "utf8")).trim();
+  const signer = createSigner(wallet, deployment.rpcUrl);
 
-  // The rules are the only thing an operator changes between agents, so the run states them before
-  // it does anything a reader would have to infer them from.
-  console.log(`${config.name} at ${config.hotel.hotelName}, ${config.hotel.stars} stars`);
-  console.log(`wallet: ${wallet.kind}`);
-  console.log(`rules: ${rules}`);
+  // Everything an operator would otherwise have to infer from three files and an environment: which
+  // hotel this agent sells, which address stakes and gets paid, and what the model may do.
+  console.log(
+    banner(config.name, [
+      ["hotel", `${config.hotel.hotelName}, ${config.hotel.stars} stars, ${config.hotel.hotelId}`],
+      ["wallet", `${wallet.kind}, ${signer.address}`],
+      ["model", `${config.model}, ${config.effort} effort`],
+      ["tools", TOOL_NAMES.join(", ")],
+      ["price", `${config.priceRange.min} to ${config.priceRange.max} USDC minor units`],
+      ["chain", `${deployment.sealedAuction} on ${deployment.rpcUrl}`],
+      ["relay", deployment.relayUrl],
+      ["rules", rules],
+    ]),
+  );
 
   const client = createArcClient(deployment.rpcUrl);
   const contract = { address: deployment.sealedAuction, abi: sealedAuctionAbi } as const;
@@ -97,7 +114,7 @@ async function main(): Promise<void> {
     config,
     deployment,
     rules,
-    signer: createSigner(wallet, deployment.rpcUrl),
+    signer,
     usdc,
     stake,
     enclavePublicKey: hexToBytes(enclavePublicKey),
@@ -111,9 +128,7 @@ async function main(): Promise<void> {
   process.once("SIGINT", () => stopping.abort());
   process.once("SIGTERM", () => stopping.abort());
 
-  console.log(
-    `${config.name}: listening to ${deployment.sealedAuction} on ${deployment.rpcUrl} from block ${fromBlock}`,
-  );
+  console.log(`listening from block ${fromBlock}`);
 
   // A bid is not awaited here. One auction that takes twelve model turns must not hide the next
   // one, and one auction that fails must not stop the agent bidding on anything else.
@@ -123,8 +138,8 @@ async function main(): Promise<void> {
     { signal: stopping.signal, fromBlock, pollMilliseconds: deployment.pollMilliseconds },
     (auction) => {
       console.log(`${config.name}: bidding on ${auction.auctionId}`);
-      void bidOn(supplier, auction).catch((error: Error) => {
-        console.error(`${config.name}: ${auction.auctionId}: ${error.message}`);
+      void bidOn(supplier, auction).catch((error: unknown) => {
+        console.error(`${config.name}: ${auction.auctionId}: ${describeError(error)}`);
       });
     },
   );
@@ -133,8 +148,8 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  main().catch((error: Error) => {
-    console.error(error.message);
+  main().catch((error: unknown) => {
+    console.error(describeError(error));
     process.exit(1);
   });
 }
