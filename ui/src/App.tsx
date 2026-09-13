@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import "./App.css";
 import { readConfig, short, type Config } from "./auction.ts";
 import { Bids } from "./panels/bids.tsx";
 import { Desk } from "./panels/desk.tsx";

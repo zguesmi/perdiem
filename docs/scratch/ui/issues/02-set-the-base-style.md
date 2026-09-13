@@ -1,13 +1,13 @@
 # Set the base style
 
-Status: ready-for-agent Type: task Blocked by: none
+Status: resolved Type: task Blocked by: none
 
 `ui/src/index.css` still carries what `pnpm create vite` generated: a centred 1126px `#root`, a
 `.counter` class, a `#social .button-icon` rule and a `--social-bg` token, none of which the page
 uses. `App.css` then fights it with its own width and its own left alignment.
 
-One base the later tickets build on: the tokens, the type scale and the spacing rhythm, stated
-once. The rules are in `docs/scratch/ui/spec.md`.
+One base the later tickets build on: the tokens, the type scale and the spacing rhythm, stated once.
+The rules are in `docs/scratch/ui/spec.md`.
 
 The panels look the same afterwards. Only the stray centring and the dead rules go.
 
