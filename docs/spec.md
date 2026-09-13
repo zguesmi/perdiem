@@ -85,7 +85,7 @@ regenerated fixture.
 {
   "version": 1,
   "currency": "USDC",
-  "maxPrice": 5200000,
+  "maxPrice": 6000000,
   "nights": 2,
   "hardRequirements": {
     "city": "Paris",
@@ -95,8 +95,8 @@ regenerated fixture.
     "roomType": "double",
     "numberOfRooms": 1
   },
-  "tradeDown": { "stars": 3, "requiredDiscountPercentage": 30 },
-  "preferences": { "refundable": 500000, "breakfastIncluded": 400000 }
+  "tradeDown": { "stars": 3, "requiredDiscountPercentage": 60 },
+  "preferences": { "refundable": 2000000, "breakfastIncluded": 1000000 }
 }
 ```
 
@@ -122,8 +122,8 @@ buyer and the deadlines.
 
 The Payout Cap is `maxPrice` rounded up to the next whole bucket, set by `PAYOUT_CAP_BUCKET`,
 because `transferFrom` is public and an exact cap would publish the ceiling. Strictly up, so a
-`maxPrice` on a boundary is padded to the next bucket. Demo: bucket 2.5, maximum price 5.2, Payout
-Cap 7.5, Payout 4.4, refund 3.1.
+`maxPrice` on a boundary is padded to the next bucket. Demo: bucket 2.5, maximum price 6, Payout Cap
+7.5, Payout 6, refund 1.5.
 
 The bucket is what the cap leaks: which band `maxPrice` falls in, and nothing sharper. A cap derived
 by adding a fixed pad would leak it exactly. The name is deliberate: the cap bounds the Payout and
@@ -361,29 +361,32 @@ which is the same arrangement it has when it books for itself.
 
 ### The demo table
 
-One double room, two nights. Payout Cap 7.5, maximum price 5.2, `refundable` 0.5,
-`breakfastIncluded` 0.4. USDC here for reading; the test carries the same figures in minor units.
+One double room, two nights. Payout Cap 7.5, maximum price 6, `refundable` 2, `breakfastIncluded` 1.
+USDC here for reading; the test carries the same figures in minor units.
 
-| Bid | Stars | Price | Refundable | Breakfast | Result                                                                                 |
-| --- | ----- | ----- | ---------- | --------- | -------------------------------------------------------------------------------------- |
-| A   | 3     | 3.3   | yes        | no        | Ineligible. 3.3 is 17.5% under the cheapest four-star bid; the Trade-Down asks for 30% |
-| B   | 4     | 4.0   | no         | no        | Score 1.2                                                                              |
-| C   | 4     | 4.4   | yes        | yes       | Score 0.8 + 0.5 + 0.4 = **1.7. Wins**                                                  |
+| Bid | Stars | Price | Refundable | Breakfast | Result                                                                             |
+| --- | ----- | ----- | ---------- | --------- | ---------------------------------------------------------------------------------- |
+| A   | 3     | 2     | yes        | no        | Ineligible. 2 is 50% under the cheapest four-star bid; the Trade-Down asks for 60% |
+| B   | 4     | 4     | no         | no        | Score 2                                                                            |
+| C   | 4     | 6     | yes        | yes       | Score 0 + 2 + 1 = **3. Wins**                                                      |
 
-Payout 4.4, refund 3.1. All three Stakes come back at settlement. This table is a test in
-`workflow-cre/`.
+Payout 6, refund 1.5. All three Stakes come back at settlement.
+
+The same three bids against a Policy whose Trade-Down asks for 40%: A is Eligible, scores 4 + 2 = 6
+and wins at 2, so the Payout is 2 and the refund 5.5. One number in the private Policy moves the
+payout from the dearest bid to the cheapest one. Both tables are tests in `workflow-cre/`.
 
 ### Every USDC in and out
 
 Nine USDC enters escrow: the 7.5 Payout Cap and three 0.5 Stakes. Every terminal path returns
 exactly that, and each row is a contract test.
 
-| Path                                         | Out                               |
-| -------------------------------------------- | --------------------------------- |
-| Winner and booking                           | 4.4 winner, 3.1 buyer, 1.5 Stakes |
-| No Eligible bid, or the booking failed       | 7.5 buyer, 1.5 Stakes             |
-| Timeout from `Bidding` or `Settling`         | 7.5 buyer, 1.5 Stakes             |
-| No commit before `bidDeadline`, then timeout | 7.5 buyer, nothing else entered   |
+| Path                                         | Out                             |
+| -------------------------------------------- | ------------------------------- |
+| Winner and booking                           | 6 winner, 1.5 buyer, 1.5 Stakes |
+| No Eligible bid, or the booking failed       | 7.5 buyer, 1.5 Stakes           |
+| Timeout from `Bidding` or `Settling`         | 7.5 buyer, 1.5 Stakes           |
+| No commit before `bidDeadline`, then timeout | 7.5 buyer, nothing else entered |
 
 ## Contract
 
@@ -520,9 +523,9 @@ starts it with one sentence of business rules, and the model reads the auction t
 rules, and submits one Bid. See `docs/adr/0007-supplier-agents-decide-with-a-model.md`.
 
 ```
-You sell 3-star rooms in Paris. Room price is 3.3 USDC for 1 or 2 nights,
-2.8 for 3 nights or more. In winter all prices drop to 2.4. Refundable,
-no breakfast. Bid on requests.
+You sell 4-star rooms in Paris. Room price is 2 USDC a night for 1 or 2
+nights, 1 a night for 3 nights or more. In winter all prices drop to 1 a
+night. Not refundable, no breakfast. Bid on requests.
 ```
 
 The model derives two things from the auction rather than the prompt: nights from

@@ -15,9 +15,13 @@ Three supplier agents bid blind. The enclave opens the policy, scores the bids, 
 against that supplier's own API, and reports the winner, the payout and the booking id. The contract
 pays the winner, refunds the buyer and returns every stake.
 
-The cheapest bid loses. It asks 3.3 USDC, which is 17.5% under the cheapest four-star bid, and the
-trade-down rule wants 30%. The winner charges 4.4 against a 4.0 rival, because the private policy
-pays 0.5 for a refundable rate and 0.4 for breakfast. Nobody outside the enclave learns why.
+The cheapest bid loses. It asks 2 USDC, which is 50% under the cheapest four-star bid, and the
+trade-down rule wants 60%. The winner charges 6 against a 4 rival, because the private policy pays 2
+for a refundable rate and 1 for breakfast. Nobody outside the enclave learns why.
+
+The same three bids, one number changed in the policy, and the payout moves. Ask for a 40%
+trade-down instead of 60% and the two-USDC three-star bid becomes eligible and wins outright. The
+bids do not change; the private rule does.
 
 ## The buyer's money sits behind a spend policy
 

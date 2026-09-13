@@ -227,6 +227,11 @@ code,
   width: 100%;
 }
 
+/* Once an auction is running the box is out of the way until the buyer writes the next request. */
+.compose textarea.compact {
+  min-height: 0;
+}
+
 .compose textarea:focus {
   border-color: var(--accent);
   outline: 2px solid var(--accent-bg);

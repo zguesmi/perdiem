@@ -31,7 +31,7 @@ import { referencePolicy } from "../shared/reference-policy.ts";
 import { sealPolicy } from "../shared/sealed-policy.ts";
 
 /**
- * USDC the buyer locks, in minor units. It is padded above the policy's maximum price of 5.2, so
+ * USDC the buyer locks, in minor units. It is padded above the policy's maximum price of 6, so
  * that the public `transferFrom` does not publish the ceiling.
  */
 const PAYOUT_CAP = 7_500_000n;

@@ -35,9 +35,9 @@ const auction: AuctionTerms = {
 
 /** What the demo table in `docs/spec.md` holds. */
 const EXPECTED: Record<string, number> = {
-  "hotel-astoria-agent": 3_300_000,
+  "hotel-astoria-agent": 2_000_000,
   "victoria-palace-agent": 4_000_000,
-  "dame-des-arts-agent": 4_400_000,
+  "dame-des-arts-agent": 6_000_000,
 };
 
 const ENCLAVE_KEY = new Uint8Array(32).fill(7);

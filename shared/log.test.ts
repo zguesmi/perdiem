@@ -79,7 +79,7 @@ test("indents a group under its own label row", () => {
 
 test("takes an agent's role from the opening clause of its prompt", () => {
   assert.equal(
-    role("You sell 3-star rooms in Paris. Room price is 3.3 USDC."),
+    role("You sell 3-star rooms in Paris. Room price is 1 USDC a night."),
     "You sell 3-star rooms in Paris...",
   );
   assert.equal(role("You are a travel desk:\nrules follow"), "You are a travel desk...");
