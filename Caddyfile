@@ -4,12 +4,13 @@
 # `handle_path` strips the prefix, so the services behind it keep the paths they answer on a
 # laptop: `/relay/auctions/…` reaches the relay as `/auctions/…`.
 #
-# `ACME_CA` defaults to Let's Encrypt production. Set it to the staging endpoint while the routing
-# is being proven: `vps.ovh.ca` is not on the Public Suffix List, so its issuance limit is shared
-# with every other OVH customer on that suffix.
+# `ACME_CA` always carries a value, because an empty one is a parse error rather than a default.
+# Compose falls back to Let's Encrypt production when `.env` leaves it empty. Set it to the staging
+# endpoint while the routing is being proven: `vps.ovh.ca` is not on the Public Suffix List, so its
+# issuance limit is shared with every other OVH customer on that suffix.
 
 {
-	acme_ca {$ACME_CA:https://acme-v02.api.letsencrypt.org/directory}
+	acme_ca {$ACME_CA}
 }
 
 {$PUBLIC_HOST} {
