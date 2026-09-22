@@ -4,6 +4,15 @@ import type { Config } from "./auction.ts";
 import { confirmPolicy, parseIntent, type Draft } from "./purchaser.ts";
 
 /**
+ * What the box starts with, so a buyer opens an auction without writing anything. It carries every
+ * number the policy needs: the stay, the ceiling, both preferences and the trade-down.
+ */
+const EXAMPLE_INTENT =
+  "Two nights in Paris, 12 to 14 October 2026. One double room, 4 stars or better, " +
+  "at most 6 USDC for the whole stay. Free cancellation is worth 2 USDC to me and " +
+  "breakfast 1 USDC. Take 3 stars only if it is at least 60% cheaper than the best 4-star bid.";
+
+/**
  * One sentence in, a funded auction out.
  *
  * Two steps and not one, because the policy the service hashed is the policy the buyer read. The
@@ -14,7 +23,7 @@ import { confirmPolicy, parseIntent, type Draft } from "./purchaser.ts";
  * can read back what they approved, and the chain holds nothing but its hash.
  */
 export function Request({ config }: { config: Config }) {
-  const [intent, setIntent] = useState("");
+  const [intent, setIntent] = useState(EXAMPLE_INTENT);
   const [draft, setDraft] = useState<Draft>();
   const [confirmed, setConfirmed] = useState<string>();
   const [busy, setBusy] = useState(false);

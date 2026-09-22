@@ -15,7 +15,7 @@ import {
   type Following,
   type StepKey,
 } from "./steps.ts";
-import { useAuction } from "./use-auction.ts";
+import { useAuction, useBuyerBalance } from "./use-auction.ts";
 
 /** Read once, at import. Misconfiguration is shown rather than thrown: a blank page names nothing. */
 const configuration = ((): { config?: Config; error?: string } => {
@@ -41,6 +41,8 @@ export default function App() {
   const { config } = configuration;
   const { auction, error: readError } = useAuction(config);
   const error = configuration.error ?? readError;
+  const desk = auction?.buyer ?? config?.buyer;
+  const deskBalance = useBuyerBalance(config, auction?.buyer);
 
   const [following, setFollowing] = useState<Following>({ expanded: true });
   const [click, setClick] = useState<{ at?: StepKey; key: StepKey }>();
@@ -91,11 +93,9 @@ export default function App() {
             <article className="card stat">
               <div className="eyebrow">Travel desk wallet</div>
               <div className="value">
-                <Usdc amount={auction ? deskBalance(auction) : undefined} />
+                <Usdc amount={deskBalance === undefined ? undefined : usdcAmount(deskBalance)} />
               </div>
-              <div className="sub">
-                Organization wallet{auction && ` · ${shorter(auction.buyer)}`}
-              </div>
+              <div className="sub">Organization wallet{desk && ` · ${shorter(desk)}`}</div>
             </article>
             <article className="card stat">
               <div className="eyebrow">Maximum stay budget</div>
@@ -183,11 +183,6 @@ function Usdc({ amount }: { amount?: string }) {
 
 function expand(expanded: boolean): (previous: Following) => Following {
   return (previous) => ({ ...previous, expanded });
-}
-
-function deskBalance(auction: AuctionView): string | undefined {
-  const held = auction.balances.get(auction.buyer.toLowerCase());
-  return held === undefined ? undefined : usdcAmount(held);
 }
 
 /** The booking record, once per booking id. It never changes, so one read answers every poll. */

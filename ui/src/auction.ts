@@ -79,6 +79,8 @@ export type Settlement = {
 export type Config = {
   rpcUrl: string;
   sealedAuction: Address;
+  /** The wallet the travel desk funds from, so its balance is readable before any auction exists. */
+  buyer?: Address;
   relayUrl: string;
   purchaserUrl: string;
   /** The largest payout cap the spend policy will sign. A larger request is refused unsigned. */
@@ -111,6 +113,9 @@ export function readConfig(env: Record<string, string | undefined>): Config {
     // Served by the page's own origin and forwarded to the node. See `ui/vite.config.ts`.
     rpcUrl: "/rpc",
     sealedAuction: required("VITE_SEALED_AUCTION_ADDRESS") as Address,
+    // Optional: an auction names its own buyer, and this only covers the page opened before one
+    // exists. A value that disagrees with the auction loses to the auction.
+    buyer: env.VITE_BUYER_ADDRESS as Address | undefined,
     relayUrl: required("VITE_RELAY_URL").replace(/\/$/, ""),
     purchaserUrl: required("VITE_PURCHASER_URL").replace(/\/$/, ""),
     maxPayoutCap: BigInt(required("VITE_MAX_PAYOUT_CAP")),
@@ -318,6 +323,33 @@ export function formatUsdc(minorUnits: bigint): string {
 /** The figure alone, for the places that set the unit in its own smaller type. */
 export function usdcAmount(minorUnits: bigint): string {
   return formatUnits(minorUnits, USDC_DECIMALS);
+}
+
+/** The escrow token, read from the contract: it is immutable there, so one read answers every poll. */
+export function readUsdc(client: PublicClient, config: Config): Promise<Address> {
+  return client.readContract({
+    address: config.sealedAuction,
+    abi: sealedAuctionAbi,
+    functionName: "usdc",
+  });
+}
+
+/** One `balanceOf`, or `undefined` when the chain would not answer for it. */
+export async function readBalance(
+  client: PublicClient,
+  usdc: Address,
+  address: Address,
+): Promise<bigint | undefined> {
+  try {
+    return await client.readContract({
+      address: usdc,
+      abi: usdcAbi,
+      functionName: "balanceOf",
+      args: [address],
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 /** Fixed for the life of the deployment, so the page reads it once rather than on every poll. */
