@@ -35,7 +35,7 @@ pnpm --filter @perdiem/purchaser dev   # the buyer's service, 8788
 pnpm --filter @perdiem/ui dev          # the page, 5173
 ```
 
-## The whole stack in containers
+## Docker
 
 ```sh
 cp .env.localhost.example .env.localhost   # fill in ANTHROPIC_API_KEY and the booking credentials
