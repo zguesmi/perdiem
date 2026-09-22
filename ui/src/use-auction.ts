@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
+import type { Address } from "viem";
 
-import { createClient, readAuction, type AuctionView, type Config } from "./auction.ts";
+import {
+  createClient,
+  readAuction,
+  readBalance,
+  readUsdc,
+  type AuctionView,
+  type Config,
+} from "./auction.ts";
 
 /**
  * How long the page waits between two reads. Arc mines twice a second, and one read costs eleven
@@ -60,4 +68,53 @@ export function useAuction(config?: Config): {
   }, [config]);
 
   return { auction, error };
+}
+
+/**
+ * The travel desk's USDC, polled on its own.
+ *
+ * Apart from `useAuction` because the desk holds a balance before it opens anything: the auction
+ * read answers `null` until an auction exists, and one whole read has to land before it answers at
+ * all. Both leave the headline figure blank on a page that could already show it.
+ *
+ * `buyer` is the address an auction named, which wins over the configured one: the auction is what
+ * the chain settled on, and configuration is only what the page was told.
+ */
+export function useBuyerBalance(config?: Config, buyer?: Address): bigint | undefined {
+  const [balance, setBalance] = useState<bigint>();
+  const address = buyer ?? config?.buyer;
+
+  useEffect(() => {
+    if (!config || !address) {
+      return;
+    }
+    const client = createClient(config);
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const poll = async (): Promise<void> => {
+      try {
+        const usdc = await readUsdc(client, config);
+        const read = await readBalance(client, usdc, address);
+        // A read the chain would not answer keeps the figure the last one showed.
+        if (!stopped && read !== undefined) {
+          setBalance(read);
+        }
+      } catch {
+        // The balance is one figure on a page that reads the rest for itself. A failure here shows
+        // the last figure rather than an error the auction panels would contradict.
+      }
+      if (!stopped) {
+        timer = setTimeout(() => void poll(), POLL_MILLISECONDS);
+      }
+    };
+
+    void poll();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [config, address]);
+
+  return balance;
 }
